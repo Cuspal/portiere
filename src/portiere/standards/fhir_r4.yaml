@@ -1,0 +1,481 @@
+# FHIR R4 — Standard Definition
+# Source: HL7 FHIR R4 (v4.0.1) specification
+# This file can be replaced with FHIR R5 or newer versions without code changes.
+
+name: "fhir_r4"
+version: "R4"
+standard_type: "resource"
+organization: "HL7"
+description: "Fast Healthcare Interoperability Resources Release 4"
+
+vocabulary_systems:
+  SNOMED: "http://snomed.info/sct"
+  LOINC: "http://loinc.org"
+  RxNorm: "http://www.nlm.nih.gov/research/umls/rxnorm"
+  ICD10CM: "http://hl7.org/fhir/sid/icd-10-cm"
+  ICD10: "http://hl7.org/fhir/sid/icd-10"
+  ICD9CM: "http://hl7.org/fhir/sid/icd-9-cm"
+  CPT4: "http://www.ama-assn.org/go/cpt"
+  HCPCS: "http://www.cms.gov/Medicare/Coding/HCPCSReleaseCodeSets"
+  NDC: "http://hl7.org/fhir/sid/ndc"
+  ATC: "http://www.whocc.no/atc"
+  CVX: "http://hl7.org/fhir/sid/cvx"
+  UCUM: "http://unitsofmeasure.org"
+
+entities:
+  Patient:
+    description: "Demographics and administrative information about a patient"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique patient identifier"
+      identifier:
+        type: "Identifier[]"
+        required: false
+        description: "Business identifier for the patient (MRN, SSN, etc.)"
+      active:
+        type: "boolean"
+        required: false
+        description: "Whether patient record is in active use (true/false)"
+      name:
+        type: "HumanName[]"
+        required: false
+        description: "Patient's full legal name"
+      telecom:
+        type: "ContactPoint[]"
+        required: false
+        description: "Contact information (phone, email)"
+      gender:
+        type: "code"
+        required: true
+        description: "Administrative gender (male, female, other, unknown)"
+        valueset: "http://hl7.org/fhir/ValueSet/administrative-gender"
+      birthDate:
+        type: "date"
+        required: false
+        description: "Patient date of birth in YYYY-MM-DD format"
+      address:
+        type: "Address[]"
+        required: false
+        description: "Patient's physical address"
+      maritalStatus:
+        type: "CodeableConcept"
+        required: false
+        description: "Marital status code"
+      contact:
+        type: "BackboneElement[]"
+        required: false
+        description: "Emergency contact information"
+    source_patterns:
+      patient_id: "id"
+      subject_id: "id"
+      person_id: "id"
+      mrn: "identifier"
+      medical_record_number: "identifier"
+      first_name: "name"
+      last_name: "name"
+      patient_name: "name"
+      given_name: "name"
+      family_name: "name"
+      phone: "telecom"
+      email: "telecom"
+      gender: "gender"
+      sex: "gender"
+      birth_date: "birthDate"
+      date_of_birth: "birthDate"
+      dob: "birthDate"
+      address: "address"
+      city: "address"
+      state: "address"
+      zip_code: "address"
+    embedding_descriptions:
+      id: "Patient: unique patient identifier"
+      identifier: "Patient: business identifier for the patient (MRN, SSN, etc.)"
+      active: "Patient: whether patient record is in active use (true/false)"
+      name: "Patient: patient's full legal name"
+      telecom: "Patient: contact information (phone, email)"
+      gender: "Patient: administrative gender (male, female, other, unknown)"
+      birthDate: "Patient: patient date of birth"
+      address: "Patient: patient's physical address"
+      maritalStatus: "Patient: marital status code"
+      contact: "Patient: emergency contact information"
+
+  Encounter:
+    description: "An interaction between a patient and healthcare provider"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique encounter identifier"
+      identifier:
+        type: "Identifier[]"
+        required: false
+        description: "Business identifier for the encounter"
+      status:
+        type: "code"
+        required: true
+        description: "planned | arrived | in-progress | finished | cancelled"
+        valueset: "http://hl7.org/fhir/ValueSet/encounter-status"
+      class:
+        type: "Coding"
+        required: true
+        description: "Classification of encounter (inpatient, outpatient, emergency)"
+      type:
+        type: "CodeableConcept[]"
+        required: false
+        description: "Specific type of encounter"
+      subject:
+        type: "Reference(Patient)"
+        required: true
+        description: "Reference to Patient"
+      period:
+        type: "Period"
+        required: false
+        description: "Start and end time of encounter"
+      serviceProvider:
+        type: "Reference(Organization)"
+        required: false
+        description: "Organization providing the encounter"
+    source_patterns:
+      visit_id: "id"
+      encounter_id: "id"
+      hadm_id: "id"
+      admission_date: "period"
+      discharge_date: "period"
+      visit_type: "class"
+      admission_type: "class"
+      encounter_type: "type"
+      facility: "serviceProvider"
+      department: "serviceProvider"
+    embedding_descriptions:
+      id: "Encounter: unique encounter identifier"
+      identifier: "Encounter: business identifier for the encounter"
+      status: "Encounter: encounter status (planned, arrived, in-progress, finished)"
+      class: "Encounter: classification of encounter (inpatient, outpatient, emergency)"
+      type: "Encounter: specific type of encounter"
+      subject: "Encounter: reference to Patient"
+      period: "Encounter: start and end time of encounter"
+      serviceProvider: "Encounter: organization providing the encounter"
+
+  Condition:
+    description: "A clinical condition, problem, or diagnosis"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique condition identifier"
+      identifier:
+        type: "Identifier[]"
+        required: false
+        description: "Business identifier for the condition"
+      clinicalStatus:
+        type: "CodeableConcept"
+        required: false
+        description: "active | recurrence | relapse | inactive | remission | resolved"
+      verificationStatus:
+        type: "CodeableConcept"
+        required: false
+        description: "unconfirmed | provisional | differential | confirmed | refuted"
+      code:
+        type: "CodeableConcept"
+        required: true
+        description: "Diagnosis or problem code (ICD-10, SNOMED CT)"
+      subject:
+        type: "Reference(Patient)"
+        required: true
+        description: "Reference to Patient who has the condition"
+      onsetDateTime:
+        type: "dateTime"
+        required: false
+        description: "When condition first manifested"
+      recordedDate:
+        type: "dateTime"
+        required: false
+        description: "Date when condition was first recorded"
+    source_patterns:
+      diagnosis_code: "code"
+      icd_code: "code"
+      condition: "code"
+      diagnosis_description: "code"
+      diagnosis_date: "onsetDateTime"
+      condition_start: "onsetDateTime"
+    embedding_descriptions:
+      id: "Condition: unique condition identifier"
+      identifier: "Condition: business identifier for the condition"
+      clinicalStatus: "Condition: clinical status (active, inactive, resolved)"
+      verificationStatus: "Condition: verification status (confirmed, provisional)"
+      code: "Condition: diagnosis or problem code (ICD-10, SNOMED CT)"
+      subject: "Condition: reference to Patient who has the condition"
+      onsetDateTime: "Condition: when condition first manifested"
+      recordedDate: "Condition: date when condition was first recorded"
+
+  Observation:
+    description: "Measurements, lab results, and clinical observations"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique observation identifier"
+      identifier:
+        type: "Identifier[]"
+        required: false
+        description: "Business identifier for the observation"
+      status:
+        type: "code"
+        required: true
+        description: "registered | preliminary | final | amended | corrected | cancelled"
+        valueset: "http://hl7.org/fhir/ValueSet/observation-status"
+      category:
+        type: "CodeableConcept[]"
+        required: false
+        description: "Classification of observation type (vital-signs, laboratory, etc.)"
+      code:
+        type: "CodeableConcept"
+        required: true
+        description: "Type of observation (LOINC, SNOMED CT)"
+      subject:
+        type: "Reference(Patient)"
+        required: true
+        description: "Reference to Patient who is subject of observation"
+      effectiveDateTime:
+        type: "dateTime"
+        required: false
+        description: "When observation was made or collected"
+      valueQuantity:
+        type: "Quantity"
+        required: false
+        description: "Numeric result value with unit"
+      valueCodeableConcept:
+        type: "CodeableConcept"
+        required: false
+        description: "Coded result value"
+      valueString:
+        type: "string"
+        required: false
+        description: "Text result value"
+    source_patterns:
+      lab_code: "code"
+      lab_name: "code"
+      test_code: "code"
+      test_name: "code"
+      lab_value: "valueQuantity"
+      valuenum: "valueQuantity"
+      result_value: "valueQuantity"
+      lab_date: "effectiveDateTime"
+      charttime: "effectiveDateTime"
+      collection_date: "effectiveDateTime"
+      lab_unit: "valueQuantity"
+      valueuom: "valueQuantity"
+      result_unit: "valueQuantity"
+      result_flag: "valueCodeableConcept"
+    embedding_descriptions:
+      id: "Observation: unique observation identifier"
+      identifier: "Observation: business identifier for the observation"
+      status: "Observation: observation status (registered, preliminary, final)"
+      category: "Observation: classification (vital-signs, laboratory)"
+      code: "Observation: type of observation (LOINC, SNOMED CT)"
+      subject: "Observation: reference to Patient"
+      effectiveDateTime: "Observation: when observation was made or collected"
+      valueQuantity: "Observation: numeric result value with unit"
+      valueCodeableConcept: "Observation: coded result value"
+      valueString: "Observation: text result value"
+
+  MedicationRequest:
+    description: "An order or request for a medication"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique medication request identifier"
+      identifier:
+        type: "Identifier[]"
+        required: false
+        description: "Business identifier for the prescription"
+      status:
+        type: "code"
+        required: true
+        description: "active | on-hold | cancelled | completed | stopped"
+        valueset: "http://hl7.org/fhir/ValueSet/medicationrequest-status"
+      intent:
+        type: "code"
+        required: true
+        description: "proposal | plan | order | instance-order"
+      medicationCodeableConcept:
+        type: "CodeableConcept"
+        required: true
+        description: "Medication code (RxNorm, SNOMED CT)"
+      subject:
+        type: "Reference(Patient)"
+        required: true
+        description: "Reference to Patient receiving medication"
+      authoredOn:
+        type: "dateTime"
+        required: false
+        description: "When prescription was written"
+      dosageInstruction:
+        type: "Dosage[]"
+        required: false
+        description: "How medication should be taken"
+    source_patterns:
+      medication: "medicationCodeableConcept"
+      drug_code: "medicationCodeableConcept"
+      drug_name: "medicationCodeableConcept"
+      prescription_date: "authoredOn"
+      drug_start: "authoredOn"
+      dose: "dosageInstruction"
+      quantity: "dosageInstruction"
+    embedding_descriptions:
+      id: "MedicationRequest: unique medication request identifier"
+      identifier: "MedicationRequest: business identifier for the prescription"
+      status: "MedicationRequest: prescription status (active, cancelled, completed)"
+      intent: "MedicationRequest: request intent (proposal, plan, order)"
+      medicationCodeableConcept: "MedicationRequest: medication code (RxNorm, SNOMED CT)"
+      subject: "MedicationRequest: reference to Patient receiving medication"
+      authoredOn: "MedicationRequest: when prescription was written"
+      dosageInstruction: "MedicationRequest: how medication should be taken"
+
+  Procedure:
+    description: "An action performed on a patient"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique procedure identifier"
+      identifier:
+        type: "Identifier[]"
+        required: false
+        description: "Business identifier for the procedure"
+      status:
+        type: "code"
+        required: true
+        description: "preparation | in-progress | not-done | stopped | completed"
+        valueset: "http://hl7.org/fhir/ValueSet/event-status"
+      code:
+        type: "CodeableConcept"
+        required: true
+        description: "Procedure code (CPT, SNOMED CT)"
+      subject:
+        type: "Reference(Patient)"
+        required: true
+        description: "Reference to Patient who underwent procedure"
+      performedDateTime:
+        type: "dateTime"
+        required: false
+        description: "When procedure was performed"
+    source_patterns:
+      procedure_code: "code"
+      cpt_code: "code"
+      procedure_date: "performedDateTime"
+    embedding_descriptions:
+      id: "Procedure: unique procedure identifier"
+      identifier: "Procedure: business identifier for the procedure"
+      status: "Procedure: procedure status (preparation, in-progress, completed)"
+      code: "Procedure: procedure code (CPT, SNOMED CT)"
+      subject: "Procedure: reference to Patient who underwent procedure"
+      performedDateTime: "Procedure: when procedure was performed"
+
+  AllergyIntolerance:
+    description: "Allergy or intolerance information about a patient"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique allergy identifier"
+      identifier:
+        type: "Identifier[]"
+        required: false
+        description: "Business identifier for the allergy"
+      clinicalStatus:
+        type: "CodeableConcept"
+        required: false
+        description: "active | inactive | resolved"
+      verificationStatus:
+        type: "CodeableConcept"
+        required: false
+        description: "unconfirmed | confirmed | refuted"
+      code:
+        type: "CodeableConcept"
+        required: false
+        description: "Code for allergy or intolerance (SNOMED CT, RxNorm)"
+      patient:
+        type: "Reference(Patient)"
+        required: true
+        description: "Reference to Patient with the allergy"
+      recordedDate:
+        type: "dateTime"
+        required: false
+        description: "When allergy was first recorded"
+    source_patterns:
+      allergy_code: "code"
+      allergy_type: "code"
+      allergy_description: "code"
+    embedding_descriptions:
+      id: "AllergyIntolerance: unique allergy identifier"
+      identifier: "AllergyIntolerance: business identifier for the allergy"
+      clinicalStatus: "AllergyIntolerance: clinical status (active, inactive, resolved)"
+      verificationStatus: "AllergyIntolerance: verification status (confirmed, refuted)"
+      code: "AllergyIntolerance: code for allergy or intolerance (SNOMED CT, RxNorm)"
+      patient: "AllergyIntolerance: reference to Patient with the allergy"
+      recordedDate: "AllergyIntolerance: when allergy was first recorded"
+
+  DiagnosticReport:
+    description: "The findings and interpretation of diagnostic tests"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique diagnostic report identifier"
+      identifier:
+        type: "Identifier[]"
+        required: false
+        description: "Business identifier for the report"
+      status:
+        type: "code"
+        required: true
+        description: "registered | partial | preliminary | final | amended"
+        valueset: "http://hl7.org/fhir/ValueSet/diagnostic-report-status"
+      category:
+        type: "CodeableConcept[]"
+        required: false
+        description: "Service category (LAB, RAD, etc.)"
+      code:
+        type: "CodeableConcept"
+        required: true
+        description: "Code for the diagnostic report (LOINC)"
+      subject:
+        type: "Reference(Patient)"
+        required: true
+        description: "Reference to Patient"
+      effectiveDateTime:
+        type: "dateTime"
+        required: false
+        description: "When diagnostic was performed"
+      result:
+        type: "Reference(Observation)[]"
+        required: false
+        description: "References to Observation resources"
+    embedding_descriptions:
+      id: "DiagnosticReport: unique diagnostic report identifier"
+      identifier: "DiagnosticReport: business identifier for the report"
+      status: "DiagnosticReport: report status (registered, preliminary, final)"
+      category: "DiagnosticReport: service category (LAB, RAD, etc.)"
+      code: "DiagnosticReport: code for the diagnostic report (LOINC)"
+      subject: "DiagnosticReport: reference to Patient"
+      effectiveDateTime: "DiagnosticReport: when diagnostic was performed"
+      result: "DiagnosticReport: references to Observation resources"
+
+# FHIR required fields per resource
+required_fields:
+  Patient: ["id", "gender"]
+  Condition: ["id", "code", "subject"]
+  Observation: ["id", "status", "code", "subject"]
+  MedicationRequest: ["id", "status", "intent", "medicationCodeableConcept", "subject"]
+  Procedure: ["id", "status", "code", "subject"]
+  Encounter: ["id", "status", "class", "subject"]
+  AllergyIntolerance: ["id", "patient"]
+  DiagnosticReport: ["id", "status", "code", "subject"]
+
+# Default fallback resource for unmapped columns
+default_entity: "Observation"
+default_field: "valueString"

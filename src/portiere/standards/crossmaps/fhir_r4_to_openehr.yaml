@@ -1,0 +1,157 @@
+# Crossmap: FHIR R4 → OpenEHR 1.0.4
+# Maps FHIR resources to OpenEHR archetypes.
+
+source: "fhir_r4"
+target: "openehr_1.0.4"
+
+entity_map:
+  Patient: "demographics.person"
+  Encounter: "composition.encounter"
+  Condition: "evaluation.problem_diagnosis"
+  MedicationRequest: "instruction.medication_order"
+  Observation: "observation.laboratory_test_result"
+  Procedure: "action.procedure"
+
+field_map:
+  # ── Patient → demographics.person ────────────────────────
+  Patient.id:
+    target: "demographics.person.uid"
+    transform: "str"
+  Patient.name:
+    target: "demographics.person.name"
+    transform: "str"
+  Patient.birthDate:
+    target: "demographics.person.date_of_birth"
+    transform: "passthrough"
+  Patient.gender:
+    target: "demographics.person.sex"
+    transform: "fhir_to_openehr_sex"
+  Patient.address:
+    target: "demographics.person.address"
+    transform: "str"
+  Patient.telecom:
+    target: "demographics.person.telecom"
+    transform: "str"
+
+  # ── Encounter → composition.encounter ────────────────────
+  Encounter.id:
+    target: "composition.encounter.uid"
+    transform: "str"
+  Encounter.period:
+    target: "composition.encounter.context_start_time"
+    transform: "extract_period_start"
+  Encounter.class:
+    target: "composition.encounter.context_setting"
+    transform: "fhir_encounter_class"
+  Encounter.serviceProvider:
+    target: "composition.encounter.context_health_care_facility"
+    transform: "str"
+
+  # ── Condition → evaluation.problem_diagnosis ─────────────
+  Condition.code:
+    target: "evaluation.problem_diagnosis.problem_diagnosis_name"
+    transform: "dv_coded_text"
+    config:
+      terminology_id: "SNOMED-CT"
+  Condition.onsetDateTime:
+    target: "evaluation.problem_diagnosis.date_time_of_onset"
+    transform: "passthrough"
+  Condition.verificationStatus:
+    target: "evaluation.problem_diagnosis.diagnostic_certainty"
+    transform: "fhir_verification_to_certainty"
+  Condition.clinicalStatus:
+    target: "evaluation.problem_diagnosis.resolution_date"
+    transform: "passthrough"
+
+  # ── MedicationRequest → instruction.medication_order ─────
+  MedicationRequest.medicationCodeableConcept:
+    target: "instruction.medication_order.medication_item"
+    transform: "dv_coded_text"
+    config:
+      terminology_id: "RxNorm"
+  MedicationRequest.authoredOn:
+    target: "instruction.medication_order.order_start_date"
+    transform: "passthrough"
+  MedicationRequest.dosageInstruction:
+    target: "instruction.medication_order.dose_amount"
+    transform: "str"
+  MedicationRequest.status:
+    target: "instruction.medication_order.clinical_indication"
+    transform: "str"
+
+  # ── Observation → observation.laboratory_test_result ──────
+  Observation.code:
+    target: "observation.laboratory_test_result.test_name"
+    transform: "dv_coded_text"
+    config:
+      terminology_id: "LOINC"
+  Observation.effectiveDateTime:
+    target: "observation.laboratory_test_result.test_timestamp"
+    transform: "passthrough"
+  Observation.valueQuantity:
+    target: "observation.laboratory_test_result.result_value"
+    transform: "dv_quantity"
+    config:
+      unit_field: "unit"
+  Observation.valueString:
+    target: "observation.laboratory_test_result.result_value"
+    transform: "str"
+  Observation.status:
+    target: "observation.laboratory_test_result.overall_test_status"
+    transform: "fhir_to_openehr_status"
+
+  # ── Procedure → action.procedure ─────────────────────────
+  Procedure.code:
+    target: "action.procedure.procedure_name"
+    transform: "dv_coded_text"
+    config:
+      terminology_id: "SNOMED-CT"
+  Procedure.performedDateTime:
+    target: "action.procedure.datetime_procedure_performed"
+    transform: "passthrough"
+
+transforms:
+  fhir_to_openehr_sex:
+    type: "value_map"
+    mapping:
+      male: "Male"
+      female: "Female"
+      other: "Indeterminate"
+      unknown: "Not known"
+    default: "Not known"
+
+  fhir_encounter_class:
+    type: "value_map"
+    mapping:
+      AMB: "ambulatory"
+      EMER: "emergency"
+      IMP: "inpatient"
+      PRENC: "pre-admission"
+      SS: "short stay"
+      HH: "home health"
+      VR: "virtual"
+    default: "other"
+
+  fhir_verification_to_certainty:
+    type: "value_map"
+    mapping:
+      confirmed: "Confirmed"
+      unconfirmed: "Suspected"
+      provisional: "Probable"
+      differential: "Suspected"
+      refuted: "Ruled out"
+    default: "Suspected"
+
+  fhir_to_openehr_status:
+    type: "value_map"
+    mapping:
+      final: "Final"
+      preliminary: "Interim"
+      registered: "Registered"
+      corrected: "Amended"
+      cancelled: "Cancelled"
+    default: "Interim"
+
+  extract_period_start:
+    type: "passthrough"
+    description: "Extract start date from FHIR Period structure"

@@ -1,0 +1,254 @@
+# Crossmap: HL7 v2.5.1 → FHIR R4
+# Maps HL7 v2 segments to FHIR resources.
+# Based on HL7 v2-to-FHIR implementation guide.
+
+source: "hl7v2_2.5.1"
+target: "fhir_r4"
+
+entity_map:
+  PID: "Patient"
+  PV1: "Encounter"
+  DG1: "Condition"
+  OBX: "Observation"
+  OBR: "DiagnosticReport"
+  RXE: "MedicationRequest"
+  AL1: "AllergyIntolerance"
+
+field_map:
+  # ── PID → Patient ────────────────────────────────────────
+  PID.patient_id:
+    target: "Patient.identifier"
+    transform: "str"
+  PID.patient_name:
+    target: "Patient.name"
+    transform: "str"
+  PID.date_of_birth:
+    target: "Patient.birthDate"
+    transform: "fhir_date"
+  PID.administrative_sex:
+    target: "Patient.gender"
+    transform: "v2_gender"
+  PID.race:
+    target: "Patient.extension"
+    transform: "passthrough"
+  PID.patient_address:
+    target: "Patient.address"
+    transform: "str"
+  PID.phone_home:
+    target: "Patient.telecom"
+    transform: "str"
+  PID.marital_status:
+    target: "Patient.maritalStatus"
+    transform: "codeable_concept"
+    config:
+      system: "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus"
+  PID.ssn:
+    target: "Patient.identifier"
+    transform: "str"
+  PID.ethnic_group:
+    target: "Patient.extension"
+    transform: "passthrough"
+  PID.patient_death_date:
+    target: "Patient.deceasedDateTime"
+    transform: "fhir_date"
+  PID.patient_death_indicator:
+    target: "Patient.deceasedBoolean"
+    transform: "bool"
+
+  # ── PV1 → Encounter ─────────────────────────────────────
+  PV1.visit_number:
+    target: "Encounter.identifier"
+    transform: "str"
+  PV1.patient_class:
+    target: "Encounter.class"
+    transform: "v2_patient_class"
+  PV1.admission_type:
+    target: "Encounter.type"
+    transform: "codeable_concept"
+    config:
+      system: "http://terminology.hl7.org/CodeSystem/v3-ActCode"
+  PV1.admit_date_time:
+    target: "Encounter.period"
+    transform: "fhir_period"
+    config:
+      start_field: "admit_date_time"
+      end_field: "discharge_date_time"
+  PV1.attending_doctor:
+    target: "Encounter.participant"
+    transform: "str"
+  PV1.hospital_service:
+    target: "Encounter.serviceType"
+    transform: "codeable_concept"
+    config:
+      system: "http://terminology.hl7.org/CodeSystem/service-type"
+  PV1.discharge_disposition:
+    target: "Encounter.hospitalization"
+    transform: "str"
+
+  # ── DG1 → Condition ─────────────────────────────────────
+  DG1.diagnosis_code:
+    target: "Condition.code"
+    transform: "codeable_concept"
+    config:
+      system: "http://hl7.org/fhir/sid/icd-10-cm"
+      display_field: "diagnosis_description"
+  DG1.diagnosis_description:
+    target: "Condition.code"
+    transform: "str"
+  DG1.diagnosis_date_time:
+    target: "Condition.onsetDateTime"
+    transform: "fhir_date"
+  DG1.diagnosis_type:
+    target: "Condition.category"
+    transform: "codeable_concept"
+    config:
+      system: "http://terminology.hl7.org/CodeSystem/condition-category"
+
+  # ── OBX → Observation ───────────────────────────────────
+  OBX.observation_identifier:
+    target: "Observation.code"
+    transform: "codeable_concept"
+    config:
+      system: "http://loinc.org"
+  OBX.observation_value:
+    target: "Observation.valueString"
+    transform: "str"
+  OBX.units:
+    target: "Observation.valueQuantity"
+    transform: "passthrough"
+  OBX.reference_range:
+    target: "Observation.referenceRange"
+    transform: "str"
+  OBX.abnormal_flags:
+    target: "Observation.interpretation"
+    transform: "codeable_concept"
+    config:
+      system: "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation"
+  OBX.date_time_of_observation:
+    target: "Observation.effectiveDateTime"
+    transform: "fhir_date"
+  OBX.observation_result_status:
+    target: "Observation.status"
+    transform: "v2_result_status"
+
+  # ── OBR → DiagnosticReport ──────────────────────────────
+  OBR.placer_order_number:
+    target: "DiagnosticReport.identifier"
+    transform: "str"
+  OBR.filler_order_number:
+    target: "DiagnosticReport.identifier"
+    transform: "str"
+  OBR.universal_service_identifier:
+    target: "DiagnosticReport.code"
+    transform: "codeable_concept"
+    config:
+      system: "http://loinc.org"
+  OBR.observation_date_time:
+    target: "DiagnosticReport.effectiveDateTime"
+    transform: "fhir_date"
+  OBR.result_status:
+    target: "DiagnosticReport.status"
+    transform: "v2_diagnostic_status"
+  OBR.ordering_provider:
+    target: "DiagnosticReport.performer"
+    transform: "str"
+
+  # ── RXE → MedicationRequest ─────────────────────────────
+  RXE.give_code:
+    target: "MedicationRequest.medicationCodeableConcept"
+    transform: "codeable_concept"
+    config:
+      system: "http://www.nlm.nih.gov/research/umls/rxnorm"
+  RXE.give_amount_minimum:
+    target: "MedicationRequest.dosageInstruction"
+    transform: "str"
+  RXE.give_route:
+    target: "MedicationRequest.dosageInstruction"
+    transform: "str"
+  RXE.prescription_number:
+    target: "MedicationRequest.identifier"
+    transform: "str"
+
+  # ── AL1 → AllergyIntolerance ────────────────────────────
+  AL1.allergen_code:
+    target: "AllergyIntolerance.code"
+    transform: "codeable_concept"
+    config:
+      system: "http://snomed.info/sct"
+  AL1.allergy_type:
+    target: "AllergyIntolerance.category"
+    transform: "v2_allergy_type"
+  AL1.allergy_severity:
+    target: "AllergyIntolerance.criticality"
+    transform: "v2_allergy_severity"
+  AL1.allergy_reaction:
+    target: "AllergyIntolerance.reaction"
+    transform: "str"
+  AL1.identification_date:
+    target: "AllergyIntolerance.recordedDate"
+    transform: "fhir_date"
+
+transforms:
+  v2_gender:
+    type: "value_map"
+    mapping:
+      M: "male"
+      F: "female"
+      O: "other"
+      U: "unknown"
+      A: "other"
+      N: "unknown"
+    default: "unknown"
+
+  v2_patient_class:
+    type: "value_map"
+    mapping:
+      I: "IMP"
+      O: "AMB"
+      E: "EMER"
+      P: "PRENC"
+    default: "AMB"
+
+  v2_result_status:
+    type: "value_map"
+    mapping:
+      F: "final"
+      P: "preliminary"
+      C: "corrected"
+      D: "cancelled"
+      R: "registered"
+      X: "cancelled"
+    default: "unknown"
+
+  v2_diagnostic_status:
+    type: "value_map"
+    mapping:
+      F: "final"
+      P: "preliminary"
+      A: "partial"
+      C: "corrected"
+      R: "registered"
+      X: "cancelled"
+    default: "unknown"
+
+  v2_allergy_type:
+    type: "value_map"
+    mapping:
+      DA: "medication"
+      FA: "food"
+      MA: "medication"
+      MC: "medication"
+      EA: "environment"
+      AA: "environment"
+      LA: "environment"
+      PA: "biologic"
+    default: "medication"
+
+  v2_allergy_severity:
+    type: "value_map"
+    mapping:
+      MI: "low"
+      MO: "low"
+      SV: "high"
+      U: "unable-to-assess"
+    default: "unable-to-assess"

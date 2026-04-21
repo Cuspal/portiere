@@ -1,0 +1,179 @@
+# Crossmap: OMOP CDM v5.4 → FHIR R4
+# Maps OMOP relational tables to FHIR resources.
+
+source: "omop_cdm_v5.4"
+target: "fhir_r4"
+
+entity_map:
+  person: "Patient"
+  visit_occurrence: "Encounter"
+  condition_occurrence: "Condition"
+  drug_exposure: "MedicationRequest"
+  measurement: "Observation"
+  procedure_occurrence: "Procedure"
+  observation: "Observation"
+
+field_map:
+  # ── person → Patient ─────────────────────────────────────
+  person.person_id:
+    target: "Patient.id"
+    transform: "str"
+  person.gender_concept_id:
+    target: "Patient.gender"
+    transform: "omop_gender"
+  person.birth_datetime:
+    target: "Patient.birthDate"
+    transform: "fhir_date"
+  person.person_source_value:
+    target: "Patient.identifier"
+    transform: "str"
+  person.race_concept_id:
+    target: "Patient.extension"
+    transform: "passthrough"
+
+  # ── visit_occurrence → Encounter ─────────────────────────
+  visit_occurrence.visit_occurrence_id:
+    target: "Encounter.id"
+    transform: "str"
+  visit_occurrence.person_id:
+    target: "Encounter.subject"
+    transform: "fhir_reference"
+    config:
+      resource_type: "Patient"
+  visit_occurrence.visit_concept_id:
+    target: "Encounter.type"
+    transform: "codeable_concept"
+    config:
+      system: "http://terminology.hl7.org/CodeSystem/v3-ActCode"
+  visit_occurrence.visit_start_date:
+    target: "Encounter.period"
+    transform: "fhir_period"
+    config:
+      start_field: "visit_start_date"
+      end_field: "visit_end_date"
+  visit_occurrence.visit_source_value:
+    target: "Encounter.identifier"
+    transform: "str"
+
+  # ── condition_occurrence → Condition ─────────────────────
+  condition_occurrence.condition_occurrence_id:
+    target: "Condition.id"
+    transform: "str"
+  condition_occurrence.person_id:
+    target: "Condition.subject"
+    transform: "fhir_reference"
+    config:
+      resource_type: "Patient"
+  condition_occurrence.condition_concept_id:
+    target: "Condition.code"
+    transform: "codeable_concept"
+    config:
+      system: "http://snomed.info/sct"
+      display_field: "condition_source_value"
+  condition_occurrence.condition_start_date:
+    target: "Condition.onsetDateTime"
+    transform: "fhir_date"
+  condition_occurrence.condition_source_value:
+    target: "Condition.identifier"
+    transform: "str"
+
+  # ── drug_exposure → MedicationRequest ────────────────────
+  drug_exposure.drug_exposure_id:
+    target: "MedicationRequest.id"
+    transform: "str"
+  drug_exposure.person_id:
+    target: "MedicationRequest.subject"
+    transform: "fhir_reference"
+    config:
+      resource_type: "Patient"
+  drug_exposure.drug_concept_id:
+    target: "MedicationRequest.medicationCodeableConcept"
+    transform: "codeable_concept"
+    config:
+      system: "http://www.nlm.nih.gov/research/umls/rxnorm"
+      display_field: "drug_source_value"
+  drug_exposure.drug_exposure_start_date:
+    target: "MedicationRequest.authoredOn"
+    transform: "fhir_date"
+  drug_exposure.drug_source_value:
+    target: "MedicationRequest.identifier"
+    transform: "str"
+
+  # ── measurement → Observation ────────────────────────────
+  measurement.measurement_id:
+    target: "Observation.id"
+    transform: "str"
+  measurement.person_id:
+    target: "Observation.subject"
+    transform: "fhir_reference"
+    config:
+      resource_type: "Patient"
+  measurement.measurement_concept_id:
+    target: "Observation.code"
+    transform: "codeable_concept"
+    config:
+      system: "http://loinc.org"
+      display_field: "measurement_source_value"
+  measurement.measurement_date:
+    target: "Observation.effectiveDateTime"
+    transform: "fhir_date"
+  measurement.value_as_number:
+    target: "Observation.valueQuantity"
+    transform: "passthrough"
+  measurement.measurement_source_value:
+    target: "Observation.identifier"
+    transform: "str"
+
+  # ── procedure_occurrence → Procedure ─────────────────────
+  procedure_occurrence.procedure_occurrence_id:
+    target: "Procedure.id"
+    transform: "str"
+  procedure_occurrence.person_id:
+    target: "Procedure.subject"
+    transform: "fhir_reference"
+    config:
+      resource_type: "Patient"
+  procedure_occurrence.procedure_concept_id:
+    target: "Procedure.code"
+    transform: "codeable_concept"
+    config:
+      system: "http://snomed.info/sct"
+      display_field: "procedure_source_value"
+  procedure_occurrence.procedure_date:
+    target: "Procedure.performedDateTime"
+    transform: "fhir_date"
+
+  # ── observation → Observation ────────────────────────────
+  observation.observation_id:
+    target: "Observation.id"
+    transform: "str"
+  observation.person_id:
+    target: "Observation.subject"
+    transform: "fhir_reference"
+    config:
+      resource_type: "Patient"
+  observation.observation_concept_id:
+    target: "Observation.code"
+    transform: "codeable_concept"
+    config:
+      system: "http://loinc.org"
+      display_field: "observation_source_value"
+  observation.observation_date:
+    target: "Observation.effectiveDateTime"
+    transform: "fhir_date"
+  observation.value_as_string:
+    target: "Observation.valueString"
+    transform: "str"
+  observation.value_as_number:
+    target: "Observation.valueQuantity"
+    transform: "passthrough"
+
+transforms:
+  omop_gender:
+    type: "value_map"
+    mapping:
+      8507: "male"
+      8532: "female"
+      8551: "other"
+      8570: "unknown"
+    default: "unknown"

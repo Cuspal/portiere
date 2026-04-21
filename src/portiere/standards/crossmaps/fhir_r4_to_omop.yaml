@@ -1,0 +1,132 @@
+# Crossmap: FHIR R4 → OMOP CDM v5.4
+# Maps FHIR resources to OMOP relational tables.
+
+source: "fhir_r4"
+target: "omop_cdm_v5.4"
+
+entity_map:
+  Patient: "person"
+  Encounter: "visit_occurrence"
+  Condition: "condition_occurrence"
+  MedicationRequest: "drug_exposure"
+  Observation: "measurement"
+  Procedure: "procedure_occurrence"
+  AllergyIntolerance: "observation"
+  DiagnosticReport: "measurement"
+
+field_map:
+  # ── Patient → person ─────────────────────────────────────
+  Patient.id:
+    target: "person.person_id"
+    transform: "int"
+  Patient.gender:
+    target: "person.gender_concept_id"
+    transform: "fhir_gender"
+  Patient.birthDate:
+    target: "person.birth_datetime"
+    transform: "passthrough"
+  Patient.identifier:
+    target: "person.person_source_value"
+    transform: "str"
+
+  # ── Encounter → visit_occurrence ─────────────────────────
+  Encounter.id:
+    target: "visit_occurrence.visit_occurrence_id"
+    transform: "int"
+  Encounter.subject:
+    target: "visit_occurrence.person_id"
+    transform: "extract_reference_id"
+  Encounter.type:
+    target: "visit_occurrence.visit_source_value"
+    transform: "extract_codeable_concept_code"
+  Encounter.period:
+    target: "visit_occurrence.visit_start_date"
+    transform: "extract_period_start"
+
+  # ── Condition → condition_occurrence ─────────────────────
+  Condition.id:
+    target: "condition_occurrence.condition_occurrence_id"
+    transform: "int"
+  Condition.subject:
+    target: "condition_occurrence.person_id"
+    transform: "extract_reference_id"
+  Condition.code:
+    target: "condition_occurrence.condition_source_value"
+    transform: "extract_codeable_concept_code"
+  Condition.onsetDateTime:
+    target: "condition_occurrence.condition_start_date"
+    transform: "fhir_date"
+
+  # ── MedicationRequest → drug_exposure ────────────────────
+  MedicationRequest.id:
+    target: "drug_exposure.drug_exposure_id"
+    transform: "int"
+  MedicationRequest.subject:
+    target: "drug_exposure.person_id"
+    transform: "extract_reference_id"
+  MedicationRequest.medicationCodeableConcept:
+    target: "drug_exposure.drug_source_value"
+    transform: "extract_codeable_concept_code"
+  MedicationRequest.authoredOn:
+    target: "drug_exposure.drug_exposure_start_date"
+    transform: "fhir_date"
+
+  # ── Observation → measurement ────────────────────────────
+  Observation.id:
+    target: "measurement.measurement_id"
+    transform: "int"
+  Observation.subject:
+    target: "measurement.person_id"
+    transform: "extract_reference_id"
+  Observation.code:
+    target: "measurement.measurement_source_value"
+    transform: "extract_codeable_concept_code"
+  Observation.effectiveDateTime:
+    target: "measurement.measurement_date"
+    transform: "fhir_date"
+  Observation.valueQuantity:
+    target: "measurement.value_as_number"
+    transform: "extract_quantity_value"
+  Observation.valueString:
+    target: "measurement.measurement_source_value"
+    transform: "str"
+
+  # ── Procedure → procedure_occurrence ─────────────────────
+  Procedure.id:
+    target: "procedure_occurrence.procedure_occurrence_id"
+    transform: "int"
+  Procedure.subject:
+    target: "procedure_occurrence.person_id"
+    transform: "extract_reference_id"
+  Procedure.code:
+    target: "procedure_occurrence.procedure_source_value"
+    transform: "extract_codeable_concept_code"
+  Procedure.performedDateTime:
+    target: "procedure_occurrence.procedure_date"
+    transform: "fhir_date"
+
+transforms:
+  fhir_gender:
+    type: "value_map"
+    mapping:
+      male: 8507
+      female: 8532
+      other: 8551
+      unknown: 8570
+    default: 8551
+
+  extract_reference_id:
+    type: "passthrough"
+    description: "Extract numeric ID from FHIR Reference (e.g., 'Patient/123' → 123)"
+
+  extract_codeable_concept_code:
+    type: "passthrough"
+    description: "Extract code from FHIR CodeableConcept"
+
+  extract_period_start:
+    type: "passthrough"
+    description: "Extract start date from FHIR Period"
+
+  extract_quantity_value:
+    type: "float"
+    description: "Extract numeric magnitude from FHIR Quantity"

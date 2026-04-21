@@ -1,0 +1,25 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      vocabulary_path:
+        description: "Path to Athena vocabulary directory (on runner)"
+        required: false
+        default: "./data/athena"
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev,polars,faiss,quality]"
+      - run: pytest tests/ -m integration --vocabulary-dir=${{ github.event.inputs.vocabulary_path }} -v
+        env:
+          PORTIERE_KNOWLEDGE_LAYER__BACKEND: bm25s

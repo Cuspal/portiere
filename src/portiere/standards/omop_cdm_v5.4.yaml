@@ -1,0 +1,565 @@
+# OMOP CDM v5.4 — Standard Definition
+# Source: OHDSI OMOP CDM v5.4 specification
+# This file can be replaced with newer versions (e.g., v6.0) without code changes.
+
+name: "omop_cdm_v5.4"
+version: "v5.4"
+standard_type: "relational"
+organization: "OHDSI"
+description: "Observational Medical Outcomes Partnership Common Data Model"
+
+entities:
+  person:
+    description: "Demographics and basic patient information"
+    fields:
+      person_id:
+        type: "integer"
+        required: true
+        description: "Unique person identifier"
+        ddl: "INTEGER PRIMARY KEY"
+      gender_concept_id:
+        type: "integer"
+        required: true
+        description: "Patient's administrative gender as OMOP concept"
+        vocabulary: "Gender"
+        ddl: "INTEGER NOT NULL"
+      year_of_birth:
+        type: "integer"
+        required: true
+        description: "Year of birth (YYYY)"
+        ddl: "INTEGER NOT NULL"
+      month_of_birth:
+        type: "integer"
+        required: false
+        description: "Month of birth (1-12)"
+        ddl: "INTEGER"
+      day_of_birth:
+        type: "integer"
+        required: false
+        description: "Day of birth (1-31)"
+        ddl: "INTEGER"
+      birth_datetime:
+        type: "datetime"
+        required: false
+        description: "Date and time of birth"
+        ddl: "TIMESTAMP"
+      race_concept_id:
+        type: "integer"
+        required: false
+        description: "Patient's race as OMOP concept"
+        vocabulary: "Race"
+        ddl: "INTEGER"
+      ethnicity_concept_id:
+        type: "integer"
+        required: false
+        description: "Patient's ethnicity as OMOP concept"
+        vocabulary: "Ethnicity"
+        ddl: "INTEGER"
+      person_source_value:
+        type: "string"
+        required: false
+        description: "Original patient ID from source system"
+        ddl: "VARCHAR(50)"
+    source_patterns:
+      patient_id: "person_id"
+      subject_id: "person_id"
+      person_id: "person_id"
+      gender: "gender_concept_id"
+      sex: "gender_concept_id"
+      birth_date: "birth_datetime"
+      date_of_birth: "birth_datetime"
+      dob: "birth_datetime"
+      race: "race_concept_id"
+      ethnicity: "ethnicity_concept_id"
+      first_name: "person_source_value"
+      last_name: "person_source_value"
+      patient_name: "person_source_value"
+      given_name: "person_source_value"
+      family_name: "person_source_value"
+    embedding_descriptions:
+      person_id: "person table: unique patient identifier number"
+      person_source_value: "person table: original patient ID from source system"
+      gender_concept_id: "person table: patient gender or biological sex"
+      year_of_birth: "person table: patient birth year"
+      month_of_birth: "person table: patient birth month"
+      day_of_birth: "person table: patient birth day"
+      birth_datetime: "person table: patient date of birth"
+      race_concept_id: "person table: patient race or racial background"
+      ethnicity_concept_id: "person table: patient ethnicity Hispanic Latino"
+
+  location:
+    description: "Geographic location / address information"
+    fields:
+      location_id:
+        type: "integer"
+        required: true
+        description: "Unique location identifier"
+        ddl: "INTEGER PRIMARY KEY"
+      address_1:
+        type: "string"
+        required: false
+        description: "Street address line 1"
+        ddl: "VARCHAR(50)"
+      address_2:
+        type: "string"
+        required: false
+        description: "Street address line 2"
+        ddl: "VARCHAR(50)"
+      city:
+        type: "string"
+        required: false
+        description: "City name"
+        ddl: "VARCHAR(50)"
+      state:
+        type: "string"
+        required: false
+        description: "State or province"
+        ddl: "VARCHAR(2)"
+      zip:
+        type: "string"
+        required: false
+        description: "Postal code or zip code"
+        ddl: "VARCHAR(9)"
+      county:
+        type: "string"
+        required: false
+        description: "County name"
+        ddl: "VARCHAR(20)"
+      country_source_value:
+        type: "string"
+        required: false
+        description: "Country name or code"
+        ddl: "VARCHAR(80)"
+      location_source_value:
+        type: "string"
+        required: false
+        description: "Original location identifier from source"
+        ddl: "VARCHAR(300)"
+    source_patterns:
+      address: "address_1"
+      address_1: "address_1"
+      address_2: "address_2"
+      street: "address_1"
+      city: "city"
+      state: "state"
+      zip_code: "zip"
+      zip: "zip"
+      postal_code: "zip"
+      county: "county"
+      country: "country_source_value"
+    embedding_descriptions:
+      location_id: "location: unique location identifier"
+      address_1: "location: street address line 1"
+      address_2: "location: street address line 2"
+      city: "location: city name"
+      state: "location: state or province"
+      zip: "location: postal code or zip code"
+      county: "location: county name"
+      country_source_value: "location: country name or code"
+      location_source_value: "location: original location identifier from source"
+
+  visit_occurrence:
+    description: "Hospital encounters, admissions, and visits"
+    fields:
+      visit_occurrence_id:
+        type: "integer"
+        required: true
+        description: "Unique visit identifier"
+        ddl: "INTEGER PRIMARY KEY"
+      person_id:
+        type: "integer"
+        required: true
+        description: "Reference to person"
+        ddl: "INTEGER NOT NULL"
+        fk: "person.person_id"
+      visit_concept_id:
+        type: "integer"
+        required: true
+        description: "Type of visit (inpatient, outpatient, ER)"
+        vocabulary: "Visit"
+        ddl: "INTEGER NOT NULL"
+      visit_start_date:
+        type: "date"
+        required: true
+        description: "Visit start date"
+        ddl: "DATE NOT NULL"
+      visit_end_date:
+        type: "date"
+        required: false
+        description: "Visit end date"
+        ddl: "DATE"
+      visit_type_concept_id:
+        type: "integer"
+        required: false
+        description: "How visit was recorded"
+        ddl: "INTEGER"
+      care_site_id:
+        type: "integer"
+        required: false
+        description: "Healthcare facility or care site"
+        ddl: "INTEGER"
+      provider_id:
+        type: "integer"
+        required: false
+        description: "Attending provider"
+        ddl: "INTEGER"
+      visit_source_value:
+        type: "string"
+        required: false
+        description: "Original visit or admission ID from source"
+        ddl: "VARCHAR(50)"
+    source_patterns:
+      visit_id: "visit_occurrence_id"
+      encounter_id: "visit_occurrence_id"
+      hadm_id: "visit_occurrence_id"
+      admission_date: "visit_start_date"
+      admittime: "visit_start_date"
+      dischtime: "visit_end_date"
+      discharge_date: "visit_end_date"
+      visit_type: "visit_concept_id"
+      admission_type: "visit_concept_id"
+      encounter_type: "visit_concept_id"
+      facility: "care_site_id"
+      department: "care_site_id"
+      attending_provider: "provider_id"
+      provider_id: "provider_id"
+    embedding_descriptions:
+      visit_occurrence_id: "visit: unique hospital encounter admission identifier"
+      person_id: "visit: patient identifier for the hospital visit"
+      visit_concept_id: "visit: type of clinical visit inpatient outpatient emergency"
+      visit_start_date: "visit: admission date or encounter start date"
+      visit_end_date: "visit: discharge date or encounter end date"
+      visit_type_concept_id: "visit: source of visit type information"
+      care_site_id: "visit: healthcare facility or care site identifier"
+      visit_source_value: "visit: original visit or admission ID from source"
+
+  condition_occurrence:
+    description: "Diagnoses, problems, and conditions"
+    fields:
+      condition_occurrence_id:
+        type: "integer"
+        required: true
+        description: "Unique condition record identifier"
+        ddl: "INTEGER PRIMARY KEY"
+      person_id:
+        type: "integer"
+        required: true
+        description: "Reference to person with condition"
+        ddl: "INTEGER NOT NULL"
+        fk: "person.person_id"
+      condition_concept_id:
+        type: "integer"
+        required: true
+        description: "Diagnosis or problem code as OMOP standard concept"
+        vocabulary: "SNOMED"
+        ddl: "INTEGER NOT NULL"
+      condition_start_date:
+        type: "date"
+        required: true
+        description: "When condition started"
+        ddl: "DATE NOT NULL"
+      condition_type_concept_id:
+        type: "integer"
+        required: false
+        description: "How condition was recorded"
+        ddl: "INTEGER"
+      condition_source_value:
+        type: "string"
+        required: false
+        description: "Original diagnosis code ICD-10 ICD-9 from source"
+        ddl: "VARCHAR(50)"
+    source_patterns:
+      diagnosis_code: "condition_source_value"
+      icd_code: "condition_source_value"
+      condition: "condition_source_value"
+      diagnosis_date: "condition_start_date"
+      diagnosis_description: "condition_source_value"
+      diagnosis_type: "condition_type_concept_id"
+      seq_num: "condition_type_concept_id"
+    embedding_descriptions:
+      condition_occurrence_id: "condition: unique diagnosis record identifier"
+      person_id: "condition: patient with the diagnosis"
+      condition_concept_id: "condition: standard diagnosis concept SNOMED"
+      condition_start_date: "condition: diagnosis date or disease onset date"
+      condition_type_concept_id: "condition: source of diagnosis information"
+      condition_source_value: "condition: original diagnosis code ICD-10 ICD-9 from source"
+
+  drug_exposure:
+    description: "Medications, prescriptions, and drug administrations"
+    fields:
+      drug_exposure_id:
+        type: "integer"
+        required: true
+        description: "Unique drug exposure identifier"
+        ddl: "INTEGER PRIMARY KEY"
+      person_id:
+        type: "integer"
+        required: true
+        description: "Reference to person taking medication"
+        ddl: "INTEGER NOT NULL"
+        fk: "person.person_id"
+      drug_concept_id:
+        type: "integer"
+        required: true
+        description: "Medication code as OMOP standard concept (RxNorm)"
+        vocabulary: "RxNorm"
+        ddl: "INTEGER NOT NULL"
+      drug_exposure_start_date:
+        type: "date"
+        required: true
+        description: "When medication was started"
+        ddl: "DATE NOT NULL"
+      drug_exposure_end_date:
+        type: "date"
+        required: false
+        description: "When medication was stopped"
+        ddl: "DATE"
+      drug_type_concept_id:
+        type: "integer"
+        required: false
+        description: "Source of drug information"
+        ddl: "INTEGER"
+      quantity:
+        type: "float"
+        required: false
+        description: "Quantity prescribed or dispensed"
+        ddl: "FLOAT"
+      sig:
+        type: "string"
+        required: false
+        description: "Dosage instructions"
+        ddl: "TEXT"
+      drug_source_value:
+        type: "string"
+        required: false
+        description: "Original medication name or drug code from source"
+        ddl: "VARCHAR(50)"
+      route_concept_id:
+        type: "integer"
+        required: false
+        description: "Route of administration (oral, IV, subcutaneous)"
+        ddl: "INTEGER"
+      provider_id:
+        type: "integer"
+        required: false
+        description: "Prescribing provider"
+        ddl: "INTEGER"
+    source_patterns:
+      medication: "drug_source_value"
+      drug_code: "drug_source_value"
+      drug_name: "drug_source_value"
+      prescription_date: "drug_exposure_start_date"
+      drug_start: "drug_exposure_start_date"
+      drug_end: "drug_exposure_end_date"
+      dose: "quantity"
+      quantity: "quantity"
+      prescription_id: "drug_exposure_id"
+      prescriber_id: "provider_id"
+    embedding_descriptions:
+      drug_exposure_id: "drug: unique medication prescription record identifier"
+      person_id: "drug: patient receiving the medication"
+      drug_concept_id: "drug: standard medication concept RxNorm"
+      drug_exposure_start_date: "drug: prescription start date medication begin date"
+      drug_exposure_end_date: "drug: medication end date or stop date"
+      drug_type_concept_id: "drug: source of drug information"
+      quantity: "drug: medication dose amount or quantity dispensed"
+      sig: "drug: prescription instructions or dosage directions"
+      drug_source_value: "drug: original medication name or drug code from source"
+      route_concept_id: "drug: route of administration oral IV subcutaneous"
+
+  measurement:
+    description: "Lab tests, vital signs, and clinical measurements"
+    fields:
+      measurement_id:
+        type: "integer"
+        required: true
+        description: "Unique measurement identifier"
+        ddl: "INTEGER PRIMARY KEY"
+      person_id:
+        type: "integer"
+        required: true
+        description: "Reference to person"
+        ddl: "INTEGER NOT NULL"
+        fk: "person.person_id"
+      measurement_concept_id:
+        type: "integer"
+        required: true
+        description: "Lab test or vital sign code as OMOP concept (LOINC)"
+        vocabulary: "LOINC"
+        ddl: "INTEGER NOT NULL"
+      measurement_date:
+        type: "date"
+        required: true
+        description: "When measurement was taken"
+        ddl: "DATE NOT NULL"
+      value_as_number:
+        type: "float"
+        required: false
+        description: "Numeric result value"
+        ddl: "FLOAT"
+      value_as_concept_id:
+        type: "integer"
+        required: false
+        description: "Coded result value"
+        ddl: "INTEGER"
+      unit_concept_id:
+        type: "integer"
+        required: false
+        description: "Unit of measure"
+        vocabulary: "UCUM"
+        ddl: "INTEGER"
+      measurement_source_value:
+        type: "string"
+        required: false
+        description: "Original lab test code or name from source"
+        ddl: "VARCHAR(50)"
+      unit_source_value:
+        type: "string"
+        required: false
+        description: "Original unit text from source data"
+        ddl: "VARCHAR(50)"
+      range_low:
+        type: "float"
+        required: false
+        description: "Reference range lower bound"
+        ddl: "FLOAT"
+      range_high:
+        type: "float"
+        required: false
+        description: "Reference range upper bound"
+        ddl: "FLOAT"
+    source_patterns:
+      lab_code: "measurement_source_value"
+      lab_name: "measurement_source_value"
+      test_code: "measurement_source_value"
+      test_name: "measurement_source_value"
+      itemid: "measurement_source_value"
+      lab_value: "value_as_number"
+      valuenum: "value_as_number"
+      result_value: "value_as_number"
+      lab_date: "measurement_date"
+      charttime: "measurement_date"
+      collection_date: "measurement_date"
+      lab_unit: "unit_source_value"
+      valueuom: "unit_source_value"
+      result_unit: "unit_source_value"
+      reference_range: "range_low"
+      result_flag: "value_as_concept_id"
+      lab_id: "measurement_id"
+    embedding_descriptions:
+      measurement_id: "measurement: unique laboratory test result identifier"
+      person_id: "measurement: patient with the lab test"
+      measurement_concept_id: "measurement: standard lab test concept LOINC"
+      measurement_date: "measurement: lab test date specimen collection date"
+      value_as_number: "measurement: numeric laboratory result value"
+      value_as_concept_id: "measurement: categorical lab result positive negative"
+      unit_concept_id: "measurement: lab result unit of measure mg/dL mmol/L"
+      measurement_source_value: "measurement: original lab test code or name from source"
+      unit_source_value: "measurement: original unit text from source data"
+      range_low: "measurement: reference range lower bound normal low"
+      range_high: "measurement: reference range upper bound normal high"
+
+  procedure_occurrence:
+    description: "Surgical and clinical procedures"
+    fields:
+      procedure_occurrence_id:
+        type: "integer"
+        required: true
+        description: "Unique procedure identifier"
+        ddl: "INTEGER PRIMARY KEY"
+      person_id:
+        type: "integer"
+        required: true
+        description: "Reference to person"
+        ddl: "INTEGER NOT NULL"
+        fk: "person.person_id"
+      procedure_concept_id:
+        type: "integer"
+        required: true
+        description: "Procedure code as OMOP concept (CPT, SNOMED)"
+        vocabulary: "SNOMED"
+        ddl: "INTEGER NOT NULL"
+      procedure_date:
+        type: "date"
+        required: true
+        description: "When procedure was performed"
+        ddl: "DATE NOT NULL"
+      procedure_type_concept_id:
+        type: "integer"
+        required: false
+        description: "Source of procedure information"
+        ddl: "INTEGER"
+      procedure_source_value:
+        type: "string"
+        required: false
+        description: "Original procedure code CPT ICD-PCS from source"
+        ddl: "VARCHAR(50)"
+    source_patterns:
+      procedure_code: "procedure_source_value"
+      cpt_code: "procedure_source_value"
+      procedure_date: "procedure_date"
+    embedding_descriptions:
+      procedure_occurrence_id: "procedure: unique surgical or clinical procedure identifier"
+      person_id: "procedure: patient receiving the procedure"
+      procedure_concept_id: "procedure: standard procedure concept CPT SNOMED"
+      procedure_date: "procedure: date the procedure was performed"
+      procedure_type_concept_id: "procedure: source of procedure information"
+      procedure_source_value: "procedure: original procedure code CPT ICD-PCS from source"
+
+  observation:
+    description: "Clinical observations, social history, and other facts"
+    fields:
+      observation_id:
+        type: "integer"
+        required: true
+        description: "Unique observation identifier"
+        ddl: "INTEGER PRIMARY KEY"
+      person_id:
+        type: "integer"
+        required: true
+        description: "Reference to person"
+        ddl: "INTEGER NOT NULL"
+        fk: "person.person_id"
+      observation_concept_id:
+        type: "integer"
+        required: true
+        description: "Observation type code"
+        ddl: "INTEGER NOT NULL"
+      observation_date:
+        type: "date"
+        required: true
+        description: "When observation was recorded"
+        ddl: "DATE NOT NULL"
+      value_as_number:
+        type: "float"
+        required: false
+        description: "Numeric observation value"
+        ddl: "FLOAT"
+      value_as_string:
+        type: "string"
+        required: false
+        description: "Text observation value"
+        ddl: "TEXT"
+      value_as_concept_id:
+        type: "integer"
+        required: false
+        description: "Coded observation value"
+        ddl: "INTEGER"
+      observation_source_value:
+        type: "string"
+        required: false
+        description: "Original source value or code"
+        ddl: "VARCHAR(50)"
+    embedding_descriptions:
+      observation_id: "observation: unique observation record identifier"
+      person_id: "observation: patient with the observation"
+      observation_concept_id: "observation: standard observation concept"
+      observation_date: "observation: date of the clinical observation"
+      value_as_number: "observation: numeric observation value"
+      value_as_string: "observation: text or string observation value"
+      value_as_concept_id: "observation: categorical observation value"
+      observation_source_value: "observation: original source value or code"
+
+# Default fallback entity for unmapped columns
+default_entity: "observation"
+default_field: "observation_source_value"

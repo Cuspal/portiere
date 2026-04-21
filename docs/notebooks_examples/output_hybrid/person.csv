@@ -1,0 +1,16 @@
+person_id,person_source_value,birth_datetime,gender_concept_id,race_concept_id,ethnicity_concept_id
+P001,James,1958-03-14,M,White,Not Hispanic or Latino
+P002,Maria,1972-08-22,F,White,Hispanic or Latino
+P003,Robert,1965-11-30,M,Black or African American,Not Hispanic or Latino
+P004,Linda,1980-05-17,F,Asian,Not Hispanic or Latino
+P005,William,1948-01-09,M,White,Not Hispanic or Latino
+P006,Patricia,1975-09-25,F,White,Hispanic or Latino
+P007,Michael,1960-12-03,M,Black or African American,Not Hispanic or Latino
+P008,Jennifer,1988-07-11,F,Asian,Not Hispanic or Latino
+P009,David,1953-04-28,M,White,Not Hispanic or Latino
+P010,Susan,1970-02-14,F,Asian,Not Hispanic or Latino
+P011,Richard,1945-06-20,M,White,Not Hispanic or Latino
+P012,Karen,1982-10-08,F,Black or African American,Not Hispanic or Latino
+P013,Charles,1977-03-31,M,Asian,Not Hispanic or Latino
+P014,Dorothy,1990-11-15,F,White,Not Hispanic or Latino
+P015,Thomas,1955-08-07,M,Native Hawaiian or Other Pacific Islander,Not Hispanic or Latino

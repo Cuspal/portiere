@@ -1,0 +1,6 @@
+patient_id,full_name,date_of_birth,sex,medical_record_number,insurance_id
+P001,James Wilson,1958-03-14,M,MRN001,INS-001
+P002,Maria Garcia,1972-08-22,F,MRN002,INS-002
+P003,Robert Johnson,1965-11-30,M,MRN003,
+P004,Linda Chen,1980-05-17,F,MRN004,INS-004
+P005,David Kim,1990-12-01,M,MRN005,

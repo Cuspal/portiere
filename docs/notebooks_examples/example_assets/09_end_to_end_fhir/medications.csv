@@ -1,0 +1,16 @@
+prescription_id,patient_id,drug_code,drug_name,quantity,prescription_date,prescriber_id
+RX001,P001,MET500,Metformin 500mg Tablet,60,2024-01-15,DR001
+RX002,P001,LISIN10,Lisinopril 10mg Tablet,30,2024-01-15,DR001
+RX003,P002,AMOX500,Amoxicillin 500mg Capsule,21,2024-02-03,DR002
+RX004,P003,AMLO5,Amlodipine 5mg Tablet,30,2024-01-22,DR003
+RX005,P003,ATOR20,Atorvastatin 20mg Tablet,30,2024-01-22,DR003
+RX006,P005,LISIN10,Lisinopril 10mg Tablet,30,2024-02-12,DR004
+RX007,P005,MET500,Metformin 500mg Tablet,90,2024-02-12,DR004
+RX008,P005,ATOR20,Atorvastatin 20mg Tablet,30,2024-02-12,DR004
+RX009,P006,IBU400,Ibuprofen 400mg Tablet,20,2024-03-05,DR005
+RX010,P007,OMEP20,Omeprazole 20mg Capsule,30,2024-02-18,DR001
+RX011,P009,AMLO5,Amlodipine 5mg Tablet,30,2024-02-25,DR002
+RX012,P010,LISIN10,Lisinopril 10mg Tablet,30,2024-03-08,DR003
+RX013,P001,MET500,Metformin 500mg Tablet,90,2024-03-10,DR001
+RX014,P011,IBU400,Ibuprofen 400mg Tablet,30,2024-01-20,DR004
+RX015,P013,OMEP20,Omeprazole 20mg Capsule,30,2024-03-12,DR005

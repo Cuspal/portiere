@@ -1,0 +1,241 @@
+"""
+GXValidator — Post-ETL data quality validation using Great Expectations.
+
+Validates ETL output against target model expectations for completeness,
+conformance, and plausibility.  Works with any YAML-defined standard
+(OMOP CDM, FHIR R4, HL7 v2.5.1, OpenEHR 1.0.4, or custom).
+
+Supports both pandas and PySpark DataFrames. Polars DataFrames
+must be converted to pandas before passing to the validator
+(GX does not support Polars natively).
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+import structlog
+
+if TYPE_CHECKING:
+    from portiere.config import QualityConfig, ThresholdsConfig
+
+from portiere.quality.models import ValidationReport
+from portiere.quality.utils import SPARK_NUMERIC_TYPES, _detect_df_type
+
+logger = structlog.get_logger(__name__)
+
+
+def _require_gx():
+    """Import GX or raise a helpful error."""
+    try:
+        import great_expectations as gx
+
+        return gx
+    except ImportError:
+        raise ImportError(
+            "Great Expectations is required for validation. "
+            "Install it with: pip install portiere[quality]"
+        )
+
+
+class GXValidator:
+    """Post-mapping / post-ETL data quality validation."""
+
+    def __init__(self, config: QualityConfig, thresholds: ThresholdsConfig) -> None:
+        self.config = config
+        self.thresholds = thresholds
+
+    def validate(self, df: Any, table_name: str, target_model: str) -> dict:
+        """
+        Validate a DataFrame against target model expectations.
+
+        Args:
+            df: Pandas or PySpark DataFrame to validate (ETL output table).
+            table_name: Entity name (e.g., "person", "Patient", "PID").
+            target_model: Target model identifier (e.g., "omop_cdm_v5.4", "fhir_r4").
+
+        Returns:
+            Validation report dict.
+        """
+        gx = _require_gx()
+        df_type = _detect_df_type(df)
+
+        context = gx.get_context()
+        suite = self._build_expectation_suite(gx, context, table_name, target_model, df)
+
+        if df_type == "spark":
+            datasource = context.data_sources.add_spark(name=f"validate_{table_name}")
+        else:
+            datasource = context.data_sources.add_pandas(name=f"validate_{table_name}")
+
+        asset = datasource.add_dataframe_asset(name=table_name)
+        batch_def = asset.add_batch_definition_whole_dataframe("batch")
+        batch = batch_def.get_batch(batch_parameters={"dataframe": df})
+
+        result = batch.validate(suite)
+
+        completeness = self._compute_completeness(result)
+        conformance = self._compute_conformance(result)
+        plausibility = self._compute_plausibility(result)
+
+        thresholds = {
+            "min_completeness": self.thresholds.validation.min_completeness,
+            "min_conformance": self.thresholds.validation.min_conformance,
+            "min_plausibility": self.thresholds.validation.min_plausibility,
+        }
+
+        passed = (
+            completeness >= thresholds["min_completeness"]
+            and conformance >= thresholds["min_conformance"]
+            and plausibility >= thresholds["min_plausibility"]
+        )
+
+        report = ValidationReport(
+            table_name=table_name,
+            passed=passed,
+            completeness_score=completeness,
+            conformance_score=conformance,
+            plausibility_score=plausibility,
+            gx_result=result.to_json_dict(),
+            thresholds=thresholds,
+        )
+
+        logger.info(
+            "gx_validator.validated",
+            table=table_name,
+            passed=passed,
+            completeness=f"{completeness:.2f}",
+            conformance=f"{conformance:.2f}",
+            plausibility=f"{plausibility:.2f}",
+        )
+
+        return report.to_dict()
+
+    def _build_expectation_suite(
+        self,
+        gx: Any,
+        context: Any,
+        table_name: str,
+        target_model: str,
+        df: Any = None,
+    ) -> Any:
+        """Build GX expectation suite from the target model's field metadata.
+
+        Uses ``get_field_types()`` to derive conformance checks for any
+        YAML-defined standard (OMOP, FHIR, HL7 v2, OpenEHR, custom).
+        """
+        from portiere.models.target_model import get_target_model
+
+        model = get_target_model(target_model)
+        schema = model.get_schema()
+
+        # Columns actually present in the DataFrame
+        actual_cols = set(df.columns) if df is not None else set()
+
+        suite = gx.ExpectationSuite(name=f"validate_{table_name}")
+
+        # Completeness: required columns exist
+        required_cols = schema.get(table_name, [])
+        for col in required_cols:
+            suite.add_expectation(gx.expectations.ExpectColumnToExist(column=col))
+
+        # Detect DataFrame type for numeric checks
+        df_type = _detect_df_type(df) if df is not None else "pandas"
+
+        # Standards-aware conformance checks via field type metadata
+        field_types = {}
+        if hasattr(model, "get_field_types"):
+            field_types = model.get_field_types(table_name)
+
+        code_cols = [c for c in required_cols if field_types.get(c) == "code"]
+        temporal_cols = [c for c in required_cols if field_types.get(c) == "temporal"]
+
+        # Conformance: code/vocabulary columns should be non-negative integers
+        # (only applies when the column is actually numeric, e.g. OMOP concept_id)
+        for col in code_cols:
+            if col not in actual_cols:
+                continue
+            if df is not None and not self._is_numeric_column(df, col, df_type):
+                continue
+            suite.add_expectation(
+                gx.expectations.ExpectColumnValuesToBeBetween(
+                    column=col,
+                    min_value=0,
+                    mostly=0.95,
+                )
+            )
+
+        # Conformance: temporal columns should not be null
+        for col in temporal_cols:
+            if col not in actual_cols:
+                continue
+            suite.add_expectation(
+                gx.expectations.ExpectColumnValuesToNotBeNull(
+                    column=col,
+                    mostly=0.90,
+                )
+            )
+
+        suite = context.suites.add(suite)
+        return suite
+
+    # Backward-compatible alias
+    _build_omop_suite = _build_expectation_suite
+
+    @staticmethod
+    def _is_numeric_column(df: Any, col: str, df_type: str) -> bool:
+        """Check if a column is numeric, handling both pandas and Spark."""
+        if df_type == "spark":
+            dtypes_map = dict(df.dtypes)
+            return dtypes_map.get(col, "") in SPARK_NUMERIC_TYPES
+        else:
+            import pandas as pd
+
+            return pd.api.types.is_numeric_dtype(df[col])
+
+    def _compute_completeness(self, result: Any) -> float:
+        """Compute completeness score from GX result."""
+        results = result.to_json_dict().get("results", [])
+        if not results:
+            return 1.0
+
+        # Completeness = proportion of "column exists" expectations that pass
+        exist_results = [
+            r
+            for r in results
+            if r.get("expectation_config", {}).get("type", "") == "expect_column_to_exist"
+        ]
+        if not exist_results:
+            return 1.0
+        passed = sum(1 for r in exist_results if r.get("success", False))
+        return passed / len(exist_results)
+
+    def _compute_conformance(self, result: Any) -> float:
+        """Compute conformance score from GX result."""
+        results = result.to_json_dict().get("results", [])
+        if not results:
+            return 1.0
+
+        # Conformance = proportion of value-level expectations that pass
+        value_results = [
+            r
+            for r in results
+            if r.get("expectation_config", {}).get("type", "") != "expect_column_to_exist"
+        ]
+        if not value_results:
+            return 1.0
+        passed = sum(1 for r in value_results if r.get("success", False))
+        return passed / len(value_results)
+
+    def _compute_plausibility(self, result: Any) -> float:
+        """
+        Compute plausibility score.
+
+        Currently derived from the overall success rate.
+        Can be extended with domain-specific plausibility checks.
+        """
+        results = result.to_json_dict().get("results", [])
+        if not results:
+            return 1.0
+        passed = sum(1 for r in results if r.get("success", False))
+        return passed / len(results)

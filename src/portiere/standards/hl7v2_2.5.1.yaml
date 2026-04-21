@@ -1,0 +1,539 @@
+# HL7 v2.5.1 — Standard Definition
+# Source: HL7 Version 2.5.1 Message Standard
+# Pipe-delimited message format with segments, fields, components.
+
+name: "hl7v2_2.5.1"
+version: "2.5.1"
+standard_type: "segment"
+organization: "HL7 International"
+description: "Health Level Seven Version 2.5.1 Messaging Standard"
+
+entities:
+  PID:
+    description: "Patient Identification — demographics and identifiers"
+    fields:
+      patient_id:
+        type: "CX"
+        required: true
+        position: "PID-3"
+        description: "Patient identifier list (MRN, SSN, etc.)"
+      patient_name:
+        type: "XPN"
+        required: true
+        position: "PID-5"
+        description: "Patient name (family, given, middle)"
+      date_of_birth:
+        type: "TS"
+        required: false
+        position: "PID-7"
+        description: "Date/time of birth"
+      administrative_sex:
+        type: "IS"
+        required: false
+        position: "PID-8"
+        description: "Administrative sex (F, M, O, U, A, N)"
+      race:
+        type: "CE"
+        required: false
+        position: "PID-10"
+        description: "Race"
+      patient_address:
+        type: "XAD"
+        required: false
+        position: "PID-11"
+        description: "Patient address"
+      phone_home:
+        type: "XTN"
+        required: false
+        position: "PID-13"
+        description: "Phone number — home"
+      phone_business:
+        type: "XTN"
+        required: false
+        position: "PID-14"
+        description: "Phone number — business"
+      primary_language:
+        type: "CE"
+        required: false
+        position: "PID-15"
+        description: "Primary language"
+      marital_status:
+        type: "CE"
+        required: false
+        position: "PID-16"
+        description: "Marital status"
+      ssn:
+        type: "ST"
+        required: false
+        position: "PID-19"
+        description: "Social security number"
+      ethnic_group:
+        type: "CE"
+        required: false
+        position: "PID-22"
+        description: "Ethnic group"
+      birth_place:
+        type: "ST"
+        required: false
+        position: "PID-23"
+        description: "Birth place"
+      patient_death_date:
+        type: "TS"
+        required: false
+        position: "PID-29"
+        description: "Patient death date and time"
+      patient_death_indicator:
+        type: "ID"
+        required: false
+        position: "PID-30"
+        description: "Patient death indicator (Y/N)"
+    source_patterns:
+      patient_id: "patient_id"
+      subject_id: "patient_id"
+      person_id: "patient_id"
+      mrn: "patient_id"
+      medical_record_number: "patient_id"
+      first_name: "patient_name"
+      last_name: "patient_name"
+      patient_name: "patient_name"
+      given_name: "patient_name"
+      family_name: "patient_name"
+      birth_date: "date_of_birth"
+      date_of_birth: "date_of_birth"
+      dob: "date_of_birth"
+      gender: "administrative_sex"
+      sex: "administrative_sex"
+      race: "race"
+      ethnicity: "ethnic_group"
+      address: "patient_address"
+      city: "patient_address"
+      state: "patient_address"
+      zip_code: "patient_address"
+      phone: "phone_home"
+      ssn: "ssn"
+    embedding_descriptions:
+      patient_id: "PID: patient identifier list MRN medical record number"
+      patient_name: "PID: patient name family given middle"
+      date_of_birth: "PID: patient date of birth"
+      administrative_sex: "PID: administrative sex gender male female"
+      race: "PID: patient race"
+      patient_address: "PID: patient address street city state zip"
+      phone_home: "PID: patient phone number home"
+      phone_business: "PID: patient phone number business"
+      primary_language: "PID: patient primary language"
+      marital_status: "PID: patient marital status"
+      ssn: "PID: social security number"
+      ethnic_group: "PID: patient ethnic group ethnicity"
+      birth_place: "PID: patient birth place"
+      patient_death_date: "PID: patient death date and time"
+      patient_death_indicator: "PID: patient death indicator yes no"
+
+  PV1:
+    description: "Patient Visit — encounter and admission information"
+    fields:
+      patient_class:
+        type: "IS"
+        required: true
+        position: "PV1-2"
+        description: "Patient class (I=Inpatient, O=Outpatient, E=Emergency, etc.)"
+      assigned_location:
+        type: "PL"
+        required: false
+        position: "PV1-3"
+        description: "Assigned patient location (point of care, room, bed)"
+      admission_type:
+        type: "IS"
+        required: false
+        position: "PV1-4"
+        description: "Admission type (Emergency, Urgent, Elective)"
+      attending_doctor:
+        type: "XCN"
+        required: false
+        position: "PV1-7"
+        description: "Attending doctor"
+      referring_doctor:
+        type: "XCN"
+        required: false
+        position: "PV1-8"
+        description: "Referring doctor"
+      hospital_service:
+        type: "IS"
+        required: false
+        position: "PV1-10"
+        description: "Hospital service (Medicine, Surgery, ICU, etc.)"
+      admit_date_time:
+        type: "TS"
+        required: false
+        position: "PV1-44"
+        description: "Admit date/time"
+      discharge_date_time:
+        type: "TS"
+        required: false
+        position: "PV1-45"
+        description: "Discharge date/time"
+      visit_number:
+        type: "CX"
+        required: false
+        position: "PV1-19"
+        description: "Visit number (encounter ID)"
+      discharge_disposition:
+        type: "IS"
+        required: false
+        position: "PV1-36"
+        description: "Discharge disposition"
+    source_patterns:
+      visit_id: "visit_number"
+      encounter_id: "visit_number"
+      hadm_id: "visit_number"
+      admission_date: "admit_date_time"
+      admittime: "admit_date_time"
+      dischtime: "discharge_date_time"
+      discharge_date: "discharge_date_time"
+      visit_type: "patient_class"
+      admission_type: "admission_type"
+      encounter_type: "patient_class"
+      facility: "assigned_location"
+      department: "hospital_service"
+      attending_provider: "attending_doctor"
+      provider_id: "attending_doctor"
+    embedding_descriptions:
+      patient_class: "PV1: patient class inpatient outpatient emergency"
+      assigned_location: "PV1: assigned patient location room bed ward"
+      admission_type: "PV1: admission type emergency urgent elective"
+      attending_doctor: "PV1: attending doctor physician"
+      referring_doctor: "PV1: referring doctor"
+      hospital_service: "PV1: hospital service department medicine surgery ICU"
+      admit_date_time: "PV1: admission date and time"
+      discharge_date_time: "PV1: discharge date and time"
+      visit_number: "PV1: visit number encounter identifier"
+      discharge_disposition: "PV1: discharge disposition"
+
+  DG1:
+    description: "Diagnosis — diagnostic information"
+    fields:
+      diagnosis_coding_method:
+        type: "ID"
+        required: false
+        position: "DG1-2"
+        description: "Diagnosis coding method"
+      diagnosis_code:
+        type: "CE"
+        required: true
+        position: "DG1-3"
+        description: "Diagnosis code (ICD-9, ICD-10)"
+      diagnosis_description:
+        type: "ST"
+        required: false
+        position: "DG1-4"
+        description: "Diagnosis description"
+      diagnosis_date_time:
+        type: "TS"
+        required: false
+        position: "DG1-5"
+        description: "Diagnosis date/time"
+      diagnosis_type:
+        type: "IS"
+        required: false
+        position: "DG1-6"
+        description: "Diagnosis type (A=Admitting, W=Working, F=Final)"
+      diagnosis_priority:
+        type: "ID"
+        required: false
+        position: "DG1-15"
+        description: "Diagnosis priority (1=Primary, 2+=Secondary)"
+    source_patterns:
+      diagnosis_code: "diagnosis_code"
+      icd_code: "diagnosis_code"
+      condition: "diagnosis_code"
+      diagnosis_description: "diagnosis_description"
+      diagnosis_date: "diagnosis_date_time"
+      diagnosis_type: "diagnosis_type"
+      seq_num: "diagnosis_priority"
+    embedding_descriptions:
+      diagnosis_coding_method: "DG1: diagnosis coding method ICD-9 ICD-10"
+      diagnosis_code: "DG1: diagnosis code ICD"
+      diagnosis_description: "DG1: diagnosis description text"
+      diagnosis_date_time: "DG1: diagnosis date and time"
+      diagnosis_type: "DG1: diagnosis type admitting working final"
+      diagnosis_priority: "DG1: diagnosis priority primary secondary"
+
+  OBX:
+    description: "Observation/Result — lab results, vital signs, and clinical observations"
+    fields:
+      value_type:
+        type: "ID"
+        required: true
+        position: "OBX-2"
+        description: "Value type (NM=Numeric, ST=String, CE=Coded, etc.)"
+      observation_identifier:
+        type: "CE"
+        required: true
+        position: "OBX-3"
+        description: "Observation identifier (LOINC code)"
+      observation_sub_id:
+        type: "ST"
+        required: false
+        position: "OBX-4"
+        description: "Observation sub-ID"
+      observation_value:
+        type: "varies"
+        required: false
+        position: "OBX-5"
+        description: "Observation value (result)"
+      units:
+        type: "CE"
+        required: false
+        position: "OBX-6"
+        description: "Units of measurement"
+      reference_range:
+        type: "ST"
+        required: false
+        position: "OBX-7"
+        description: "Reference range"
+      abnormal_flags:
+        type: "IS"
+        required: false
+        position: "OBX-8"
+        description: "Abnormal flags (H=High, L=Low, A=Abnormal, N=Normal)"
+      observation_result_status:
+        type: "ID"
+        required: true
+        position: "OBX-11"
+        description: "Observation result status (F=Final, P=Preliminary)"
+      date_time_of_observation:
+        type: "TS"
+        required: false
+        position: "OBX-14"
+        description: "Date/time of the observation"
+    source_patterns:
+      lab_code: "observation_identifier"
+      lab_name: "observation_identifier"
+      test_code: "observation_identifier"
+      test_name: "observation_identifier"
+      itemid: "observation_identifier"
+      lab_value: "observation_value"
+      valuenum: "observation_value"
+      result_value: "observation_value"
+      lab_date: "date_time_of_observation"
+      charttime: "date_time_of_observation"
+      collection_date: "date_time_of_observation"
+      lab_unit: "units"
+      valueuom: "units"
+      result_unit: "units"
+      reference_range: "reference_range"
+      result_flag: "abnormal_flags"
+    embedding_descriptions:
+      value_type: "OBX: value type numeric string coded"
+      observation_identifier: "OBX: observation identifier LOINC lab test code"
+      observation_sub_id: "OBX: observation sub-identifier"
+      observation_value: "OBX: observation value result"
+      units: "OBX: units of measurement mg/dL mmol/L"
+      reference_range: "OBX: reference range normal low high"
+      abnormal_flags: "OBX: abnormal flags high low normal"
+      observation_result_status: "OBX: result status final preliminary"
+      date_time_of_observation: "OBX: date time of observation"
+
+  OBR:
+    description: "Observation Request — test orders and requests"
+    fields:
+      placer_order_number:
+        type: "EI"
+        required: false
+        position: "OBR-2"
+        description: "Placer order number"
+      filler_order_number:
+        type: "EI"
+        required: false
+        position: "OBR-3"
+        description: "Filler order number"
+      universal_service_identifier:
+        type: "CE"
+        required: true
+        position: "OBR-4"
+        description: "Universal service identifier (test code)"
+      observation_date_time:
+        type: "TS"
+        required: false
+        position: "OBR-7"
+        description: "Observation date/time"
+      specimen_received_date_time:
+        type: "TS"
+        required: false
+        position: "OBR-14"
+        description: "Specimen received date/time"
+      ordering_provider:
+        type: "XCN"
+        required: false
+        position: "OBR-16"
+        description: "Ordering provider"
+      result_status:
+        type: "ID"
+        required: false
+        position: "OBR-25"
+        description: "Result status (F=Final, P=Preliminary)"
+    source_patterns:
+      order_id: "placer_order_number"
+      order_number: "placer_order_number"
+      filler_order: "filler_order_number"
+      test_ordered: "universal_service_identifier"
+      specimen_date: "specimen_received_date_time"
+    embedding_descriptions:
+      placer_order_number: "OBR: placer order number"
+      filler_order_number: "OBR: filler order number"
+      universal_service_identifier: "OBR: universal service identifier test code"
+      observation_date_time: "OBR: observation date and time"
+      specimen_received_date_time: "OBR: specimen received date time"
+      ordering_provider: "OBR: ordering provider physician"
+      result_status: "OBR: result status final preliminary"
+
+  RXE:
+    description: "Pharmacy/Treatment Encoded Order — medication prescriptions"
+    fields:
+      quantity_timing:
+        type: "TQ"
+        required: false
+        position: "RXE-1"
+        description: "Quantity/timing (dosage schedule)"
+      give_code:
+        type: "CE"
+        required: true
+        position: "RXE-2"
+        description: "Give code (drug code, RxNorm, NDC)"
+      give_amount_minimum:
+        type: "NM"
+        required: true
+        position: "RXE-3"
+        description: "Give amount — minimum"
+      give_amount_maximum:
+        type: "NM"
+        required: false
+        position: "RXE-4"
+        description: "Give amount — maximum"
+      give_units:
+        type: "CE"
+        required: true
+        position: "RXE-5"
+        description: "Give units (mg, mL, etc.)"
+      give_dosage_form:
+        type: "CE"
+        required: false
+        position: "RXE-6"
+        description: "Give dosage form (tablet, injection, etc.)"
+      give_route:
+        type: "CE"
+        required: false
+        position: "RXE-13"
+        description: "Give route (oral, IV, IM, etc.)"
+      dispense_amount:
+        type: "NM"
+        required: false
+        position: "RXE-10"
+        description: "Dispense amount"
+      dispense_units:
+        type: "CE"
+        required: false
+        position: "RXE-11"
+        description: "Dispense units"
+      prescription_number:
+        type: "ST"
+        required: false
+        position: "RXE-15"
+        description: "Prescription number"
+    source_patterns:
+      medication: "give_code"
+      drug_code: "give_code"
+      drug_name: "give_code"
+      dose: "give_amount_minimum"
+      quantity: "dispense_amount"
+      route: "give_route"
+      dosage_form: "give_dosage_form"
+      prescription_id: "prescription_number"
+    embedding_descriptions:
+      quantity_timing: "RXE: quantity timing dosage schedule"
+      give_code: "RXE: give code drug medication RxNorm NDC"
+      give_amount_minimum: "RXE: give amount minimum dose"
+      give_amount_maximum: "RXE: give amount maximum dose"
+      give_units: "RXE: give units mg mL"
+      give_dosage_form: "RXE: dosage form tablet injection capsule"
+      give_route: "RXE: give route oral IV IM subcutaneous"
+      dispense_amount: "RXE: dispense amount quantity"
+      dispense_units: "RXE: dispense units"
+      prescription_number: "RXE: prescription number identifier"
+
+  AL1:
+    description: "Patient Allergy Information"
+    fields:
+      allergy_type:
+        type: "CE"
+        required: false
+        position: "AL1-2"
+        description: "Allergen type (DA=Drug, FA=Food, EA=Environmental, etc.)"
+      allergen_code:
+        type: "CE"
+        required: true
+        position: "AL1-3"
+        description: "Allergen code/description"
+      allergy_severity:
+        type: "CE"
+        required: false
+        position: "AL1-4"
+        description: "Allergy severity (SV=Severe, MO=Moderate, MI=Mild)"
+      allergy_reaction:
+        type: "ST"
+        required: false
+        position: "AL1-5"
+        description: "Allergy reaction code"
+      identification_date:
+        type: "DT"
+        required: false
+        position: "AL1-6"
+        description: "Identification date"
+    source_patterns:
+      allergy_code: "allergen_code"
+      allergy_type: "allergy_type"
+      allergy_description: "allergen_code"
+      allergy_severity: "allergy_severity"
+      allergy_reaction: "allergy_reaction"
+    embedding_descriptions:
+      allergy_type: "AL1: allergen type drug food environmental"
+      allergen_code: "AL1: allergen code description"
+      allergy_severity: "AL1: allergy severity severe moderate mild"
+      allergy_reaction: "AL1: allergy reaction"
+      identification_date: "AL1: allergy identification date"
+
+  NK1:
+    description: "Next of Kin / Associated Parties"
+    fields:
+      nk1_name:
+        type: "XPN"
+        required: false
+        position: "NK1-2"
+        description: "Name of next of kin"
+      relationship:
+        type: "CE"
+        required: false
+        position: "NK1-3"
+        description: "Relationship (SPO=Spouse, PAR=Parent, CHD=Child, etc.)"
+      nk1_address:
+        type: "XAD"
+        required: false
+        position: "NK1-4"
+        description: "Address"
+      nk1_phone:
+        type: "XTN"
+        required: false
+        position: "NK1-5"
+        description: "Phone number"
+    source_patterns:
+      emergency_contact: "nk1_name"
+      next_of_kin: "nk1_name"
+      contact_relationship: "relationship"
+    embedding_descriptions:
+      nk1_name: "NK1: next of kin name emergency contact"
+      relationship: "NK1: relationship spouse parent child"
+      nk1_address: "NK1: next of kin address"
+      nk1_phone: "NK1: next of kin phone number"
+
+# Default fallback segment for unmapped columns
+default_entity: "OBX"
+default_field: "observation_value"

@@ -1,0 +1,21 @@
+encounter_id,patient_id,encounter_type,admission_date,discharge_date,facility,department,attending_provider
+E001,P001,inpatient,2024-01-15,2024-01-18,Springfield General Hospital,Internal Medicine,Dr. Sarah Chen
+E002,P002,outpatient,2024-02-03,,Austin Medical Center,Family Medicine,Dr. Michael Roberts
+E003,P003,emergency,2024-01-22,2024-01-23,Atlanta Regional Medical,Emergency Department,Dr. Lisa Park
+E004,P001,outpatient,2024-03-10,,Springfield General Hospital,Endocrinology,Dr. Sarah Chen
+E005,P004,outpatient,2024-01-28,,Bay Area Health Clinic,Primary Care,Dr. James Liu
+E006,P005,inpatient,2024-02-12,2024-02-19,Columbus University Hospital,Cardiology,Dr. Anna Schmidt
+E007,P006,outpatient,2024-03-05,,Miami Health Partners,Family Medicine,Dr. Carlos Ruiz
+E008,P007,emergency,2024-02-18,2024-02-19,Chicago Memorial Hospital,Emergency Department,Dr. Rachel Kim
+E009,P003,outpatient,2024-03-15,,Atlanta Regional Medical,Nephrology,Dr. David Okafor
+E010,P008,outpatient,2024-01-30,,Pacific Northwest Medical,Primary Care,Dr. Emily Tran
+E011,P009,inpatient,2024-02-25,2024-03-01,Denver Health Center,Pulmonology,Dr. Mark Stevens
+E012,P010,outpatient,2024-03-08,,Boston Medical Associates,Internal Medicine,Dr. Wei Zhang
+E013,P011,inpatient,2024-01-20,2024-01-25,Phoenix Valley Hospital,Orthopedics,Dr. Robert Garcia
+E014,P012,outpatient,2024-02-14,,Nashville Community Health,Psychiatry,Dr. Angela Moore
+E015,P013,outpatient,2024-03-12,,Houston Medical Group,Gastroenterology,Dr. Priya Sharma
+E016,P002,emergency,2024-03-20,2024-03-21,Austin Medical Center,Emergency Department,Dr. Michael Roberts
+E017,P005,outpatient,2024-03-25,,Columbus University Hospital,Cardiology,Dr. Anna Schmidt
+E018,P014,outpatient,2024-02-08,,Portland Wellness Center,Primary Care,Dr. Jason Miller
+E019,P015,outpatient,2024-03-01,,Honolulu Pacific Medical,Internal Medicine,Dr. Kenji Yamamoto
+E020,P007,outpatient,2024-03-28,,Chicago Memorial Hospital,Internal Medicine,Dr. Rachel Kim

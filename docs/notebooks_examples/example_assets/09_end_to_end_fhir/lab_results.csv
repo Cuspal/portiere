@@ -1,0 +1,21 @@
+lab_id,patient_id,test_code,test_name,result_value,result_unit,reference_range,result_flag,collection_date
+L001,P001,GLU,Glucose,142,mg/dL,70-100,H,2024-01-15
+L002,P001,HBA1C,Hemoglobin A1c,7.8,%,4.0-5.6,H,2024-01-15
+L003,P001,CREAT,Creatinine,1.1,mg/dL,0.7-1.3,N,2024-01-15
+L004,P003,BUN,Blood Urea Nitrogen,28,mg/dL,7-20,H,2024-01-22
+L005,P003,CREAT,Creatinine,2.4,mg/dL,0.7-1.3,H,2024-01-22
+L006,P003,GLU,Glucose,98,mg/dL,70-100,N,2024-01-22
+L007,P005,GLU,Glucose,156,mg/dL,70-100,H,2024-02-12
+L008,P005,HBA1C,Hemoglobin A1c,8.2,%,4.0-5.6,H,2024-02-12
+L009,P005,LIPID,Lipid Panel,245,mg/dL,< 200,H,2024-02-12
+L010,P005,ALT,Alanine Aminotransferase,22,U/L,7-56,N,2024-02-12
+L011,P008,TSH,Thyroid Stimulating Hormone,2.5,mIU/L,0.4-4.0,N,2024-01-30
+L012,P008,CBC,Complete Blood Count,14.2,g/dL,12.0-16.0,N,2024-01-30
+L013,P010,CREAT,Creatinine,0.9,mg/dL,0.7-1.3,N,2024-03-08
+L014,P010,BUN,Blood Urea Nitrogen,15,mg/dL,7-20,N,2024-03-08
+L015,P009,WBC,White Blood Cell Count,11.2,x10^3/uL,4.5-11.0,H,2024-02-25
+L016,P009,AST,Aspartate Aminotransferase,35,U/L,10-40,N,2024-02-25
+L017,P012,GLU,Glucose,92,mg/dL,70-100,N,2024-02-14
+L018,P001,GLU,Glucose,135,mg/dL,70-100,H,2024-03-10
+L019,P001,HBA1C,Hemoglobin A1c,7.5,%,4.0-5.6,H,2024-03-10
+L020,P013,ALT,Alanine Aminotransferase,48,U/L,7-56,N,2024-03-12

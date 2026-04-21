@@ -1,0 +1,135 @@
+# Crossmap: OMOP CDM v5.4 → OpenEHR 1.0.4
+# Maps OMOP relational tables to OpenEHR archetypes.
+
+source: "omop_cdm_v5.4"
+target: "openehr_1.0.4"
+
+entity_map:
+  person: "demographics.person"
+  visit_occurrence: "composition.encounter"
+  condition_occurrence: "evaluation.problem_diagnosis"
+  drug_exposure: "instruction.medication_order"
+  measurement: "observation.laboratory_test_result"
+  procedure_occurrence: "action.procedure"
+
+field_map:
+  # ── person → demographics.person ─────────────────────────
+  person.person_id:
+    target: "demographics.person.uid"
+    transform: "str"
+  person.person_source_value:
+    target: "demographics.person.name"
+    transform: "str"
+  person.birth_datetime:
+    target: "demographics.person.date_of_birth"
+    transform: "passthrough"
+  person.gender_concept_id:
+    target: "demographics.person.sex"
+    transform: "omop_gender_openehr"
+  person.race_concept_id:
+    target: "demographics.person.ethnicity"
+    transform: "str"
+
+  # ── visit_occurrence → composition.encounter ─────────────
+  visit_occurrence.visit_occurrence_id:
+    target: "composition.encounter.uid"
+    transform: "str"
+  visit_occurrence.visit_start_date:
+    target: "composition.encounter.context_start_time"
+    transform: "passthrough"
+  visit_occurrence.visit_end_date:
+    target: "composition.encounter.context_end_time"
+    transform: "passthrough"
+  visit_occurrence.visit_source_value:
+    target: "composition.encounter.context_setting"
+    transform: "str"
+  visit_occurrence.care_site_id:
+    target: "composition.encounter.context_health_care_facility"
+    transform: "str"
+
+  # ── condition_occurrence → evaluation.problem_diagnosis ──
+  condition_occurrence.condition_source_value:
+    target: "evaluation.problem_diagnosis.problem_diagnosis_name"
+    transform: "dv_coded_text"
+    config:
+      terminology_id: "SNOMED-CT"
+  condition_occurrence.condition_concept_id:
+    target: "evaluation.problem_diagnosis.problem_diagnosis_name"
+    transform: "dv_coded_text"
+    config:
+      terminology_id: "SNOMED-CT"
+      display_field: "condition_source_value"
+  condition_occurrence.condition_start_date:
+    target: "evaluation.problem_diagnosis.date_time_of_onset"
+    transform: "passthrough"
+
+  # ── drug_exposure → instruction.medication_order ─────────
+  drug_exposure.drug_source_value:
+    target: "instruction.medication_order.medication_item"
+    transform: "dv_coded_text"
+    config:
+      terminology_id: "RxNorm"
+  drug_exposure.drug_exposure_start_date:
+    target: "instruction.medication_order.order_start_date"
+    transform: "passthrough"
+  drug_exposure.drug_exposure_end_date:
+    target: "instruction.medication_order.order_end_date"
+    transform: "passthrough"
+  drug_exposure.quantity:
+    target: "instruction.medication_order.dose_amount"
+    transform: "dv_quantity"
+    config:
+      units: "dose"
+  drug_exposure.sig:
+    target: "instruction.medication_order.frequency"
+    transform: "str"
+  drug_exposure.route_concept_id:
+    target: "instruction.medication_order.route"
+    transform: "str"
+  drug_exposure.drug_concept_id:
+    target: "instruction.medication_order.clinical_indication"
+    transform: "str"
+
+  # ── measurement → observation.laboratory_test_result ──────
+  measurement.measurement_source_value:
+    target: "observation.laboratory_test_result.test_name"
+    transform: "dv_coded_text"
+    config:
+      terminology_id: "LOINC"
+  measurement.measurement_date:
+    target: "observation.laboratory_test_result.test_timestamp"
+    transform: "passthrough"
+  measurement.value_as_number:
+    target: "observation.laboratory_test_result.result_value"
+    transform: "dv_quantity"
+    config:
+      unit_field: "unit_source_value"
+  measurement.unit_source_value:
+    target: "observation.laboratory_test_result.result_unit"
+    transform: "str"
+  measurement.range_low:
+    target: "observation.laboratory_test_result.reference_range_lower"
+    transform: "float"
+  measurement.range_high:
+    target: "observation.laboratory_test_result.reference_range_upper"
+    transform: "float"
+
+  # ── procedure_occurrence → action.procedure ──────────────
+  procedure_occurrence.procedure_source_value:
+    target: "action.procedure.procedure_name"
+    transform: "dv_coded_text"
+    config:
+      terminology_id: "SNOMED-CT"
+  procedure_occurrence.procedure_date:
+    target: "action.procedure.datetime_procedure_performed"
+    transform: "passthrough"
+
+transforms:
+  omop_gender_openehr:
+    type: "value_map"
+    mapping:
+      8507: "Male"
+      8532: "Female"
+      8551: "Indeterminate"
+      8570: "Not known"
+    default: "Not known"

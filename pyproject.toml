@@ -1,0 +1,194 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "portiere"
+version = "0.1.0"
+description = "AI-powered clinical data mapping SDK"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+authors = [
+    { name = "Portiere Team", email = "team@portiere.io" },
+]
+keywords = [
+    "healthcare",
+    "clinical-data",
+    "omop",
+    "fhir",
+    "data-mapping",
+    "ai",
+    "llm",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Healthcare Industry",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Typing :: Typed",
+]
+dependencies = [
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "pyyaml>=6.0",
+    "structlog>=23.0.0",
+    "rich>=13.0.0",
+    "tenacity>=8.0.0",
+    "jinja2>=3.0.0",
+    "bm25s>=0.2.0",
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+# Compute engines
+spark = ["pyspark>=3.4.0"]
+polars = ["polars>=0.20.0"]
+duckdb = ["duckdb>=0.9.0"]
+pandas = ["pandas>=2.0.0"]
+
+# LLM providers (BYO-LLM)
+openai = ["openai>=1.0.0"]
+anthropic = ["anthropic>=0.20.0"]
+bedrock = ["aioboto3>=12.0.0"]
+ollama = ["httpx>=0.25.0"]
+
+# Cloud (Portiere Cloud only)
+cloud = ["httpx>=0.25.0"]
+
+# Knowledge layer backends
+elasticsearch = ["elasticsearch>=8.0.0"]
+faiss = ["faiss-cpu>=1.7.0", "sentence-transformers>=2.0.0"]
+chromadb = ["chromadb>=0.4.0"]
+pgvector = ["psycopg[binary]>=3.0.0", "pgvector>=0.2.0"]
+mongodb = ["pymongo>=4.6.0"]
+qdrant = ["qdrant-client>=1.7.0"]
+milvus = ["pymilvus>=2.3.0"]
+
+# Data quality (Great Expectations)
+quality = ["great_expectations>=1.0.0"]
+
+# All engines
+all-engines = [
+    "pyspark>=3.4.0",
+    "polars>=0.20.0",
+    "duckdb>=0.9.0",
+    "pandas>=2.0.0",
+]
+
+# All LLM providers
+all-llm = [
+    "openai>=1.0.0",
+    "anthropic>=0.20.0",
+    "aioboto3>=12.0.0",
+]
+
+# Everything
+all = [
+    "portiere[all-engines]",
+    "portiere[all-llm]",
+    "portiere[quality]",
+]
+
+# Development
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+    "pre-commit>=3.0.0",
+    "click>=8.0.0",
+    "httpx>=0.25.0",
+    "openai>=1.0.0",
+    "pyarrow>=12.0.0",
+    "types-PyYAML>=6.0.0",
+    "pandas-stubs>=2.0.0",
+]
+
+# Documentation
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+    "mkdocstrings[python]>=0.24.0",
+]
+
+[project.scripts]
+portiere = "portiere.cli.models:models"
+
+[project.urls]
+Homepage = "https://portiere.io"
+Documentation = "https://docs.portiere.io"
+Repository = "https://github.com/Cuspal/portiere"
+Issues = "https://github.com/Cuspal/portiere/issues"
+Changelog = "https://github.com/Cuspal/portiere/releases"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src/portiere",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/portiere"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "RUF", # ruff-specific
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "RUF013", # implicit Optional (X = None should be X | None = None) — deferred
+    "B904",   # raise without `from err` inside except — deferred
+    "B905",   # zip() without strict= — deferred
+    "RUF012", # mutable class attributes without ClassVar — deferred
+    "B007",   # loop control variable not used — deferred
+    "RUF005", # iterable unpacking vs concatenation — deferred
+    "F841",   # local variable assigned but never used — deferred
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["portiere"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+implicit_optional = true
+warn_return_any = false
+warn_unused_ignores = false
+disallow_untyped_defs = false
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-v"
+
+[tool.coverage.run]
+source = ["portiere"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@overload",
+]
+

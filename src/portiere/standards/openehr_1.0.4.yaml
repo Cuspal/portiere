@@ -1,0 +1,404 @@
+# OpenEHR 1.0.4 — Standard Definition
+# Source: openEHR Reference Model 1.0.4 + Clinical Knowledge Manager archetypes
+# Archetype-based clinical data model with compositions, entries, and elements.
+
+name: "openehr_1.0.4"
+version: "1.0.4"
+standard_type: "archetype"
+organization: "openEHR Foundation"
+description: "openEHR Reference Model with clinical archetypes"
+
+entities:
+  demographics.person:
+    description: "Patient demographics (openEHR-DEMOGRAPHIC-PERSON)"
+    fields:
+      uid:
+        type: "UID_BASED_ID"
+        required: true
+        path: "/uid"
+        description: "Unique person identifier"
+      name:
+        type: "DV_TEXT"
+        required: false
+        path: "/identities[at0000]/details[at0001]/items[at0002]"
+        description: "Person name"
+      date_of_birth:
+        type: "DV_DATE"
+        required: false
+        path: "/details[at0001]/items[at0009]"
+        description: "Date of birth"
+      sex:
+        type: "DV_CODED_TEXT"
+        required: false
+        path: "/details[at0001]/items[at0017]"
+        description: "Administrative sex/gender"
+      address:
+        type: "ADDRESS"
+        required: false
+        path: "/contacts[at0004]/addresses"
+        description: "Patient address"
+      telecom:
+        type: "DV_TEXT"
+        required: false
+        path: "/contacts[at0004]/addresses/items[at0012]"
+        description: "Telephone or electronic communication"
+      ethnicity:
+        type: "DV_TEXT"
+        required: false
+        path: "/details[at0001]/items[at0020]"
+        description: "Ethnicity"
+    source_patterns:
+      patient_id: "uid"
+      subject_id: "uid"
+      person_id: "uid"
+      mrn: "uid"
+      first_name: "name"
+      last_name: "name"
+      patient_name: "name"
+      birth_date: "date_of_birth"
+      date_of_birth: "date_of_birth"
+      dob: "date_of_birth"
+      gender: "sex"
+      sex: "sex"
+      race: "ethnicity"
+      ethnicity: "ethnicity"
+      address: "address"
+      phone: "telecom"
+    embedding_descriptions:
+      uid: "openEHR demographics: unique person identifier"
+      name: "openEHR demographics: person name"
+      date_of_birth: "openEHR demographics: date of birth"
+      sex: "openEHR demographics: administrative sex gender"
+      address: "openEHR demographics: patient address"
+      telecom: "openEHR demographics: telephone electronic communication"
+      ethnicity: "openEHR demographics: ethnicity"
+
+  composition.encounter:
+    description: "Clinical encounter composition (openEHR-EHR-COMPOSITION.encounter)"
+    fields:
+      uid:
+        type: "UID_BASED_ID"
+        required: true
+        path: "/uid"
+        description: "Unique encounter composition identifier"
+      context_start_time:
+        type: "DV_DATE_TIME"
+        required: false
+        path: "/context/start_time"
+        description: "Encounter start date and time"
+      context_end_time:
+        type: "DV_DATE_TIME"
+        required: false
+        path: "/context/end_time"
+        description: "Encounter end date and time"
+      context_setting:
+        type: "DV_CODED_TEXT"
+        required: false
+        path: "/context/setting"
+        description: "Clinical setting (primary care, hospital, emergency, etc.)"
+      context_health_care_facility:
+        type: "PARTY_IDENTIFIED"
+        required: false
+        path: "/context/health_care_facility"
+        description: "Healthcare facility where encounter took place"
+      composer:
+        type: "PARTY_IDENTIFIED"
+        required: true
+        path: "/composer"
+        description: "Clinician who authored the record"
+    source_patterns:
+      visit_id: "uid"
+      encounter_id: "uid"
+      hadm_id: "uid"
+      admission_date: "context_start_time"
+      admittime: "context_start_time"
+      dischtime: "context_end_time"
+      discharge_date: "context_end_time"
+      visit_type: "context_setting"
+      facility: "context_health_care_facility"
+      department: "context_setting"
+      attending_provider: "composer"
+    embedding_descriptions:
+      uid: "openEHR encounter: unique encounter composition identifier"
+      context_start_time: "openEHR encounter: start date time of encounter"
+      context_end_time: "openEHR encounter: end date time of encounter"
+      context_setting: "openEHR encounter: clinical setting primary care hospital emergency"
+      context_health_care_facility: "openEHR encounter: healthcare facility"
+      composer: "openEHR encounter: authoring clinician"
+
+  evaluation.problem_diagnosis:
+    description: "Problem/Diagnosis (openEHR-EHR-EVALUATION.problem_diagnosis)"
+    fields:
+      problem_diagnosis_name:
+        type: "DV_CODED_TEXT"
+        required: true
+        path: "/data[at0001]/items[at0002]"
+        description: "Problem/diagnosis name or code (SNOMED CT, ICD-10)"
+      clinical_description:
+        type: "DV_TEXT"
+        required: false
+        path: "/data[at0001]/items[at0009]"
+        description: "Clinical description narrative"
+      body_site:
+        type: "DV_CODED_TEXT"
+        required: false
+        path: "/data[at0001]/items[at0012]"
+        description: "Body site affected"
+      date_time_of_onset:
+        type: "DV_DATE_TIME"
+        required: false
+        path: "/data[at0001]/items[at0077]"
+        description: "Date/time of onset of condition"
+      date_time_clinically_recognised:
+        type: "DV_DATE_TIME"
+        required: false
+        path: "/data[at0001]/items[at0003]"
+        description: "Date/time condition was clinically recognised"
+      severity:
+        type: "DV_CODED_TEXT"
+        required: false
+        path: "/data[at0001]/items[at0005]"
+        description: "Overall severity of condition"
+      diagnostic_certainty:
+        type: "DV_CODED_TEXT"
+        required: false
+        path: "/data[at0001]/items[at0073]"
+        description: "Level of diagnostic certainty"
+      resolution_date:
+        type: "DV_DATE_TIME"
+        required: false
+        path: "/data[at0001]/items[at0030]"
+        description: "Date/time of resolution"
+    source_patterns:
+      diagnosis_code: "problem_diagnosis_name"
+      icd_code: "problem_diagnosis_name"
+      condition: "problem_diagnosis_name"
+      diagnosis_description: "clinical_description"
+      diagnosis_date: "date_time_of_onset"
+      diagnosis_type: "diagnostic_certainty"
+    embedding_descriptions:
+      problem_diagnosis_name: "openEHR problem diagnosis: name code SNOMED ICD-10"
+      clinical_description: "openEHR problem diagnosis: clinical description narrative"
+      body_site: "openEHR problem diagnosis: body site affected"
+      date_time_of_onset: "openEHR problem diagnosis: date time of onset"
+      date_time_clinically_recognised: "openEHR problem diagnosis: date clinically recognised"
+      severity: "openEHR problem diagnosis: overall severity"
+      diagnostic_certainty: "openEHR problem diagnosis: diagnostic certainty level"
+      resolution_date: "openEHR problem diagnosis: resolution date"
+
+  instruction.medication_order:
+    description: "Medication order (openEHR-EHR-INSTRUCTION.medication_order)"
+    fields:
+      medication_item:
+        type: "DV_CODED_TEXT"
+        required: true
+        path: "/activities[at0001]/description[at0002]/items[at0070]"
+        description: "Medication name or code"
+      dose_amount:
+        type: "DV_QUANTITY"
+        required: false
+        path: "/activities[at0001]/description[at0002]/items[at0091]/items[at0144]"
+        description: "Dose amount (e.g., 500 mg)"
+      dose_unit:
+        type: "DV_TEXT"
+        required: false
+        path: "/activities[at0001]/description[at0002]/items[at0091]/items[at0145]"
+        description: "Dose unit (mg, mL, etc.)"
+      route:
+        type: "DV_CODED_TEXT"
+        required: false
+        path: "/activities[at0001]/description[at0002]/items[at0091]/items[at0139]"
+        description: "Route of administration (oral, IV, etc.)"
+      frequency:
+        type: "DV_TEXT"
+        required: false
+        path: "/activities[at0001]/description[at0002]/items[at0091]/items[at0134]"
+        description: "Dosing frequency (once daily, twice daily, etc.)"
+      order_start_date:
+        type: "DV_DATE_TIME"
+        required: false
+        path: "/activities[at0001]/description[at0002]/items[at0113]/items[at0012]"
+        description: "Order start date"
+      order_end_date:
+        type: "DV_DATE_TIME"
+        required: false
+        path: "/activities[at0001]/description[at0002]/items[at0113]/items[at0013]"
+        description: "Order end date"
+      clinical_indication:
+        type: "DV_TEXT"
+        required: false
+        path: "/activities[at0001]/description[at0002]/items[at0018]"
+        description: "Clinical indication for the medication"
+    source_patterns:
+      medication: "medication_item"
+      drug_code: "medication_item"
+      drug_name: "medication_item"
+      dose: "dose_amount"
+      quantity: "dose_amount"
+      route: "route"
+      prescription_date: "order_start_date"
+      drug_start: "order_start_date"
+      drug_end: "order_end_date"
+    embedding_descriptions:
+      medication_item: "openEHR medication order: medication name code"
+      dose_amount: "openEHR medication order: dose amount"
+      dose_unit: "openEHR medication order: dose unit mg mL"
+      route: "openEHR medication order: route oral IV subcutaneous"
+      frequency: "openEHR medication order: dosing frequency"
+      order_start_date: "openEHR medication order: start date"
+      order_end_date: "openEHR medication order: end date"
+      clinical_indication: "openEHR medication order: clinical indication"
+
+  observation.laboratory_test_result:
+    description: "Laboratory test result (openEHR-EHR-OBSERVATION.laboratory_test_result)"
+    fields:
+      test_name:
+        type: "DV_CODED_TEXT"
+        required: true
+        path: "/data[at0001]/events[at0002]/data[at0003]/items[at0005]"
+        description: "Name of the laboratory test (LOINC)"
+      overall_test_status:
+        type: "DV_CODED_TEXT"
+        required: false
+        path: "/data[at0001]/events[at0002]/data[at0003]/items[at0073]"
+        description: "Overall test status (registered, partial, final)"
+      test_timestamp:
+        type: "DV_DATE_TIME"
+        required: false
+        path: "/data[at0001]/events[at0002]/time"
+        description: "Date/time of the test"
+      specimen_type:
+        type: "DV_CODED_TEXT"
+        required: false
+        path: "/data[at0001]/events[at0002]/data[at0003]/items[at0065]"
+        description: "Type of specimen (blood, urine, etc.)"
+      result_value:
+        type: "DV_QUANTITY"
+        required: false
+        path: "/data[at0001]/events[at0002]/data[at0003]/items[at0097]/items[at0078]"
+        description: "Numeric result value"
+      result_unit:
+        type: "DV_TEXT"
+        required: false
+        path: "/data[at0001]/events[at0002]/data[at0003]/items[at0097]/items[at0079]"
+        description: "Result unit of measure"
+      reference_range_lower:
+        type: "DV_QUANTITY"
+        required: false
+        path: "/data[at0001]/events[at0002]/data[at0003]/items[at0097]/items[at0080]"
+        description: "Reference range lower bound"
+      reference_range_upper:
+        type: "DV_QUANTITY"
+        required: false
+        path: "/data[at0001]/events[at0002]/data[at0003]/items[at0097]/items[at0081]"
+        description: "Reference range upper bound"
+      result_status:
+        type: "DV_CODED_TEXT"
+        required: false
+        path: "/data[at0001]/events[at0002]/data[at0003]/items[at0097]/items[at0109]"
+        description: "Individual result status"
+    source_patterns:
+      lab_code: "test_name"
+      lab_name: "test_name"
+      test_code: "test_name"
+      test_name: "test_name"
+      itemid: "test_name"
+      lab_value: "result_value"
+      valuenum: "result_value"
+      result_value: "result_value"
+      lab_date: "test_timestamp"
+      charttime: "test_timestamp"
+      collection_date: "test_timestamp"
+      lab_unit: "result_unit"
+      valueuom: "result_unit"
+      result_unit: "result_unit"
+      reference_range: "reference_range_lower"
+    embedding_descriptions:
+      test_name: "openEHR lab test: name LOINC code"
+      overall_test_status: "openEHR lab test: overall status final preliminary"
+      test_timestamp: "openEHR lab test: date time of test"
+      specimen_type: "openEHR lab test: specimen type blood urine"
+      result_value: "openEHR lab test: numeric result value"
+      result_unit: "openEHR lab test: result unit mg/dL mmol/L"
+      reference_range_lower: "openEHR lab test: reference range lower bound"
+      reference_range_upper: "openEHR lab test: reference range upper bound"
+      result_status: "openEHR lab test: individual result status"
+
+  observation.blood_pressure:
+    description: "Blood pressure measurement (openEHR-EHR-OBSERVATION.blood_pressure)"
+    fields:
+      systolic:
+        type: "DV_QUANTITY"
+        required: false
+        path: "/data[at0001]/events[at0006]/data[at0003]/items[at0004]"
+        description: "Systolic blood pressure"
+      diastolic:
+        type: "DV_QUANTITY"
+        required: false
+        path: "/data[at0001]/events[at0006]/data[at0003]/items[at0005]"
+        description: "Diastolic blood pressure"
+      mean_arterial_pressure:
+        type: "DV_QUANTITY"
+        required: false
+        path: "/data[at0001]/events[at0006]/data[at0003]/items[at1006]"
+        description: "Mean arterial pressure"
+      timestamp:
+        type: "DV_DATE_TIME"
+        required: false
+        path: "/data[at0001]/events[at0006]/time"
+        description: "Date/time of measurement"
+    source_patterns:
+      systolic: "systolic"
+      systolic_bp: "systolic"
+      diastolic: "diastolic"
+      diastolic_bp: "diastolic"
+      mean_arterial_pressure: "mean_arterial_pressure"
+      bp_date: "timestamp"
+    embedding_descriptions:
+      systolic: "openEHR blood pressure: systolic mmHg"
+      diastolic: "openEHR blood pressure: diastolic mmHg"
+      mean_arterial_pressure: "openEHR blood pressure: mean arterial pressure"
+      timestamp: "openEHR blood pressure: measurement date time"
+
+  action.procedure:
+    description: "Procedure performed (openEHR-EHR-ACTION.procedure)"
+    fields:
+      procedure_name:
+        type: "DV_CODED_TEXT"
+        required: true
+        path: "/description[at0001]/items[at0002]"
+        description: "Procedure name or code (SNOMED CT, CPT)"
+      procedure_description:
+        type: "DV_TEXT"
+        required: false
+        path: "/description[at0001]/items[at0049]"
+        description: "Narrative description of the procedure"
+      procedure_type:
+        type: "DV_TEXT"
+        required: false
+        path: "/description[at0001]/items[at0065]"
+        description: "Procedure type/method"
+      body_site:
+        type: "DV_CODED_TEXT"
+        required: false
+        path: "/description[at0001]/items[at0063]"
+        description: "Body site where procedure was performed"
+      datetime_procedure_performed:
+        type: "DV_DATE_TIME"
+        required: false
+        path: "/time"
+        description: "Date/time when procedure was performed"
+    source_patterns:
+      procedure_code: "procedure_name"
+      cpt_code: "procedure_name"
+      procedure_date: "datetime_procedure_performed"
+    embedding_descriptions:
+      procedure_name: "openEHR procedure: name code SNOMED CPT"
+      procedure_description: "openEHR procedure: narrative description"
+      procedure_type: "openEHR procedure: type method"
+      body_site: "openEHR procedure: body site"
+      datetime_procedure_performed: "openEHR procedure: date time performed"
+
+# Default fallback archetype for unmapped columns
+default_entity: "observation.laboratory_test_result"
+default_field: "result_value"

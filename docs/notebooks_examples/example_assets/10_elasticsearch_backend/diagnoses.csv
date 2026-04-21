@@ -1,0 +1,21 @@
+encounter_id,patient_id,diagnosis_code,diagnosis_description,diagnosis_type,diagnosis_date
+E001,P001,E11.9,Type 2 diabetes mellitus without complications,primary,2024-01-15
+E001,P001,I10,Essential (primary) hypertension,secondary,2024-01-15
+E002,P002,J06.9,Acute upper respiratory infection unspecified,primary,2024-02-03
+E003,P003,J44.1,Chronic obstructive pulmonary disease with acute exacerbation,primary,2024-01-22
+E003,P003,N18.3,Chronic kidney disease stage 3,secondary,2024-01-22
+E004,P001,E11.9,Type 2 diabetes mellitus without complications,primary,2024-03-10
+E005,P004,R51,Headache,primary,2024-01-28
+E006,P005,I10,Essential (primary) hypertension,primary,2024-02-12
+E006,P005,E11.9,Type 2 diabetes mellitus without complications,secondary,2024-02-12
+E007,P006,J06.9,Acute upper respiratory infection unspecified,primary,2024-03-05
+E008,P007,F32.9,Major depressive disorder single episode unspecified,primary,2024-02-18
+E008,P007,R51,Headache,secondary,2024-02-18
+E009,P003,N18.3,Chronic kidney disease stage 3,primary,2024-03-15
+E009,P003,I10,Essential (primary) hypertension,secondary,2024-03-15
+E011,P009,J44.1,Chronic obstructive pulmonary disease with acute exacerbation,primary,2024-02-25
+E011,P009,Z87.891,Personal history of nicotine dependence,secondary,2024-02-25
+E012,P010,I10,Essential (primary) hypertension,primary,2024-03-08
+E013,P011,R51,Headache,primary,2024-01-20
+E014,P012,F32.9,Major depressive disorder single episode unspecified,primary,2024-02-14
+E016,P002,Z87.891,Personal history of nicotine dependence,primary,2024-03-20
