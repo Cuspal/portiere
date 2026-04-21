@@ -3,14 +3,14 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "portiere"
+name = "portiere-health"
 version = "0.1.0"
 description = "AI-powered clinical data mapping SDK"
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.10"
 authors = [
-    { name = "Portiere Team", email = "team@portiere.io" },
+    { name = "Portiere Team", email = "hello@cuspal.co" },
 ]
 keywords = [
     "healthcare",
@@ -91,9 +91,9 @@ all-llm = [
 
 # Everything
 all = [
-    "portiere[all-engines]",
-    "portiere[all-llm]",
-    "portiere[quality]",
+    "portiere-health[all-engines]",
+    "portiere-health[all-llm]",
+    "portiere-health[quality]",
 ]
 
 # Development
