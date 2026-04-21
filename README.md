@@ -652,7 +652,7 @@ If you use Portiere in your research, please cite:
 @software{portiere2024,
   title     = {Portiere: AI-Powered Clinical Data Mapping SDK},
   author    = {Cuspal Co.,Ltd.},
-  year      = {2024},
+  year      = {2026},
   url       = {https://github.com/Cuspal/portiere},
   license   = {Apache-2.0},
 }
