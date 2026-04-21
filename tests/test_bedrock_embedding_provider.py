@@ -75,7 +75,7 @@ class TestBedrockEmbeddingProviderInit:
             model="amazon.titan-embed-text-v2:0",
         )
         with patch.dict(sys.modules, {"boto3": None}):
-            with pytest.raises(ImportError, match="portiere\\[bedrock\\]"):
+            with pytest.raises(ImportError, match="portiere-health\\[bedrock\\]"):
                 BedrockEmbeddingProvider(config)
 
 
