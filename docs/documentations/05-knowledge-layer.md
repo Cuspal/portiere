@@ -97,9 +97,9 @@ nearest-neighbor search retrieves the most semantically similar candidates.
 ### Dependencies
 
 ```bash
-pip install portiere[faiss]
+pip install portiere-health[faiss]
 # or for GPU acceleration:
-pip install portiere[faiss-gpu]
+pip install portiere-health[faiss-gpu]
 ```
 
 This installs `faiss-cpu` (or `faiss-gpu`) and `sentence-transformers`.
@@ -186,7 +186,7 @@ making it an excellent choice for local development and small-to-medium deployme
 ### Dependencies
 
 ```bash
-pip install portiere[chromadb]
+pip install portiere-health[chromadb]
 ```
 
 This installs the `chromadb` package.
@@ -224,7 +224,7 @@ without introducing a separate vector database.
 ### Dependencies
 
 ```bash
-pip install portiere[pgvector]
+pip install portiere-health[pgvector]
 ```
 
 This installs `psycopg` and `pgvector`. You must also install the `pgvector` extension in your
@@ -263,7 +263,7 @@ a separate vector database.
 ### Dependencies
 
 ```bash
-pip install portiere[mongodb]
+pip install portiere-health[mongodb]
 ```
 
 This installs the `pymongo` package. You must have a MongoDB Atlas cluster with Vector Search
@@ -304,7 +304,7 @@ production deployments.
 ### Dependencies
 
 ```bash
-pip install portiere[qdrant]
+pip install portiere-health[qdrant]
 ```
 
 This installs the `qdrant-client` package.
@@ -343,7 +343,7 @@ GPU acceleration, horizontal scaling, and is well-suited for the largest vocabul
 ### Dependencies
 
 ```bash
-pip install portiere[milvus]
+pip install portiere-health[milvus]
 ```
 
 This installs the `pymilvus` package.

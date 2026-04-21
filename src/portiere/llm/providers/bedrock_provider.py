@@ -47,7 +47,7 @@ class BedrockProvider(BaseLLMProvider):
         except ImportError:
             raise ImportError(
                 "aioboto3 is required for Bedrock provider. "
-                "Install with: pip install portiere[bedrock]"
+                "Install with: pip install portiere-health[bedrock]"
             )
 
         # Get region from config or fallback to AWS environment

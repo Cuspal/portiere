@@ -3,7 +3,7 @@ Qdrant Backend — Vector search using Qdrant vector database.
 
 Uses Qdrant for high-performance vector similarity search with
 filtering and payload storage.
-Requires: ``pip install portiere[qdrant]``
+Requires: ``pip install portiere-health[qdrant]``
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ class QdrantBackend(KnowledgeLayerBackend):
         except ImportError:
             raise ImportError(
                 "qdrant-client is required for Qdrant backend. "
-                "Install with: pip install portiere[qdrant]"
+                "Install with: pip install portiere-health[qdrant]"
             )
 
         self._embedding_gateway = embedding_gateway

@@ -506,13 +506,13 @@ class KnowledgeLayerConfig(BaseModel):
 | Backend | Best For | Requirements |
 |---------|----------|-------------|
 | `bm25s` | Quick setup, keyword-heavy clinical codes | None (pure Python) |
-| `faiss` | Dense semantic search, conceptual similarity | `pip install portiere[faiss]`, pre-built index |
+| `faiss` | Dense semantic search, conceptual similarity | `pip install portiere-health[faiss]`, pre-built index |
 | `elasticsearch` | Production scale, full-text + structured queries | Running Elasticsearch cluster |
-| `chromadb` | Lightweight vector store, embedded or persistent | `pip install portiere[chromadb]` |
-| `pgvector` | PostgreSQL-native vector search, existing Postgres infra | `pip install portiere[pgvector]`, PostgreSQL with pgvector extension |
-| `mongodb` | MongoDB Atlas Vector Search, existing MongoDB infra | `pip install portiere[mongodb]` |
-| `qdrant` | High-performance vector search, filtering | `pip install portiere[qdrant]` |
-| `milvus` | Scalable vector database, large-scale deployments | `pip install portiere[milvus]` |
+| `chromadb` | Lightweight vector store, embedded or persistent | `pip install portiere-health[chromadb]` |
+| `pgvector` | PostgreSQL-native vector search, existing Postgres infra | `pip install portiere-health[pgvector]`, PostgreSQL with pgvector extension |
+| `mongodb` | MongoDB Atlas Vector Search, existing MongoDB infra | `pip install portiere-health[mongodb]` |
+| `qdrant` | High-performance vector search, filtering | `pip install portiere-health[qdrant]` |
+| `milvus` | Scalable vector database, large-scale deployments | `pip install portiere-health[milvus]` |
 | `hybrid` | Highest accuracy, combines multiple retrieval strategies | Two or more backends configured |
 
 ### Example: Hybrid Search (BM25s + FAISS)
@@ -729,7 +729,7 @@ project = portiere.init(name="Pandas Project", engine=PandasEngine())
 
 ## QualityConfig -- Great Expectations Integration
 
-Controls data profiling and validation behavior. Requires `pip install portiere[quality]`.
+Controls data profiling and validation behavior. Requires `pip install portiere-health[quality]`.
 
 ```python
 class QualityConfig(BaseModel):

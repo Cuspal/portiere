@@ -40,7 +40,7 @@ The Elasticsearch backend connects Portiere to an external Elasticsearch cluster
 ## Installation
 
 ```bash
-pip install portiere[elasticsearch]
+pip install portiere-health[elasticsearch]
 ```
 
 This installs the `elasticsearch` Python client (8.x). You also need a running Elasticsearch instance (8.x recommended).

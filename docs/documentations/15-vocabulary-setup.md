@@ -29,7 +29,7 @@ Three search backends are available:
 | Backend | Best For | Requirements |
 |---------|----------|-------------|
 | **BM25s** | Quick setup, keyword matching | None (pure Python) |
-| **FAISS** | Semantic similarity, higher accuracy | `pip install portiere[faiss]` |
+| **FAISS** | Semantic similarity, higher accuracy | `pip install portiere-health[faiss]` |
 | **Hybrid** | Best accuracy (combines both) | FAISS + BM25s |
 
 The SDK provides `build_knowledge_layer()` to automate the entire setup from an OHDSI Athena download.
@@ -161,7 +161,7 @@ paths = build_knowledge_layer(
 
 ### Option B: FAISS (Semantic Search -- Higher Accuracy)
 
-FAISS uses dense vector embeddings for semantic similarity matching. Requires `pip install portiere[faiss]`.
+FAISS uses dense vector embeddings for semantic similarity matching. Requires `pip install portiere-health[faiss]`.
 
 ```python
 from portiere.knowledge import build_knowledge_layer

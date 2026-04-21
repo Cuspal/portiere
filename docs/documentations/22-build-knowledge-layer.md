@@ -25,7 +25,7 @@
 
 1. **Download Athena vocabularies** from [athena.ohdsi.org](https://athena.ohdsi.org)
 2. Extract the zip file — you need at minimum `CONCEPT.csv` (optionally `CONCEPT_SYNONYM.csv`)
-3. Install the SDK: `pip install portiere`
+3. Install the SDK: `pip install portiere-health`
 4. Install backend-specific extras as needed (see each section below)
 
 ```
@@ -89,7 +89,7 @@ Returns a `dict` with backend-specific configuration keys that can be passed dir
 
 Pure Python BM25 implementation. No external dependencies, works offline, best for getting started quickly.
 
-**Install:** No extras needed — included in base `pip install portiere`.
+**Install:** No extras needed — included in base `pip install portiere-health`.
 
 ```python
 from portiere.knowledge import build_knowledge_layer
@@ -124,7 +124,7 @@ config = PortiereConfig(
 
 Local vector similarity search using Facebook AI Similarity Search. Embeds concept names into dense vectors and finds semantically similar concepts.
 
-**Install:** `pip install portiere[faiss]`
+**Install:** `pip install portiere-health[faiss]`
 
 ```python
 from portiere.knowledge import build_knowledge_layer
@@ -164,7 +164,7 @@ config = PortiereConfig(
 
 Lightweight embedded vector database. Persists to disk with zero infrastructure — great for local development with vector search capabilities.
 
-**Install:** `pip install portiere[chromadb]`
+**Install:** `pip install portiere-health[chromadb]`
 
 ```python
 from portiere.knowledge import build_knowledge_layer
@@ -209,7 +209,7 @@ config = PortiereConfig(
 
 Uses PostgreSQL with the pgvector extension. Ideal for teams already running PostgreSQL — adds vector search without introducing new infrastructure.
 
-**Install:** `pip install portiere[pgvector]`
+**Install:** `pip install portiere-health[pgvector]`
 
 **Prerequisite:** PostgreSQL with `pgvector` extension installed.
 
@@ -258,7 +258,7 @@ config = PortiereConfig(
 
 Uses MongoDB with Atlas Vector Search for similarity search. Requires a MongoDB Atlas cluster with a vector search index configured.
 
-**Install:** `pip install portiere[mongodb]`
+**Install:** `pip install portiere-health[mongodb]`
 
 **Prerequisite:** MongoDB Atlas cluster with vector search index named `concept_vector_index` on the `embedding` field.
 
@@ -310,7 +310,7 @@ config = PortiereConfig(
 
 High-performance vector database with rich filtering and payload storage. Supports in-memory mode for development and remote server for production.
 
-**Install:** `pip install portiere[qdrant]`
+**Install:** `pip install portiere-health[qdrant]`
 
 ```python
 from portiere.knowledge import build_knowledge_layer
@@ -369,7 +369,7 @@ config = PortiereConfig(
 
 Distributed vector database designed for billion-scale datasets. Supports Milvus Lite (local file) for development and full Milvus for production.
 
-**Install:** `pip install portiere[milvus]`
+**Install:** `pip install portiere-health[milvus]`
 
 ```python
 from portiere.knowledge import build_knowledge_layer

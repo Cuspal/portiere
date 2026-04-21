@@ -3,7 +3,7 @@ ChromaDB Backend — Vector search using ChromaDB.
 
 Uses ChromaDB for persistent or in-memory vector search with
 built-in embedding support or external EmbeddingGateway.
-Requires: ``pip install portiere[chromadb]``
+Requires: ``pip install portiere-health[chromadb]``
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ class ChromaDBBackend(KnowledgeLayerBackend):
         except ImportError:
             raise ImportError(
                 "chromadb is required for ChromaDB backend. "
-                "Install with: pip install portiere[chromadb]"
+                "Install with: pip install portiere-health[chromadb]"
             )
 
         self._embedding_gateway = embedding_gateway

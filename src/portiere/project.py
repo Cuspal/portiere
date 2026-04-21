@@ -211,7 +211,7 @@ class Project:
         except ImportError:
             raise ImportError(
                 "Great Expectations is required for profiling. "
-                "Install it with: pip install portiere[quality]"
+                "Install it with: pip install portiere-health[quality]"
             )
 
         # Read data using engine
@@ -553,7 +553,7 @@ class Project:
         except ImportError:
             raise ImportError(
                 "Great Expectations is required for validation. "
-                "Install it with: pip install portiere[quality]"
+                "Install it with: pip install portiere-health[quality]"
             )
 
         validator = GXValidator(self.config.quality, self.config.thresholds)

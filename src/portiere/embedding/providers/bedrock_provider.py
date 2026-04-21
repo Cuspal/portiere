@@ -48,7 +48,7 @@ class BedrockEmbeddingProvider(BaseEmbeddingProvider):
         except ImportError:
             raise ImportError(
                 "boto3 is required for Bedrock embeddings. "
-                "Install with: pip install portiere[bedrock]"
+                "Install with: pip install portiere-health[bedrock]"
             )
 
         # Region resolution: endpoint → aws_region extra → default

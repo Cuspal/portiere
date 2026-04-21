@@ -18,7 +18,7 @@ This guide walks you through installing Portiere, running your first mapping pip
 ### Base Install
 
 ```bash
-pip install portiere
+pip install portiere-health
 ```
 
 The base package includes schema mapping, concept mapping, ETL generation, and local-mode support with the Polars compute engine.
@@ -29,9 +29,9 @@ Install additional capabilities as needed:
 
 | Extra | Command | What It Adds |
 |-------|---------|--------------|
-| **quality** | `pip install portiere[quality]` | Great Expectations integration for data profiling and validation |
-| **faiss** | `pip install portiere[faiss]` | FAISS vector search backend for the knowledge layer |
-| **all** | `pip install portiere[all]` | Everything above, plus Spark and DuckDB engine support |
+| **quality** | `pip install portiere-health[quality]` | Great Expectations integration for data profiling and validation |
+| **faiss** | `pip install portiere-health[faiss]` | FAISS vector search backend for the knowledge layer |
+| **all** | `pip install portiere-health[all]` | Everything above, plus Spark and DuckDB engine support |
 
 ### Verify Installation
 

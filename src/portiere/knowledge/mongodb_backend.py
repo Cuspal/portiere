@@ -2,7 +2,7 @@
 MongoDB Backend — Vector search using MongoDB Atlas Vector Search.
 
 Uses MongoDB with Atlas Vector Search index for similarity search.
-Requires: ``pip install portiere[mongodb]``
+Requires: ``pip install portiere-health[mongodb]``
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ class MongoDBBackend(KnowledgeLayerBackend):
         except ImportError:
             raise ImportError(
                 "pymongo is required for MongoDB backend. "
-                "Install with: pip install portiere[mongodb]"
+                "Install with: pip install portiere-health[mongodb]"
             )
 
         self._embedding_gateway = embedding_gateway

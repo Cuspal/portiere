@@ -46,7 +46,7 @@ class PolarsEngine(AbstractEngine):
             self._pl = pl
         except ImportError:
             raise ImportError(
-                "Polars is required for PolarsEngine. Install with: pip install portiere[polars]"
+                "Polars is required for PolarsEngine. Install with: pip install portiere-health[polars]"
             )
 
         logger.info("PolarsEngine initialized")

@@ -44,7 +44,7 @@ class PandasEngine(AbstractEngine):
             self._pd = pd
         except ImportError:
             raise ImportError(
-                "Pandas is required for PandasEngine. Install with: pip install portiere[pandas]"
+                "Pandas is required for PandasEngine. Install with: pip install portiere-health[pandas]"
             )
 
         logger.info("PandasEngine initialized")

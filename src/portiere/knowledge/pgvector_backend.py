@@ -2,7 +2,7 @@
 PGVector Backend — Vector search using PostgreSQL + pgvector extension.
 
 Uses PostgreSQL with the pgvector extension for vector similarity search.
-Requires: ``pip install portiere[pgvector]``
+Requires: ``pip install portiere-health[pgvector]``
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ class PGVectorBackend(KnowledgeLayerBackend):
         except ImportError:
             raise ImportError(
                 "psycopg and pgvector are required for PGVector backend. "
-                "Install with: pip install portiere[pgvector]"
+                "Install with: pip install portiere-health[pgvector]"
             )
 
         self._connection_string = connection_string

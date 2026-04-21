@@ -54,7 +54,7 @@ class SparkEngine(AbstractEngine):
             self._SparkSession = SparkSession
         except ImportError:
             raise ImportError(
-                "PySpark is required for SparkEngine. Install with: pip install portiere[spark]"
+                "PySpark is required for SparkEngine. Install with: pip install portiere-health[spark]"
             )
 
         if spark is None:

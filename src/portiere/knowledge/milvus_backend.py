@@ -2,7 +2,7 @@
 Milvus Backend — Vector search using Milvus vector database.
 
 Uses Milvus for distributed vector similarity search.
-Requires: ``pip install portiere[milvus]``
+Requires: ``pip install portiere-health[milvus]``
 """
 
 from __future__ import annotations
@@ -53,7 +53,7 @@ class MilvusBackend(KnowledgeLayerBackend):
         except ImportError:
             raise ImportError(
                 "pymilvus is required for Milvus backend. "
-                "Install with: pip install portiere[milvus]"
+                "Install with: pip install portiere-health[milvus]"
             )
 
         self._embedding_gateway = embedding_gateway

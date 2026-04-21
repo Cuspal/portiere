@@ -14,7 +14,7 @@ class OpenAIProvider(BaseLLMProvider):
             self._client = openai.AsyncOpenAI(api_key=config.api_key)
         except ImportError:
             raise ImportError(
-                "OpenAI is required for this provider. Install with: pip install portiere[openai]"
+                "OpenAI is required for this provider. Install with: pip install portiere-health[openai]"
             )
 
     async def complete(
@@ -68,7 +68,7 @@ class AzureOpenAIProvider(BaseLLMProvider):
             )
         except ImportError:
             raise ImportError(
-                "OpenAI is required for this provider. Install with: pip install portiere[openai]"
+                "OpenAI is required for this provider. Install with: pip install portiere-health[openai]"
             )
 
     async def complete(

@@ -15,7 +15,7 @@ class AnthropicProvider(BaseLLMProvider):
         except ImportError:
             raise ImportError(
                 "Anthropic is required for this provider. "
-                "Install with: pip install portiere[anthropic]"
+                "Install with: pip install portiere-health[anthropic]"
             )
 
     async def complete(

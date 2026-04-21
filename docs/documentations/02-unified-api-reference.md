@@ -278,7 +278,7 @@ source = project.add_source(
 
 Runs data quality profiling on a source using Great Expectations. Analyzes completeness, distributions, type consistency, and anomalies.
 
-**Requires:** `pip install portiere[quality]`
+**Requires:** `pip install portiere-health[quality]`
 
 #### Signature
 
@@ -532,7 +532,7 @@ for table in etl["tables"]:
 
 Validates ETL output against OMOP CDM conformance rules, completeness checks, and plausibility constraints.
 
-**Requires:** `pip install portiere[quality]`
+**Requires:** `pip install portiere-health[quality]`
 
 #### Signature
 
@@ -968,7 +968,7 @@ class ChromaDBBackend(AbstractKnowledgeBackend):
     def index_concepts(self, concepts: list[ConceptRecord]) -> None: ...
 ```
 
-**Install:** `pip install portiere[chromadb]`
+**Install:** `pip install portiere-health[chromadb]`
 
 ### `PGVectorBackend`
 
@@ -987,7 +987,7 @@ class PGVectorBackend(AbstractKnowledgeBackend):
     def index_concepts(self, concepts: list[ConceptRecord]) -> None: ...
 ```
 
-**Install:** `pip install portiere[pgvector]`
+**Install:** `pip install portiere-health[pgvector]`
 
 ### `MongoDBBackend`
 
@@ -1007,7 +1007,7 @@ class MongoDBBackend(AbstractKnowledgeBackend):
     def index_concepts(self, concepts: list[ConceptRecord]) -> None: ...
 ```
 
-**Install:** `pip install portiere[mongodb]`
+**Install:** `pip install portiere-health[mongodb]`
 
 ### `QdrantBackend`
 
@@ -1027,7 +1027,7 @@ class QdrantBackend(AbstractKnowledgeBackend):
     def index_concepts(self, concepts: list[ConceptRecord]) -> None: ...
 ```
 
-**Install:** `pip install portiere[qdrant]`
+**Install:** `pip install portiere-health[qdrant]`
 
 ### `MilvusBackend`
 
@@ -1046,7 +1046,7 @@ class MilvusBackend(AbstractKnowledgeBackend):
     def index_concepts(self, concepts: list[ConceptRecord]) -> None: ...
 ```
 
-**Install:** `pip install portiere[milvus]`
+**Install:** `pip install portiere-health[milvus]`
 
 ### `HybridBackend`
 
