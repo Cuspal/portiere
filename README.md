@@ -61,7 +61,7 @@ Portiere combines **clinical-domain embeddings** (SapBERT as default model), **l
 ### Install
 
 ```bash
-pip install portiere
+pip install portiere-health
 
 # With a compute engine (pick one)
 pip install "portiere-health[polars]"    # Lightweight (recommended)
@@ -118,7 +118,7 @@ project = portiere.init(
 ### Core Package
 
 ```bash
-pip install portiere
+pip install portiere-health
 ```
 
 ### Optional Extras
