@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/portiere/"><img src="https://img.shields.io/pypi/v/portiere.svg" alt="PyPI Version"></a>
-  <a href="https://pypi.org/project/portiere/"><img src="https://img.shields.io/pypi/pyversions/portiere.svg" alt="Python Versions"></a>
+  <a href="https://pypi.org/project/portiere-health/"><img src="https://img.shields.io/pypi/v/portiere.svg" alt="PyPI Version"></a>
+  <a href="https://pypi.org/project/portiere-health/"><img src="https://img.shields.io/pypi/pyversions/portiere.svg" alt="Python Versions"></a>
   <a href="https://github.com/Cuspal/portiere/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
   <a href="https://github.com/Cuspal/portiere/actions"><img src="https://img.shields.io/github/actions/workflow/status/Cuspal/portiere/ci.yml?branch=main" alt="Build Status"></a>
   <a href="https://github.com/Cuspal/portiere/actions"><img src="https://img.shields.io/badge/coverage-66%25-yellow.svg" alt="Coverage"></a>
