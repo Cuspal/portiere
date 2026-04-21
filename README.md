@@ -64,9 +64,9 @@ Portiere combines **clinical-domain embeddings** (SapBERT as default model), **l
 pip install portiere
 
 # With a compute engine (pick one)
-pip install "portiere[polars]"    # Lightweight (recommended)
-pip install "portiere[spark]"     # Large-scale / Databricks
-pip install "portiere[pandas]"    # Prototyping
+pip install "portiere-health[polars]"    # Lightweight (recommended)
+pip install "portiere-health[spark]"     # Large-scale / Databricks
+pip install "portiere-health[pandas]"    # Prototyping
 ```
 
 ### Map Clinical Data to OMOP CDM
