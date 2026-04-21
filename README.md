@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <a href="https://docs.portiere.io">Documentation</a> &middot;
+  <a href="https://www.cuspal.co/docs">Documentation</a> &middot;
   <a href="#quick-start">Quick Start</a> &middot;
   <a href="https://github.com/Cuspal/portiere/tree/main/docs/notebooks_examples">Examples</a> &middot;
   <a href="https://github.com/Cuspal/portiere/issues">Issues</a>
