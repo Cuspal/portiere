@@ -648,7 +648,7 @@ You may obtain a copy of the License at
 If you use Portiere in your research, please cite:
 
 ```bibtex
-@software{portiere2024,
+@software{portiere2026,
   title     = {Portiere: AI-Powered Clinical Data Mapping SDK},
   author    = {Cuspal Co.,Ltd.},
   year      = {2026},
