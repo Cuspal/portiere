@@ -127,23 +127,22 @@ Install only what you need:
 
 | Category | Extra | Command |
 |----------|-------|---------|
-| **Engines** | Polars | `pip install "portiere[polars]"` |
-| | PySpark | `pip install "portiere[spark]"` |
-| | Pandas | `pip install "portiere[pandas]"` |
-| | DuckDB | `pip install "portiere[duckdb]"` |
-| **LLM Providers** | OpenAI | `pip install "portiere[openai]"` |
-| | Anthropic | `pip install "portiere[anthropic]"` |
-| | AWS Bedrock | `pip install "portiere[bedrock]"` |
-| | Ollama | `pip install "portiere[ollama]"` |
-| **Knowledge Backends** | FAISS | `pip install "portiere[faiss]"` |
-| | Elasticsearch | `pip install "portiere[elasticsearch]"` |
-| | ChromaDB | `pip install "portiere[chromadb]"` |
-| | PGVector | `pip install "portiere[pgvector]"` |
-| | MongoDB | `pip install "portiere[mongodb]"` |
-| | Qdrant | `pip install "portiere[qdrant]"` |
-| | Milvus | `pip install "portiere[milvus]"` |
-| **Quality** | Great Expectations | `pip install "portiere[quality]"` |
-| **Everything** | All extras | `pip install "portiere[all]"` |
+| **Engines** | Polars | `pip install "portiere-health[polars]"` |
+| | PySpark | `pip install "portiere-health[spark]"` |
+| | Pandas | `pip install "portiere-health[pandas]"` |
+| **LLM Providers** | OpenAI | `pip install "portiere-health[openai]"` |
+| | Anthropic | `pip install "portiere-health[anthropic]"` |
+| | AWS Bedrock | `pip install "portiere-health[bedrock]"` |
+| | Ollama | `pip install "portiere-health[ollama]"` |
+| **Knowledge Backends** | FAISS | `pip install "portiere-health[faiss]"` |
+| | Elasticsearch | `pip install "portiere-health[elasticsearch]"` |
+| | ChromaDB | `pip install "portiere-health[chromadb]"` |
+| | PGVector | `pip install "portiere-health[pgvector]"` |
+| | MongoDB | `pip install "portiere-health[mongodb]"` |
+| | Qdrant | `pip install "portiere-health[qdrant]"` |
+| | Milvus | `pip install "portiere-health[milvus]"` |
+| **Quality** | Great Expectations | `pip install "portiere-health[quality]"` |
+| **Everything** | All extras | `pip install "portiere-health[all]"` |
 
 > **Requirements:** Python 3.10+
 
