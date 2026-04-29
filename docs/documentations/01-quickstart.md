@@ -2,6 +2,13 @@
 
 This guide walks you through installing Portiere, running your first mapping pipeline, and understanding what happens at each stage.
 
+> **Want to skip the explanation and just see it work?**
+> ```bash
+> pip install portiere-health[polars,quality]
+> portiere quickstart
+> ```
+> Runs the full 5-stage pipeline against ~20 bundled synthetic patients in <60 s, fully offline. Produces a real OMOP mapping plus a reproducibility manifest.
+
 ---
 
 ## Table of Contents
