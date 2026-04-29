@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions / Discussion
+    url: https://github.com/Cuspal/portiere/discussions
+    about: Ask usage questions, share recipes, propose ideas before filing issues.
+  - name: Security Vulnerability
+    url: https://github.com/Cuspal/portiere/security/advisories/new
+    about: Report security issues privately. Do NOT open a public issue.
+  - name: Commercial / Cloud
+    url: https://portiere.io
+    about: Inquiries about Portiere Cloud, hosted offerings, or commercial support.

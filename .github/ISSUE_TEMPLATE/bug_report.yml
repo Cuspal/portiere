@@ -1,0 +1,66 @@
+name: Bug Report
+description: Report a defect in Portiere
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. **Please do not include PHI** in the reproducer or any attached files.
+  - type: input
+    id: portiere-version
+    attributes:
+      label: Portiere version
+      description: Output of `python -c "import portiere; print(portiere.__version__)"`
+      placeholder: "0.2.0"
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      placeholder: "3.12.1"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "macOS 14.4 / Ubuntu 22.04 / Windows 11"
+    validations:
+      required: true
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: How was Portiere installed?
+      options:
+        - pip install portiere-health
+        - pip install -e . (editable, from source)
+        - poetry / uv / hatch
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Clear description of the bug — what you expected vs. what occurred.
+    validations:
+      required: true
+  - type: textarea
+    id: reproducer
+    attributes:
+      label: Minimal reproducer
+      description: Smallest snippet that reproduces the issue. Use synthetic data.
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: stack-trace
+    attributes:
+      label: Full stack trace (if any)
+      render: text
+  - type: textarea
+    id: extra-context
+    attributes:
+      label: Additional context
+      description: Knowledge backend, LLM provider, vocab versions, anything else relevant.

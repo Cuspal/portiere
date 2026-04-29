@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use Portiere in your research, please cite as below."
+title: "Portiere: AI-Powered Clinical Data Mapping SDK"
+authors:
+  - name: "Cuspal Co., Ltd."
+    affiliation: "Cuspal"
+    website: "https://cuspal.co"
+url: "https://github.com/Cuspal/portiere"
+repository-code: "https://github.com/Cuspal/portiere"
+license: Apache-2.0
+type: software
+version: 0.2.0
+date-released: "2026-XX-XX"  # update when v0.2.0 is tagged
+keywords:
+  - healthcare
+  - clinical-data
+  - omop
+  - omop-cdm
+  - fhir
+  - hl7
+  - openehr
+  - data-mapping
+  - ai
+  - llm
+  - health-informatics
+# doi: 10.5281/zenodo.XXXXXXX  # add after enabling Zenodo + tagging v0.2.0
