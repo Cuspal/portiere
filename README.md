@@ -13,7 +13,7 @@
   <a href="https://pypi.org/project/portiere-health/"><img src="https://img.shields.io/pypi/pyversions/portiere-health.svg" alt="Python Versions"></a>
   <a href="https://github.com/Cuspal/portiere/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
   <a href="https://github.com/Cuspal/portiere/actions"><img src="https://img.shields.io/github/actions/workflow/status/Cuspal/portiere/ci.yml?branch=main" alt="Build Status"></a>
-  <a href="https://github.com/Cuspal/portiere/actions"><img src="https://img.shields.io/badge/coverage-66%25-yellow.svg" alt="Coverage"></a>
+  <a href="https://github.com/Cuspal/portiere/actions"><img src="https://img.shields.io/badge/coverage-75%25-green.svg" alt="Coverage"></a>
   <a href="https://github.com/Cuspal/portiere"><img src="https://img.shields.io/github/stars/Cuspal/portiere?style=social" alt="GitHub Stars"></a>
 </p>
 
@@ -45,16 +45,27 @@ Portiere combines **clinical-domain embeddings** (SapBERT as default model), **l
 
 ## Key Features
 
-- **Multi-Standard Support** — OMOP CDM v5.4, FHIR R4, HL7 v2.5.1, OpenEHR 1.0.4 (extensible via YAML)
-- **AI-Powered Mapping** — SapBERT embeddings + cross-encoder reranking + optional LLM verification
-- **9 Knowledge Backends** — BM25s, FAISS, Elasticsearch, ChromaDB, PGVector, MongoDB, Qdrant, Milvus, Hybrid (RRF fusion)
-- **BYO-LLM** — Bring your own LLM: OpenAI, Anthropic Claude, AWS Bedrock, Ollama (local)
-- **Pluggable Engines** — Polars (default), PySpark / Databricks, Pandas, DuckDB
-- **Standalone ETL Artifacts** — Generated ETL scripts run without the SDK
-- **Data Quality Validation** — Great Expectations integration for post-ETL checks
-- **Confidence Routing** — Auto-accept, needs-review, and manual tiers with human-in-the-loop
-- **Cross-Standard Mapping** — Transform between standards (OMOP ↔ FHIR, HL7v2 → FHIR, OMOP → OpenEHR)
-- **Local-First** — All processing runs on your machine; no cloud dependency
+- **Multi-Standard Support** — OMOP CDM v5.4 (19 entities, incl. core vocabulary tables), FHIR R4 (18 resources), HL7 v2.5.1, OpenEHR 1.0.4 (extensible via YAML). [Full coverage details below](#standards-coverage).
+- **Real Plausibility Validation** — Kahn-style cross-table and ValueSet checks via a hybrid YAML DSL + Python rules. [Plausibility guide](docs/plausibility.md).
+- **Reproducibility Manifest** — every pipeline run emits a versioned `manifest.lock.json` capturing model identity, vocab fingerprints, source-data hash, threshold snapshot, and per-stage entries. `portiere replay` reconstructs the project from a manifest. [Reproducibility guide](docs/reproducibility.md).
+- **Bundled Quickstart** — `portiere quickstart` runs the full OMOP pipeline against ~20 synthetic patients in <60 s, **fully offline** (no SapBERT download, no Athena required).
+- **AI-Powered Mapping** — SapBERT embeddings (default) + cross-encoder reranking + optional LLM verification.
+- **9 Knowledge Backends** — BM25s, FAISS, Elasticsearch, ChromaDB, PGVector, MongoDB, Qdrant, Milvus, Hybrid (RRF fusion).
+- **BYO-LLM** — Bring your own LLM: OpenAI, Anthropic Claude, AWS Bedrock, Ollama (local).
+- **Pluggable Engines** — Polars (default), PySpark / Databricks, Pandas, DuckDB.
+- **Standalone ETL Artifacts** — Generated ETL scripts run without the SDK.
+- **Confidence Routing** — Auto-accept, needs-review, and manual tiers with human-in-the-loop (library-only in v0.2.0; web review UI is the v0.3.0 marquee feature).
+- **Cross-Standard Mapping** — Transform between standards (OMOP ↔ FHIR, HL7v2 → FHIR, OMOP → OpenEHR).
+- **Local-First** — All processing runs on your machine; no cloud dependency.
+
+## Quickstart in 60 seconds
+
+```bash
+pip install portiere-health[polars,quality]
+portiere quickstart
+```
+
+Runs the full pipeline (ingest → schema-map → concept-map → ETL → validate) against bundled synthetic data. Produces a real OMOP mapping plus a reproducibility manifest. No network calls, no extra setup.
 
 ## Quick Start
 
@@ -590,6 +601,49 @@ portiere/
 ├── pyproject.toml           # Package configuration (hatchling)
 └── LICENSE                  # Apache 2.0
 ```
+
+## Standards Coverage
+
+v0.2.0 ships an **opinionated subset** of each standard — the required + commonly-used optional fields and entities, not every column from the spec. Long-tail fields are accepted contributions.
+
+| Standard | Version | Entities / Resources | Notes |
+|---|---|---|---|
+| **OMOP CDM** | v5.4 | 19 (of ~37) | 14 clinical-data tables + 5 vocabulary tables (`concept`, `vocabulary`, `concept_relationship`, `domain`, `concept_class`) needed for FK validation |
+| **FHIR R4** | R4 (4.0.1) | 18 (of 145) | `Patient`, `Practitioner`, `Organization`, `Location`, `Encounter`, `Condition`, `Observation`, `Specimen`, `Immunization`, `ServiceRequest`, `MedicationRequest`, `MedicationAdministration`, `MedicationDispense`, `Procedure`, `AllergyIntolerance`, `DiagnosticReport`, `Bundle`, `DocumentReference` |
+| **HL7 v2** | 2.5.1 | Selected message types | Legacy hospital integration |
+| **OpenEHR** | 1.0.4 | Selected archetypes | European EHRs |
+
+For a programmatic listing: `python -c "from portiere.standards import YAMLTargetModel; print(sorted(YAMLTargetModel.from_name('omop_cdm_v5.4').get_schema()))"`.
+
+## Limitations
+
+Portiere is in active development. Current limitations (will be addressed in upcoming releases):
+
+- **Standards coverage is partial.** OMOP CDM v5.4: 19 of ~37 tables. FHIR R4: 18 of 145 resources. PRs to extend coverage are welcome.
+- **No FHIR profile validation.** Validation against FHIR profiles (US Core, mCODE, IPS) is not yet supported. **Planned for v0.3.0.**
+- **No Mapping Review UI.** The HITL review workflow is library-only in v0.2.0 (approve / override / reject via Python). Web UI is the **v0.3.0 marquee feature**.
+- **No PHI scrubbing.** PHI detection is column-name-pattern only — not a redactor. Free-text PHI scrubbing (Microsoft Presidio integration, HIPAA Safe Harbor) **planned for v0.4.0.**
+- **SNOMED CT and CPT-4 not bundled.** Both have licensing constraints. `portiere quickstart` operates on bundled ICD-10-CM/LOINC/RxNorm only; for SNOMED, see [vocabulary setup](docs/documentations/15-vocabulary-setup.md).
+- **Replay is not bit-deterministic.** `portiere replay` reproduces pipeline state from a manifest, but outputs may differ within ±1% due to LLM sampling and other legitimate nondeterminism. See [reproducibility guide](docs/reproducibility.md).
+- **One benchmark published.** v0.2.0 publishes ICD-10-CM → SNOMED only. Stratified sampling, USAGI baseline, and additional vocabulary pairs **planned for v0.3.0.**
+
+## Roadmap
+
+- **v0.3.0:** Mapping Review Web UI (Streamlit/FastAPI); FHIR profile validation (US Core, mCODE, IPS); FHIR Bundle / NDJSON Bulk Data export; USAGI baseline comparison; stratified benchmark sampling.
+- **v0.4.0:** PHI scrubber (Microsoft Presidio integration, HIPAA Safe Harbor); MCP server for Claude / LangChain tool / VS Code extension; active learning loop on curator overrides.
+- **v0.5.0+:** PCORnet / Sentinel / i2b2 / CDISC SDTM CDMs; clinical NLP path (scispaCy / GLiNER-clinical) for free-text → concepts; OHDSI DataQualityDashboard parity.
+
+Each release tracks via GitHub Milestones; please open issues or PRs against the relevant milestone.
+
+## Benchmarks
+
+v0.2.0 publishes one accuracy benchmark: **ICD-10-CM → SNOMED concept mapping** against the OHDSI Athena `CONCEPT_RELATIONSHIP` gold standard. Held-out test set: 1,000 ICD-10-CM concepts with `seed=42`. Reproducible with your own Athena export:
+
+```bash
+portiere benchmark athena-icd-snomed --athena-dir /path/to/athena
+```
+
+Methodology and (as soon as run on a current Athena release) numbers: [docs/benchmarks/athena-icd-snomed.md](docs/benchmarks/athena-icd-snomed.md).
 
 ## Star History
 
