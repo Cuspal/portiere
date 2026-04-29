@@ -1,0 +1,26 @@
+patient_id,med_code,med_description,prescribed_date
+P0001,860975,Metformin 500 MG Oral Tablet,2018-06-15
+P0001,314076,Lisinopril 10 MG Oral Tablet,2019-03-05
+P0002,314076,Lisinopril 10 MG Oral Tablet,2015-11-12
+P0003,197361,Albuterol 90 MCG/ACTUAT Metered Dose Inhaler,2010-09-25
+P0004,860975,Metformin 500 MG Oral Tablet,2012-02-04
+P0004,314076,Lisinopril 10 MG Oral Tablet,2013-05-22
+P0004,314206,Atorvastatin 20 MG Oral Tablet,2014-08-07
+P0005,314231,Sertraline 50 MG Oral Tablet,2021-04-15
+P0006,314076,Lisinopril 10 MG Oral Tablet,2018-12-15
+P0007,197361,Albuterol 90 MCG/ACTUAT Metered Dose Inhaler,2008-03-19
+P0008,860975,Metformin 500 MG Oral Tablet,2020-09-08
+P0009,308136,Amoxicillin 500 MG Oral Capsule,2024-01-18
+P0010,314076,Lisinopril 10 MG Oral Tablet,2014-06-26
+P0010,860975,Metformin 500 MG Oral Tablet,2018-04-10
+P0011,308136,Amoxicillin 500 MG Oral Capsule,2023-08-22
+P0012,314231,Sertraline 50 MG Oral Tablet,2022-03-02
+P0013,197517,Aspirin 81 MG Oral Tablet,2019-11-17
+P0014,308136,Amoxicillin 500 MG Oral Capsule,2024-09-25
+P0015,860975,Metformin 500 MG Oral Tablet,2018-01-05
+P0017,197361,Albuterol 90 MCG/ACTUAT Metered Dose Inhaler,2019-08-02
+P0019,308136,Amoxicillin 500 MG Oral Capsule,2023-12-06
+P0020,314231,Sertraline 50 MG Oral Tablet,2022-05-18
+P0020,314076,Lisinopril 10 MG Oral Tablet,2023-01-10
+P0011,200033,Cetirizine 10 MG Oral Tablet,2024-04-15
+P0006,314206,Atorvastatin 20 MG Oral Tablet,2020-02-28

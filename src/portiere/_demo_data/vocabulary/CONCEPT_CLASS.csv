@@ -1,0 +1,8 @@
+concept_class_id	concept_class_name	concept_class_concept_id
+Lab Test	Lab Test	44818707
+Clinical Observation	Clinical Observation	44818703
+Clinical Drug	Clinical Drug	44818731
+3-char nonbill code	3-character non-billable ICD10CM code	44818719
+4-char billing code	4-character billing ICD10CM code	44818720
+5-char billing code	5-character billing ICD10CM code	44818721
+6-char billing code	6-character billing ICD10CM code	44818722

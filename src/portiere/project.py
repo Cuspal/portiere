@@ -99,11 +99,18 @@ class Project:
                 project_root=Path.cwd(),
             )
             # Snapshot embedding identity from config (dimension may be 0
-            # until the gateway is actually instantiated).
+            # until the gateway is actually instantiated). When the
+            # provider is "none" (offline / no-op), record that as the
+            # name — there's no model to identify.
             try:
                 emb = self.config.embedding
+                provider = getattr(emb, "provider", None)
+                if provider == "none":
+                    emb_name = "none"
+                else:
+                    emb_name = getattr(emb, "model", "unknown")
                 self._recorder.set_embedding(
-                    name=getattr(emb, "model", "unknown"),
+                    name=emb_name,
                     dimension=int(getattr(emb, "dimension", 0) or 0),
                 )
             except Exception:

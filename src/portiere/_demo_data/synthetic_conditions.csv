@@ -1,0 +1,31 @@
+patient_id,dx_code,dx_description,onset_date
+P0001,E11.9,Type 2 diabetes mellitus without complications,2018-06-12
+P0001,I10,Essential primary hypertension,2019-03-01
+P0002,I10,Essential primary hypertension,2015-11-08
+P0002,E66.9,Obesity unspecified,2017-02-14
+P0003,J45.909,Unspecified asthma uncomplicated,2010-09-22
+P0004,E11.9,Type 2 diabetes mellitus without complications,2012-01-30
+P0004,I10,Essential primary hypertension,2013-05-18
+P0004,E66.9,Obesity unspecified,2014-08-02
+P0005,F32.A,Depression unspecified,2021-04-10
+P0006,K21.9,Gastro-esophageal reflux disease without esophagitis,2016-07-25
+P0006,I10,Essential primary hypertension,2018-12-11
+P0007,J45.909,Unspecified asthma uncomplicated,2008-03-16
+P0008,E11.9,Type 2 diabetes mellitus without complications,2020-09-04
+P0009,J06.9,Acute upper respiratory infection unspecified,2024-01-15
+P0010,I10,Essential primary hypertension,2014-06-22
+P0010,E66.9,Obesity unspecified,2015-10-08
+P0011,N39.0,Urinary tract infection site not specified,2023-08-19
+P0012,F32.A,Depression unspecified,2022-02-27
+P0013,K21.9,Gastro-esophageal reflux disease without esophagitis,2019-11-13
+P0013,R51.9,Headache unspecified,2024-03-05
+P0014,J06.9,Acute upper respiratory infection unspecified,2024-09-21
+P0015,E11.9,Type 2 diabetes mellitus without complications,2017-12-30
+P0016,I10,Essential primary hypertension,2011-04-17
+P0016,M79.3,Panniculitis unspecified,2016-10-04
+P0017,J45.909,Unspecified asthma uncomplicated,2019-07-29
+P0018,K21.9,Gastro-esophageal reflux disease without esophagitis,2018-08-11
+P0019,N39.0,Urinary tract infection site not specified,2023-12-02
+P0020,F32.A,Depression unspecified,2022-05-14
+P0020,I10,Essential primary hypertension,2023-01-06
+P0001,R51.9,Headache unspecified,2024-08-15

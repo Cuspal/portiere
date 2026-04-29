@@ -75,6 +75,11 @@ class EmbeddingGateway:
 
             return BedrockEmbeddingProvider(self.config)
 
+        elif self.config.provider == "none":
+            from portiere.embedding.providers.noop_provider import NoOpEmbeddingProvider
+
+            return NoOpEmbeddingProvider(self.config)
+
         else:
             raise ValueError(f"Unsupported embedding provider: {self.config.provider}")
 

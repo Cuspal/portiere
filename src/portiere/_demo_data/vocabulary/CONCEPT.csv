@@ -1,0 +1,28 @@
+concept_id	concept_name	domain_id	vocabulary_id	concept_class_id	standard_concept	concept_code	valid_start_date	valid_end_date	invalid_reason
+1567956	Type 2 diabetes mellitus without complications	Condition	ICD10CM	4-char billing code	S	E11.9	2007-01-01	2099-12-31
+1567980	Essential (primary) hypertension	Condition	ICD10CM	3-char nonbill code	S	I10	2007-01-01	2099-12-31
+1567972	Unspecified asthma, uncomplicated	Condition	ICD10CM	6-char billing code	S	J45.909	2007-01-01	2099-12-31
+1567960	Obesity, unspecified	Condition	ICD10CM	4-char billing code	S	E66.9	2007-01-01	2099-12-31
+1567964	Major depressive disorder, single episode, unspecified	Condition	ICD10CM	4-char billing code	S	F32.A	2007-01-01	2099-12-31
+1567968	Panniculitis, unspecified	Condition	ICD10CM	4-char billing code	S	M79.3	2007-01-01	2099-12-31
+1567984	Headache	Condition	ICD10CM	4-char billing code	S	R51.9	2007-01-01	2099-12-31
+1567976	Urinary tract infection, site not specified	Condition	ICD10CM	5-char billing code	S	N39.0	2007-01-01	2099-12-31
+1567988	Gastro-esophageal reflux disease without esophagitis	Condition	ICD10CM	4-char billing code	S	K21.9	2007-01-01	2099-12-31
+1567992	Acute upper respiratory infection, unspecified	Condition	ICD10CM	4-char billing code	S	J06.9	2007-01-01	2099-12-31
+3004410	Hemoglobin A1c/Hemoglobin.total in Blood	Measurement	LOINC	Lab Test	S	4548-4	1995-01-01	2099-12-31
+3027114	Cholesterol [Mass/volume] in Serum or Plasma	Measurement	LOINC	Lab Test	S	2093-3	1995-01-01	2099-12-31
+3016723	Creatinine [Mass/volume] in Serum or Plasma	Measurement	LOINC	Lab Test	S	2160-0	1995-01-01	2099-12-31
+3023103	Potassium [Moles/volume] in Serum or Plasma	Measurement	LOINC	Lab Test	S	2823-3	1995-01-01	2099-12-31
+3000963	Hemoglobin [Mass/volume] in Blood	Measurement	LOINC	Lab Test	S	718-7	1995-01-01	2099-12-31
+3004249	Systolic blood pressure	Measurement	LOINC	Clinical Observation	S	8480-6	1995-01-01	2099-12-31
+3012888	Diastolic blood pressure	Measurement	LOINC	Clinical Observation	S	8462-4	1995-01-01	2099-12-31
+3025315	Body weight	Measurement	LOINC	Clinical Observation	S	29463-7	1995-01-01	2099-12-31
+3036277	Body height	Measurement	LOINC	Clinical Observation	S	8302-2	1995-01-01	2099-12-31
+40221902	Metformin hydrochloride 500 MG Oral Tablet	Drug	RxNorm	Clinical Drug	S	860975	2002-01-01	2099-12-31
+40162606	Lisinopril 10 MG Oral Tablet	Drug	RxNorm	Clinical Drug	S	314076	2002-01-01	2099-12-31
+40232454	Albuterol 0.09 MG/ACTUAT Metered Dose Inhaler	Drug	RxNorm	Clinical Drug	S	197361	2002-01-01	2099-12-31
+40167900	Sertraline 50 MG Oral Tablet	Drug	RxNorm	Clinical Drug	S	314231	2002-01-01	2099-12-31
+40231924	Aspirin 81 MG Oral Tablet	Drug	RxNorm	Clinical Drug	S	197517	2002-01-01	2099-12-31
+40239216	Amoxicillin 500 MG Oral Capsule	Drug	RxNorm	Clinical Drug	S	308136	2002-01-01	2099-12-31
+40233344	Cetirizine 10 MG Oral Tablet	Drug	RxNorm	Clinical Drug	S	200033	2002-01-01	2099-12-31
+40165636	Atorvastatin 20 MG Oral Tablet	Drug	RxNorm	Clinical Drug	S	314206	2002-01-01	2099-12-31

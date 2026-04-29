@@ -57,7 +57,7 @@ class EmbeddingConfig(BaseModel):
     - bedrock: AWS Bedrock (Amazon Titan, Cohere Embed)
     """
 
-    provider: Literal["huggingface", "ollama", "openai", "bedrock"] = "huggingface"
+    provider: Literal["huggingface", "ollama", "openai", "bedrock", "none"] = "huggingface"
     model: str = "cambridgeltl/SapBERT-from-PubMedBERT-fulltext"
     endpoint: str | None = None
     api_key: str | None = None

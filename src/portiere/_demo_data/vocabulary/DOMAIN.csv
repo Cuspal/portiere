@@ -1,0 +1,8 @@
+domain_id	domain_name	domain_concept_id
+Condition	Condition	19
+Drug	Drug	13
+Measurement	Measurement	21
+Observation	Observation	27
+Procedure	Procedure	10
+Visit	Visit	8
+Metadata	Metadata	7
