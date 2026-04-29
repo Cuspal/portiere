@@ -299,6 +299,24 @@ class YAMLTargetModel(TargetModel):
                 result[field_name] = "other"
         return result
 
+    def get_plausibility_rules(self, entity: str) -> list:
+        """Return parsed plausibility rules for an entity.
+
+        Pulls the entity's ``plausibility:`` YAML block (if any) and parses
+        each rule via :func:`portiere.quality.plausibility.dsl.parse_rule`.
+
+        Returns
+        -------
+        list[PlausibilityRule]
+            Empty list if the entity is missing or has no ``plausibility:``
+            block. Otherwise a list of typed rule models (RangeRule,
+            RegexRule, EnumRule, TemporalOrderRule, FkExistsRule).
+        """
+        from portiere.quality.plausibility.dsl import parse_rules
+
+        entity_def = self._def.get("entities", {}).get(entity, {})
+        return parse_rules(entity_def.get("plausibility", []))
+
     def get_vocabulary_systems(self) -> dict[str, str]:
         """Return vocabulary_id → system URI mapping (e.g., SNOMED → http://snomed.info/sct)."""
         return self._def.get("vocabulary_systems", {})

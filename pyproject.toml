@@ -71,8 +71,8 @@ mongodb = ["pymongo>=4.6.0"]
 qdrant = ["qdrant-client>=1.7.0"]
 milvus = ["pymilvus>=2.3.0"]
 
-# Data quality (Great Expectations)
-quality = ["great_expectations>=1.0.0"]
+# Data quality (Great Expectations + DuckDB for FK validation)
+quality = ["great_expectations>=1.0.0", "duckdb>=0.9.0"]
 
 # All engines
 all-engines = [

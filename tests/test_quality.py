@@ -319,7 +319,15 @@ class TestGXValidator:
         score = validator._compute_conformance(mock_result)
         assert score == 0.5
 
-    def test_compute_plausibility(self):
+    def test_compute_overall_success(self):
+        """Renamed from test_compute_plausibility — same semantics, accurate name.
+
+        Slice 3 split the old tautological "plausibility" into:
+        - ``_compute_overall_success``: GX expectation pass-rate
+          (this test).
+        - ``_compute_plausibility``: real plausibility from
+          plausibility-rule results (covered below).
+        """
         validator = self._make_validator()
 
         mock_result = MagicMock()
@@ -332,8 +340,47 @@ class TestGXValidator:
             ]
         }
 
-        score = validator._compute_plausibility(mock_result)
+        score = validator._compute_overall_success(mock_result)
         assert score == pytest.approx(0.75)
+
+    def test_compute_plausibility_from_rule_results(self):
+        """New _compute_plausibility scores from plausibility rule results.
+
+        Only error-severity rules with total_rows > 0 contribute. Warns
+        and skipped rules don't drag the score down.
+        """
+        from portiere.quality.plausibility.runner import RuleResult
+
+        validator = self._make_validator()
+        results = [
+            RuleResult("r1", "error", passed=True, total_rows=100, failed_count=0),
+            RuleResult("r2", "error", passed=False, total_rows=100, failed_count=10),
+            RuleResult("r3", "warn", passed=False, total_rows=50, failed_count=5),
+        ]
+        # 1 of 2 error-tier rules passed
+        assert validator._compute_plausibility(results) == pytest.approx(0.5)
+
+    def test_compute_plausibility_excludes_skipped_rules(self):
+        from portiere.quality.plausibility.runner import RuleResult
+
+        validator = self._make_validator()
+        results = [
+            RuleResult(
+                "skipped",
+                "error",
+                passed=True,
+                total_rows=0,
+                failed_count=0,
+                detail="column 'x' not in DataFrame (skipped)",
+            ),
+            RuleResult("real", "error", passed=True, total_rows=100, failed_count=0),
+        ]
+        # only `real` counts → 1/1 = 1.0
+        assert validator._compute_plausibility(results) == 1.0
+
+    def test_compute_plausibility_no_rules_returns_one(self):
+        validator = self._make_validator()
+        assert validator._compute_plausibility([]) == 1.0
 
     def test_validate_with_mocked_gx(self):
         validator = self._make_validator()
@@ -514,6 +561,144 @@ class TestGXValidator:
 
         # 4 exist + 1 code (concept_id between) + 1 temporal (not null)
         assert created_suite.add_expectation.call_count == 6
+
+    # ── Slice 3: plausibility wiring ────────────────────────────────
+
+    def test_run_plausibility_checks_loads_real_omop_rules(self):
+        """validator runs the YAML plausibility rules declared in OMOP YAML
+        (Slice 3 Task 3.7) plus standards-specific Python rules."""
+        validator = self._make_validator()
+
+        df = pd.DataFrame(
+            {
+                "person_id": [1, 2],
+                "gender_concept_id": [8507, 8532],
+                "year_of_birth": [1990, 1850],  # 1850 violates the warn-tier range
+            }
+        )
+        results = validator._run_plausibility_checks(df, "person", "omop_cdm_v5.4")
+
+        rule_ids = {r.rule_id for r in results}
+        # YAML DSL rules wired up
+        assert "year_of_birth_in_range" in rule_ids
+        assert "gender_concept_id_fk" in rule_ids
+        # Python rules registry kicked in
+        assert "age_in_range" in rule_ids
+
+        # The 1850 birth year fails year_of_birth_in_range (severity=warn)
+        warn = next(r for r in results if r.rule_id == "year_of_birth_in_range")
+        assert warn.passed is False
+        assert warn.severity == "warn"
+
+    def test_run_plausibility_checks_returns_empty_for_unknown_model(self):
+        validator = self._make_validator()
+        df = pd.DataFrame({"x": [1]})
+        # nonexistent target model — should return [] rather than raise
+        assert validator._run_plausibility_checks(df, "x", "no_such_model_xyz") == []
+
+    def test_validate_includes_plausibility_rule_results_in_report(self):
+        """End-to-end: validate() exposes plausibility rule outcomes."""
+        validator = self._make_validator()
+        df = pd.DataFrame(
+            {
+                "person_id": [1],
+                "gender_concept_id": [8507],
+                "year_of_birth": [1990],
+            }
+        )
+        mock_gx = self._mock_gx_minimal(success_results=[])
+        with patch("portiere.quality.validator._require_gx", return_value=mock_gx):
+            with patch(
+                "portiere.quality.validator.GXValidator._build_expectation_suite",
+                return_value=MagicMock(),
+            ):
+                report = validator.validate(df, "person", "omop_cdm_v5.4")
+
+        assert "plausibility_rule_results" in report
+        rule_ids = {r["rule_id"] for r in report["plausibility_rule_results"]}
+        assert "year_of_birth_in_range" in rule_ids
+        # overall_success_score still present (renamed-not-removed)
+        assert "overall_success_score" in report
+
+    def test_warn_tier_failure_does_not_fail_validation(self):
+        """A warn-tier rule failure should NOT cause passed=False."""
+        validator = self._make_validator()
+        df = pd.DataFrame(
+            {
+                "person_id": [1, 2],
+                "gender_concept_id": [8507, 8532],
+                "year_of_birth": [1990, 1850],  # 1850 → warn-tier failure
+            }
+        )
+        mock_gx = self._mock_gx_minimal(success_results=[])
+        with patch("portiere.quality.validator._require_gx", return_value=mock_gx):
+            with patch(
+                "portiere.quality.validator.GXValidator._build_expectation_suite",
+                return_value=MagicMock(),
+            ):
+                report = validator.validate(df, "person", "omop_cdm_v5.4")
+
+        # passed because warn-tier doesn't fail validation
+        assert report["passed"] is True
+        # but the warn-tier failure IS reported
+        warn = next(
+            r
+            for r in report["plausibility_rule_results"]
+            if r["rule_id"] == "year_of_birth_in_range"
+        )
+        assert warn["passed"] is False
+        assert warn["severity"] == "warn"
+
+    def test_error_tier_failure_fails_validation(self):
+        """An error-tier rule failure should cause passed=False even if
+        thresholds would otherwise pass."""
+        from portiere.quality.plausibility.runner import RuleResult
+
+        validator = self._make_validator()
+        df = pd.DataFrame({"x": [1]})
+
+        mock_gx = self._mock_gx_minimal(success_results=[])
+        with patch("portiere.quality.validator._require_gx", return_value=mock_gx):
+            with patch(
+                "portiere.quality.validator.GXValidator._build_expectation_suite",
+                return_value=MagicMock(),
+            ):
+                # Force an error-tier failure by patching the plausibility checks
+                with patch.object(
+                    validator,
+                    "_run_plausibility_checks",
+                    return_value=[
+                        RuleResult(
+                            "synthetic_failure",
+                            "error",
+                            passed=False,
+                            total_rows=10,
+                            failed_count=10,
+                        )
+                    ],
+                ):
+                    report = validator.validate(df, "x", "no_such_model")
+
+        assert report["passed"] is False
+
+    @staticmethod
+    def _mock_gx_minimal(*, success_results):
+        """Boilerplate GX mock that returns the given results list."""
+        mock_gx = MagicMock()
+        mock_context = MagicMock()
+        mock_gx.get_context.return_value = mock_context
+        mock_datasource = MagicMock()
+        mock_context.data_sources.add_pandas.return_value = mock_datasource
+        mock_asset = MagicMock()
+        mock_datasource.add_dataframe_asset.return_value = mock_asset
+        mock_batch_def = MagicMock()
+        mock_asset.add_batch_definition_whole_dataframe.return_value = mock_batch_def
+        mock_batch = MagicMock()
+        mock_batch_def.get_batch.return_value = mock_batch
+        mock_result = MagicMock()
+        mock_result.to_json_dict.return_value = {"results": success_results}
+        mock_batch.validate.return_value = mock_result
+        return mock_gx
 
 
 def _make_mock_spark_df(**kwargs):

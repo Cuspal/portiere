@@ -45,7 +45,14 @@ class GXValidator:
         self.config = config
         self.thresholds = thresholds
 
-    def validate(self, df: Any, table_name: str, target_model: str) -> dict:
+    def validate(
+        self,
+        df: Any,
+        table_name: str,
+        target_model: str,
+        *,
+        ref_tables: dict[str, Any] | None = None,
+    ) -> dict:
         """
         Validate a DataFrame against target model expectations.
 
@@ -53,9 +60,12 @@ class GXValidator:
             df: Pandas or PySpark DataFrame to validate (ETL output table).
             table_name: Entity name (e.g., "person", "Patient", "PID").
             target_model: Target model identifier (e.g., "omop_cdm_v5.4", "fhir_r4").
+            ref_tables: Optional reference tables for FK plausibility checks
+                (e.g., ``{"concept": concept_df}``). Without these, FK and
+                domain-match rules skip rather than fail.
 
         Returns:
-            Validation report dict.
+            Validation report dict including plausibility rule outcomes.
         """
         gx = _require_gx()
         df_type = _detect_df_type(df)
@@ -76,7 +86,14 @@ class GXValidator:
 
         completeness = self._compute_completeness(result)
         conformance = self._compute_conformance(result)
-        plausibility = self._compute_plausibility(result)
+        overall_success = self._compute_overall_success(result)
+
+        # Plausibility — Kahn-style cross-table and domain-rule checks via
+        # the plausibility runner. Distinct from completeness/conformance.
+        rule_results = self._run_plausibility_checks(
+            df, table_name, target_model, ref_tables=ref_tables
+        )
+        plausibility = self._compute_plausibility(rule_results)
 
         thresholds = {
             "min_completeness": self.thresholds.validation.min_completeness,
@@ -84,10 +101,17 @@ class GXValidator:
             "min_plausibility": self.thresholds.validation.min_plausibility,
         }
 
+        # An error-tier plausibility rule failure fails validation regardless
+        # of the score thresholds (warn-tier failures only affect reporting).
+        error_failures = any(
+            r.severity == "error" and not r.passed and r.total_rows > 0 for r in rule_results
+        )
+
         passed = (
             completeness >= thresholds["min_completeness"]
             and conformance >= thresholds["min_conformance"]
             and plausibility >= thresholds["min_plausibility"]
+            and not error_failures
         )
 
         report = ValidationReport(
@@ -96,6 +120,18 @@ class GXValidator:
             completeness_score=completeness,
             conformance_score=conformance,
             plausibility_score=plausibility,
+            overall_success_score=overall_success,
+            plausibility_rule_results=[
+                {
+                    "rule_id": r.rule_id,
+                    "severity": r.severity,
+                    "passed": r.passed,
+                    "total_rows": r.total_rows,
+                    "failed_count": r.failed_count,
+                    "detail": r.detail,
+                }
+                for r in rule_results
+            ],
             gx_result=result.to_json_dict(),
             thresholds=thresholds,
         )
@@ -107,6 +143,8 @@ class GXValidator:
             completeness=f"{completeness:.2f}",
             conformance=f"{conformance:.2f}",
             plausibility=f"{plausibility:.2f}",
+            overall_success=f"{overall_success:.2f}",
+            n_rules=len(rule_results),
         )
 
         return report.to_dict()
@@ -227,15 +265,95 @@ class GXValidator:
         passed = sum(1 for r in value_results if r.get("success", False))
         return passed / len(value_results)
 
-    def _compute_plausibility(self, result: Any) -> float:
-        """
-        Compute plausibility score.
+    def _compute_overall_success(self, result: Any) -> float:
+        """Fraction of GX expectations that succeeded (any expectation type).
 
-        Currently derived from the overall success rate.
-        Can be extended with domain-specific plausibility checks.
+        This is the v0.1.0 ``_compute_plausibility`` behaviour preserved
+        under a more accurate name. It is *not* plausibility in the
+        Kahn-et-al. sense — see :meth:`_compute_plausibility` for that.
         """
         results = result.to_json_dict().get("results", [])
         if not results:
             return 1.0
         passed = sum(1 for r in results if r.get("success", False))
         return passed / len(results)
+
+    # Backwards-compatible alias — kept so any external caller of the old
+    # name still gets the same numeric meaning. New code should use
+    # ``_compute_overall_success`` for the GX success rate and
+    # ``_compute_plausibility`` for the rule-result plausibility score.
+    _legacy_compute_plausibility = _compute_overall_success
+
+    def _compute_plausibility(self, rule_results: list[Any]) -> float:
+        """Plausibility score from plausibility rule results.
+
+        Counts only error-severity rules with ``total_rows > 0`` (skipped
+        rules — e.g., for absent optional columns — don't drag the score
+        down). Warn-severity rules are reported but excluded from the
+        score.
+
+        Returns 1.0 when no error-severity rules ran (nothing to fail).
+        """
+        scored = [
+            r
+            for r in rule_results
+            if getattr(r, "severity", None) == "error" and getattr(r, "total_rows", 0) > 0
+        ]
+        if not scored:
+            return 1.0
+        passed = sum(1 for r in scored if r.passed)
+        return passed / len(scored)
+
+    def _run_plausibility_checks(
+        self,
+        df: Any,
+        entity: str,
+        target_model: str,
+        *,
+        ref_tables: dict[str, Any] | None = None,
+    ) -> list:
+        """Run YAML DSL rules + standards-specific Python rules for ``entity``.
+
+        Failures are returned as a list of :class:`RuleResult`. Missing
+        target models, missing rule blocks, and mocked models all return
+        an empty list rather than raising — validation stays robust.
+        """
+        from portiere.models.target_model import get_target_model
+        from portiere.quality.plausibility.dsl import FkExistsRule
+        from portiere.quality.plausibility.registry import run_python_rules
+        from portiere.quality.plausibility.runner import run_column_rule, run_fk_rule
+
+        ref = ref_tables or {}
+        results: list = []
+
+        # YAML DSL rules
+        try:
+            model = get_target_model(target_model)
+        except Exception:
+            return []  # unknown / mocked target — skip
+        if not hasattr(model, "get_plausibility_rules"):
+            return []
+        try:
+            dsl_rules = model.get_plausibility_rules(entity)
+        except Exception:
+            dsl_rules = []
+        for rule in dsl_rules:
+            try:
+                if isinstance(rule, FkExistsRule):
+                    results.append(run_fk_rule(df, rule, ref_tables=ref))
+                else:
+                    results.append(run_column_rule(df, rule))
+            except Exception as exc:
+                logger.warning(
+                    "plausibility.dsl_rule_error",
+                    rule_id=getattr(rule, "id", "?"),
+                    error=str(exc),
+                )
+
+        # Standards-specific Python rules
+        try:
+            results.extend(run_python_rules(target_model, entity, df, ref_tables=ref))
+        except Exception as exc:
+            logger.warning("plausibility.python_rules_error", error=str(exc))
+
+        return results
