@@ -39,7 +39,7 @@ def main() -> int:
     parser.add_argument("--seed", type=int, default=42, help="Random seed (default 42)")
     parser.add_argument(
         "--out",
-        default="benchmarks/athena_icd_snomed/gold_test_set.csv",
+        default="src/portiere/benchmarks/athena_icd_snomed/gold_test_set.csv",
         help="Output CSV path",
     )
     args = parser.parse_args()
