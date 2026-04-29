@@ -7,6 +7,11 @@ __pycache__/
 # ignore Athena
 docs/notebooks_examples/example_assets/vocabulary_download_v5
 
+# Benchmark working artifacts — should never be in the repo
+**/_bench_index/
+bench_run.json
+docs/notebooks_examples/example_assets/_bench_index/
+
 # Distribution / packaging
 .Python
 build/

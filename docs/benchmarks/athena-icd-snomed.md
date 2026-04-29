@@ -4,14 +4,22 @@ Portiere's accuracy on the canonical OMOP concept-mapping task: given an ICD-10-
 
 ## Headline numbers
 
-> **Numbers will be filled in once the runner has been executed against a current Athena export.**
->
-> Run on your own Athena export and compare:
-> ```bash
-> portiere benchmark athena-icd-snomed --athena-dir /path/to/athena
-> ```
+| Metric | Score | N |
+|---|---:|---:|
+| Top-1 accuracy | **0.288** | 1,000 |
+| Top-5 accuracy | **0.528** | 1,000 |
+| Top-10 accuracy | **0.528** | 1,000 |
+| MRR | **0.38151666666666617** | 1,000 |
 
-The repository's [`benchmarks/athena_icd_snomed/expected_results.json`](../../benchmarks/athena_icd_snomed/expected_results.json) is the source of truth — this page narrates the methodology and cites those numbers. Numbers reproduce within ±1% on the same Athena release (LLM sampling, BM25 tie-breaks).
+Athena release: `2026-04-30`. Numbers above are from `benchmarks/athena_icd_snomed/expected_results.json` — that JSON is the source of truth; this table cites it.
+
+Reproduce on your own Athena export:
+
+```bash
+portiere benchmark athena-icd-snomed --athena-dir /path/to/athena
+```
+
+Differences within ±1% are expected (LLM sampling, BM25 ties).
 
 ## Methodology
 

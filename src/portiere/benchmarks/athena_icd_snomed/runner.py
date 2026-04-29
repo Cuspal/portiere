@@ -151,14 +151,18 @@ def run_benchmark(
     # candidates list, which we treat as the ranked prediction.
     test_concept_rows = concept[concept["concept_id"].isin(test_ids)]
 
+    # Build a knowledge index from the rest of Athena (excluding test concepts)
+    # — for v0.2.0 we use a simple BM25s index over all standard concepts.
+    # Use the user's cache dir, never inside the repo (see issue: a
+    # 155 MB BM25 index file got committed by accident in v0.2.0
+    # release-prep when work_dir was Path(athena).parent / "_bench_index").
+    import tempfile
+
     import portiere
     from portiere.config import EmbeddingConfig, KnowledgeLayerConfig, PortiereConfig
     from portiere.knowledge import build_knowledge_layer
 
-    # Build a knowledge index from the rest of Athena (excluding test concepts)
-    # — for v0.2.0 we use a simple BM25s index over all standard concepts.
-    work_dir = Path(athena).parent / "_bench_index"
-    work_dir.mkdir(exist_ok=True)
+    work_dir = Path(tempfile.mkdtemp(prefix="portiere_bench_athena_icd_snomed_"))
     knowledge_paths = build_knowledge_layer(
         athena_path=str(athena),
         output_path=str(work_dir),
