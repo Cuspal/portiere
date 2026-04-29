@@ -33,7 +33,17 @@ class ProfileReport:
 
 @dataclass
 class ValidationReport:
-    """Result of GX-based post-ETL validation."""
+    """Result of GX-based post-ETL validation.
+
+    Three scores are aligned with Kahn et al. data-quality categories:
+    completeness, conformance, plausibility. ``overall_success_score`` is
+    the raw fraction of GX expectations that succeeded — useful as a
+    smoke metric but distinct from the categorical scores.
+
+    ``plausibility_rule_results`` exposes per-rule outcomes so reviewers
+    can see which specific rules contributed to the plausibility score
+    and which were skipped (e.g., optional column absent).
+    """
 
     table_name: str
     passed: bool
@@ -42,6 +52,8 @@ class ValidationReport:
     plausibility_score: float
     gx_result: dict[str, Any]
     thresholds: dict[str, float]
+    overall_success_score: float = 0.0
+    plausibility_rule_results: list[dict[str, Any]] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now(tz=timezone.utc).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
@@ -51,6 +63,8 @@ class ValidationReport:
             "completeness_score": self.completeness_score,
             "conformance_score": self.conformance_score,
             "plausibility_score": self.plausibility_score,
+            "overall_success_score": self.overall_success_score,
+            "plausibility_rule_results": self.plausibility_rule_results,
             "gx_result": self.gx_result,
             "thresholds": self.thresholds,
             "created_at": self.created_at,

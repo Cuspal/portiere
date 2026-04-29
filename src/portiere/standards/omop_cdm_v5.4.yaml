@@ -86,6 +86,19 @@ entities:
       birth_datetime: "person table: patient date of birth"
       race_concept_id: "person table: patient race or racial background"
       ethnicity_concept_id: "person table: patient ethnicity Hispanic Latino"
+    plausibility:
+      - id: year_of_birth_in_range
+        type: range
+        column: year_of_birth
+        min: 1900
+        max: 2030
+        severity: warn
+      - id: gender_concept_id_fk
+        type: fk_exists
+        column: gender_concept_id
+        ref_table: concept
+        ref_column: concept_id
+        severity: error
 
   location:
     description: "Geographic location / address information"
@@ -258,6 +271,11 @@ entities:
         required: true
         description: "When condition started"
         ddl: "DATE NOT NULL"
+      condition_end_date:
+        type: "date"
+        required: false
+        description: "When condition ended (resolved or last observation)"
+        ddl: "DATE"
       condition_type_concept_id:
         type: "integer"
         required: false
@@ -273,6 +291,8 @@ entities:
       icd_code: "condition_source_value"
       condition: "condition_source_value"
       diagnosis_date: "condition_start_date"
+      condition_end_date: "condition_end_date"
+      resolution_date: "condition_end_date"
       diagnosis_description: "condition_source_value"
       diagnosis_type: "condition_type_concept_id"
       seq_num: "condition_type_concept_id"
@@ -281,8 +301,21 @@ entities:
       person_id: "condition: patient with the diagnosis"
       condition_concept_id: "condition: standard diagnosis concept SNOMED"
       condition_start_date: "condition: diagnosis date or disease onset date"
+      condition_end_date: "condition: resolution date when the condition ended"
       condition_type_concept_id: "condition: source of diagnosis information"
       condition_source_value: "condition: original diagnosis code ICD-10 ICD-9 from source"
+    plausibility:
+      - id: condition_concept_fk
+        type: fk_exists
+        column: condition_concept_id
+        ref_table: concept
+        ref_column: concept_id
+        severity: error
+      - id: condition_start_before_end
+        type: temporal_order
+        before: condition_start_date
+        after: condition_end_date
+        severity: error
 
   drug_exposure:
     description: "Medications, prescriptions, and drug administrations"

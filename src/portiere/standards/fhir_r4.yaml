@@ -280,6 +280,12 @@ entities:
       valueQuantity: "Observation: numeric result value with unit"
       valueCodeableConcept: "Observation: coded result value"
       valueString: "Observation: text result value"
+    plausibility:
+      - id: observation_status_in_valueset
+        type: enum
+        column: status
+        values: [registered, preliminary, final, amended, corrected, cancelled, "entered-in-error", unknown]
+        severity: error
 
   MedicationRequest:
     description: "An order or request for a medication"
@@ -334,6 +340,12 @@ entities:
       subject: "MedicationRequest: reference to Patient receiving medication"
       authoredOn: "MedicationRequest: when prescription was written"
       dosageInstruction: "MedicationRequest: how medication should be taken"
+    plausibility:
+      - id: medication_request_intent_in_valueset
+        type: enum
+        column: intent
+        values: [proposal, plan, order, "original-order", "reflex-order", "filler-order", "instance-order", option]
+        severity: error
 
   Procedure:
     description: "An action performed on a patient"
