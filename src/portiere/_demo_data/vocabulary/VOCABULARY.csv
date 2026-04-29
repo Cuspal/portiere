@@ -1,0 +1,5 @@
+vocabulary_id	vocabulary_name	vocabulary_reference	vocabulary_version	vocabulary_concept_id
+ICD10CM	International Classification of Diseases, Tenth Revision, Clinical Modification (NCHS)	https://www.cdc.gov/nchs/icd/icd10cm.htm	ICD10CM 2024	44819098
+LOINC	Logical Observation Identifiers Names and Codes (Regenstrief Institute)	https://loinc.org/	LOINC 2.77	44819102
+RxNorm	RxNorm (NLM)	https://www.nlm.nih.gov/research/umls/rxnorm	RxNorm 2024	44819117
+None	OMOP Standardized Vocabularies	OMOP generated	v5.0 03-AUG-23	44819096

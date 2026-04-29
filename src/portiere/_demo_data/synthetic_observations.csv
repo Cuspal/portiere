@@ -1,0 +1,38 @@
+patient_id,lab_code,lab_description,lab_value,lab_unit,lab_dt
+P0001,4548-4,Hemoglobin A1c,7.8,%,2024-01-15
+P0001,2093-3,Cholesterol Mass/volume in Serum or Plasma,210,mg/dL,2024-01-15
+P0001,8480-6,Systolic blood pressure,138,mmHg,2024-01-15
+P0001,8462-4,Diastolic blood pressure,88,mmHg,2024-01-15
+P0002,8480-6,Systolic blood pressure,142,mmHg,2024-02-20
+P0002,8462-4,Diastolic blood pressure,90,mmHg,2024-02-20
+P0002,29463-7,Body weight,98.5,kg,2024-02-20
+P0003,718-7,Hemoglobin Mass/volume in Blood,13.2,g/dL,2023-11-05
+P0004,4548-4,Hemoglobin A1c,8.2,%,2024-03-12
+P0004,2160-0,Creatinine Mass/volume in Serum or Plasma,1.1,mg/dL,2024-03-12
+P0004,2823-3,Potassium Moles/volume in Serum or Plasma,4.3,mmol/L,2024-03-12
+P0004,29463-7,Body weight,102.3,kg,2024-03-12
+P0005,8302-2,Body height,165,cm,2024-04-08
+P0005,29463-7,Body weight,62.0,kg,2024-04-08
+P0006,2093-3,Cholesterol Mass/volume in Serum or Plasma,235,mg/dL,2024-05-19
+P0006,8480-6,Systolic blood pressure,150,mmHg,2024-05-19
+P0007,718-7,Hemoglobin Mass/volume in Blood,14.1,g/dL,2024-06-22
+P0008,4548-4,Hemoglobin A1c,9.1,%,2024-07-04
+P0008,2160-0,Creatinine Mass/volume in Serum or Plasma,1.4,mg/dL,2024-07-04
+P0009,718-7,Hemoglobin Mass/volume in Blood,12.8,g/dL,2024-08-12
+P0010,8480-6,Systolic blood pressure,148,mmHg,2024-09-03
+P0010,29463-7,Body weight,95.7,kg,2024-09-03
+P0011,2160-0,Creatinine Mass/volume in Serum or Plasma,0.9,mg/dL,2024-10-15
+P0012,4548-4,Hemoglobin A1c,5.4,%,2024-11-08
+P0013,2093-3,Cholesterol Mass/volume in Serum or Plasma,195,mg/dL,2024-12-01
+P0014,8480-6,Systolic blood pressure,118,mmHg,2025-01-14
+P0015,4548-4,Hemoglobin A1c,6.8,%,2025-02-22
+P0015,8462-4,Diastolic blood pressure,82,mmHg,2025-02-22
+P0016,2823-3,Potassium Moles/volume in Serum or Plasma,4.5,mmol/L,2025-03-05
+P0017,718-7,Hemoglobin Mass/volume in Blood,13.6,g/dL,2025-04-19
+P0018,2160-0,Creatinine Mass/volume in Serum or Plasma,1.0,mg/dL,2025-05-30
+P0019,2093-3,Cholesterol Mass/volume in Serum or Plasma,180,mg/dL,2025-06-12
+P0020,8480-6,Systolic blood pressure,140,mmHg,2025-07-21
+P0001,8302-2,Body height,168,cm,2024-01-15
+P0002,8302-2,Body height,180,cm,2024-02-20
+P0008,8480-6,Systolic blood pressure,135,mmHg,2024-07-04
+P0010,4548-4,Hemoglobin A1c,7.2,%,2024-09-03
