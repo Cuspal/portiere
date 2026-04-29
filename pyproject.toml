@@ -120,7 +120,7 @@ docs = [
 ]
 
 [project.scripts]
-portiere = "portiere.cli.models:models"
+portiere = "portiere.cli:cli"
 
 [project.urls]
 Homepage = "https://portiere.io"

@@ -17,6 +17,7 @@ Example:
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -68,6 +69,81 @@ class Project:
         self.id = project_id
         self._engine = engine
         self._client = client
+        # Reproducibility manifest — created lazily on first pipeline op.
+        self._recorder: Any = None
+
+    # --- Reproducibility manifest ---
+
+    def _ensure_recorder(self) -> Any:
+        """Lazily create a :class:`ManifestRecorder` for this run.
+
+        The recorder is created the first time any pipeline op runs and
+        kept for the lifetime of the run. Errors creating the recorder
+        are logged but never propagate — manifest capture must not break
+        the pipeline.
+        """
+        if self._recorder is not None:
+            return self._recorder
+        try:
+            from portiere.repro.recorder import ManifestRecorder
+
+            run_id = uuid.uuid4().hex[:12]
+            run_dir = Path(self.config.local_project_dir) / self.name / "runs" / run_id
+            self._recorder = ManifestRecorder(
+                run_dir=run_dir,
+                project_name=self.name,
+                target_model=self.target_model,
+                task=self.task,
+                source_standard=self.source_standard,
+                vocabularies_requested=list(self.vocabularies or []),
+                project_root=Path.cwd(),
+            )
+            # Snapshot embedding identity from config (dimension may be 0
+            # until the gateway is actually instantiated).
+            try:
+                emb = self.config.embedding
+                self._recorder.set_embedding(
+                    name=getattr(emb, "model", "unknown"),
+                    dimension=int(getattr(emb, "dimension", 0) or 0),
+                )
+            except Exception:
+                logger.debug("project.recorder.set_embedding_skipped")
+            try:
+                kb = self.config.knowledge_layer
+                self._recorder.set_knowledge_backend(type_=getattr(kb, "backend", "unknown"))
+            except Exception:
+                logger.debug("project.recorder.set_knowledge_backend_skipped")
+            try:
+                self._recorder.set_thresholds(self.config.thresholds.model_dump())
+            except Exception:
+                logger.debug("project.recorder.set_thresholds_skipped")
+        except Exception as exc:
+            logger.warning("project.recorder.init_failed", error=str(exc))
+            self._recorder = None
+        return self._recorder
+
+    def finalize_run(self) -> Path | None:
+        """Write the manifest for the current run (if any) and return its path.
+
+        Returns ``None`` if no pipeline op has run since the project was
+        created. Safe to call more than once; subsequent calls overwrite
+        with the latest state.
+        """
+        if self._recorder is None:
+            return None
+        try:
+            return self._recorder.finalize()
+        except Exception as exc:
+            logger.warning("project.recorder.finalize_failed", error=str(exc))
+            return None
+
+    def __enter__(self) -> Project:
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        # Always finalize, even on exception — the manifest is a record
+        # of what happened up to the failure point.
+        self.finalize_run()
 
     # --- Properties ---
 
@@ -177,6 +253,31 @@ class Project:
         self._storage.save_source(self.name, name, metadata)
         logger.info("project.source_added", project=self.name, source=name)
 
+        # Manifest recording: source_data + ingest stage.
+        recorder = self._ensure_recorder()
+        if recorder is not None:
+            try:
+                if connection_string:
+                    recorder.set_source_data(
+                        connection_string=connection_string,
+                        table_or_query=table or query,
+                    )
+                else:
+                    recorder.set_source_data(path=str(path) if path else None)
+                recorder.record_stage(
+                    "ingest",
+                    inputs={
+                        "source_name": name,
+                        "format": metadata.get("format"),
+                    },
+                    outputs={
+                        "row_count": metadata.get("row_count"),
+                        "n_columns": len(metadata.get("columns", [])),
+                    },
+                )
+            except Exception as exc:
+                logger.debug("project.recorder.add_source_failed", error=str(exc))
+
         # Auto-profile if configured
         if (
             self.config.quality
@@ -232,6 +333,18 @@ class Project:
         # Save as artifact
         self._storage.save_profile(self.name, source["name"], report)
         logger.info("project.profiled", source=source["name"])
+
+        recorder = self._ensure_recorder()
+        if recorder is not None:
+            try:
+                recorder.record_stage(
+                    "profile",
+                    inputs={"source_name": source.get("name")},
+                    metrics={"n_columns": len(report.get("columns", []))},
+                )
+            except Exception as exc:
+                logger.debug("project.recorder.profile_failed", error=str(exc))
+
         return report
 
     def map_schema(self, source: dict) -> SchemaMapping:
@@ -285,6 +398,19 @@ class Project:
             total=len(items),
             auto=result.get("stats", {}).get("auto_accepted", 0),
         )
+
+        recorder = self._ensure_recorder()
+        if recorder is not None:
+            try:
+                recorder.record_stage(
+                    "schema",
+                    inputs={"source_name": source.get("name")},
+                    outputs={"n_mappings": len(items)},
+                    metrics=result.get("stats", {}),
+                )
+            except Exception as exc:
+                logger.debug("project.recorder.schema_failed", error=str(exc))
+
         return mapping
 
     # Column name patterns that indicate clinical codes
@@ -480,6 +606,19 @@ class Project:
             total=len(items),
             auto_rate=result.get("auto_rate", 0),
         )
+
+        recorder = self._ensure_recorder()
+        if recorder is not None:
+            try:
+                recorder.record_stage(
+                    "concept",
+                    inputs={"vocabularies": list(vocabularies or [])},
+                    outputs={"n_mappings": len(items)},
+                    metrics={"auto_rate": result.get("auto_rate", 0.0)},
+                )
+            except Exception as exc:
+                logger.debug("project.recorder.concept_failed", error=str(exc))
+
         return mapping
 
     def run_etl(
@@ -532,6 +671,21 @@ class Project:
         )
 
         logger.info("project.etl_complete", project=self.name, output_dir=output_dir)
+
+        recorder = self._ensure_recorder()
+        if recorder is not None:
+            try:
+                recorder.record_stage(
+                    "etl",
+                    inputs={
+                        "source_format": source.get("format"),
+                        "output_format": output_format,
+                    },
+                    outputs={"output_dir": output_dir},
+                )
+            except Exception as exc:
+                logger.debug("project.recorder.etl_failed", error=str(exc))
+
         return result
 
     def validate(self, etl_result=None, output_path: str | None = None) -> dict:
@@ -596,6 +750,18 @@ class Project:
             tables=len(reports),
             all_passed=combined["all_passed"],
         )
+
+        recorder = self._ensure_recorder()
+        if recorder is not None:
+            try:
+                recorder.record_stage(
+                    "validate",
+                    inputs={"output_path": str(output_path)},
+                    outputs={"total_tables": combined["total_tables"]},
+                    metrics={"all_passed": combined["all_passed"]},
+                )
+            except Exception as exc:
+                logger.debug("project.recorder.validate_failed", error=str(exc))
         return combined
 
     # --- Cloud Sync (Portiere Cloud only) ---
