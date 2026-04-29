@@ -107,8 +107,11 @@ def concept_id_fk(
             f"AND {col} NOT IN (SELECT concept_id FROM c)"
         )
         total_sql = f"SELECT COUNT(*) FROM t WHERE {col} IS NOT NULL"
-        failed = int(con.execute(miss_sql).fetchone()[0])
-        total = int(con.execute(total_sql).fetchone()[0])
+        miss_row = con.execute(miss_sql).fetchone()
+        total_row = con.execute(total_sql).fetchone()
+        assert miss_row is not None and total_row is not None
+        failed = int(miss_row[0])
+        total = int(total_row[0])
         out.append(RuleResult(rule_id, "error", failed == 0, total, failed))
     return out
 
@@ -142,8 +145,11 @@ def domain_match(
             f"AND (c.domain_id IS NULL OR c.domain_id <> ?)"
         )
         total_sql = f"SELECT COUNT(*) FROM t WHERE {col} IS NOT NULL"
-        failed = int(con.execute(bad_sql, [expected]).fetchone()[0])
-        total = int(con.execute(total_sql).fetchone()[0])
+        bad_row = con.execute(bad_sql, [expected]).fetchone()
+        total_row = con.execute(total_sql).fetchone()
+        assert bad_row is not None and total_row is not None
+        failed = int(bad_row[0])
+        total = int(total_row[0])
         out.append(RuleResult(rule_id, "error", failed == 0, total, failed))
     return out
 

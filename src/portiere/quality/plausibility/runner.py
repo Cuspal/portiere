@@ -108,8 +108,12 @@ def run_fk_rule(
         f"AND {rule.column} NOT IN (SELECT {rule.ref_column} FROM ref)"
     )
     total_sql = f"SELECT COUNT(*) FROM under_test WHERE {rule.column} IS NOT NULL"
-    failed = int(con.execute(miss_sql).fetchone()[0])
-    total = int(con.execute(total_sql).fetchone()[0])
+    miss_row = con.execute(miss_sql).fetchone()
+    total_row = con.execute(total_sql).fetchone()
+    # COUNT(*) always returns exactly one row.
+    assert miss_row is not None and total_row is not None
+    failed = int(miss_row[0])
+    total = int(total_row[0])
     return RuleResult(rule.id, rule.severity, failed == 0, total, failed)
 
 

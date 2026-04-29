@@ -22,7 +22,7 @@ Example YAML::
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, cast
 
 from pydantic import BaseModel, ConfigDict
 
@@ -105,7 +105,9 @@ def parse_rule(data: dict) -> PlausibilityRule:
         raise ValueError(
             f"unknown plausibility rule type: {rule_type!r}; must be one of {sorted(_TYPE_MAP)}"
         )
-    return _TYPE_MAP[rule_type](**data)
+    # cast: _TYPE_MAP is dict[str, type[_Base]] so mypy infers _Base; runtime
+    # value is one of the concrete subclasses in the PlausibilityRule union.
+    return cast(PlausibilityRule, _TYPE_MAP[rule_type](**data))
 
 
 def parse_rules(rules: list[dict]) -> list[PlausibilityRule]:
