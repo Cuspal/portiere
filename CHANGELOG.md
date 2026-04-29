@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-XX-XX
+## [0.2.0] - 2026-04-30
 
 The "credibility release." Closes the gap between v0.1.0's claims and reality across standards coverage, plausibility validation, reproducibility, demo activation, benchmarks, and repo hygiene.
 

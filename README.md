@@ -637,13 +637,16 @@ Each release tracks via GitHub Milestones; please open issues or PRs against the
 
 ## Benchmarks
 
-v0.2.0 publishes one accuracy benchmark: **ICD-10-CM → SNOMED concept mapping** against the OHDSI Athena `CONCEPT_RELATIONSHIP` gold standard. Held-out test set: 1,000 ICD-10-CM concepts with `seed=42`. Reproducible with your own Athena export:
+v0.2.0 publishes one accuracy benchmark: **ICD-10-CM → SNOMED concept mapping** against the OHDSI Athena `CONCEPT_RELATIONSHIP` gold standard, BM25-only retrieval baseline (no embeddings).
 
-```bash
-portiere benchmark athena-icd-snomed --athena-dir /path/to/athena
-```
+| Metric | Score | N |
+|---|---:|---:|
+| Top-1 accuracy | 0.288 | 1,000 |
+| Top-5 accuracy | 0.528 | 1,000 |
+| MRR | 0.38151666666666617 | 1,000 |
 
-Methodology and (as soon as run on a current Athena release) numbers: [docs/benchmarks/athena-icd-snomed.md](docs/benchmarks/athena-icd-snomed.md).
+Athena release: 2026-04-30. Reproduce: `portiere benchmark athena-icd-snomed --athena-dir /path/to/athena`. Methodology: [docs/benchmarks/athena-icd-snomed.md](docs/benchmarks/athena-icd-snomed.md).
+
 
 ## Star History
 
