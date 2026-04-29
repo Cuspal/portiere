@@ -560,6 +560,662 @@ entities:
       value_as_concept_id: "observation: categorical observation value"
       observation_source_value: "observation: original source value or code"
 
+  # ---------------------------------------------------------------------------
+  # v0.2.0 Slice 2A — OMOP CDM v5.4 clinical-data tables (opinionated subset).
+  # Field lists below cover the required + commonly-used optional columns.
+  # PRs welcome to add long-tail columns; see CDM v5.4 spec for full reference.
+  # ---------------------------------------------------------------------------
+
+  provider:
+    description: "Healthcare professionals providing care (CDM v5.4 PROVIDER)"
+    fields:
+      provider_id:
+        type: "integer"
+        required: true
+        description: "Unique identifier for each provider"
+        ddl: "INTEGER PRIMARY KEY"
+      provider_name:
+        type: "string"
+        required: false
+        description: "Full name of the provider"
+        ddl: "VARCHAR(255)"
+      npi:
+        type: "string"
+        required: false
+        description: "National Provider Identifier (10-digit US identifier)"
+        ddl: "VARCHAR(20)"
+      dea:
+        type: "string"
+        required: false
+        description: "Drug Enforcement Administration registration number"
+        ddl: "VARCHAR(20)"
+      specialty_concept_id:
+        type: "integer"
+        required: false
+        description: "Medical specialty as a standard concept ID"
+        vocabulary: "Specialty"
+        ddl: "INTEGER"
+      care_site_id:
+        type: "integer"
+        required: false
+        description: "Foreign key to care_site"
+        ddl: "INTEGER"
+        fk: "care_site.care_site_id"
+      year_of_birth:
+        type: "integer"
+        required: false
+        description: "Provider year of birth"
+        ddl: "INTEGER"
+      gender_concept_id:
+        type: "integer"
+        required: false
+        description: "Provider gender as a standard concept ID"
+        vocabulary: "Gender"
+        ddl: "INTEGER"
+      provider_source_value:
+        type: "string"
+        required: false
+        description: "Provider identifier as it appears in source data"
+        ddl: "VARCHAR(50)"
+      specialty_source_value:
+        type: "string"
+        required: false
+        description: "Specialty as it appears in source data"
+        ddl: "VARCHAR(50)"
+      gender_source_value:
+        type: "string"
+        required: false
+        description: "Provider gender as it appears in source data"
+        ddl: "VARCHAR(50)"
+    source_patterns:
+      provider_id: "provider_id"
+      physician_id: "provider_id"
+      doctor_id: "provider_id"
+      practitioner_id: "provider_id"
+      provider_name: "provider_name"
+      physician_name: "provider_name"
+      doctor_name: "provider_name"
+      npi: "npi"
+      provider_npi: "npi"
+      specialty: "specialty_source_value"
+      provider_specialty: "specialty_source_value"
+      provider_gender: "gender_source_value"
+    embedding_descriptions:
+      provider_id: "provider: unique provider physician practitioner doctor identifier"
+      provider_name: "provider: physician name doctor name healthcare provider full name"
+      npi: "provider: national provider identifier 10-digit US physician number"
+      dea: "provider: drug enforcement administration registration prescriber number"
+      specialty_concept_id: "provider: medical specialty cardiology surgery internal medicine"
+      care_site_id: "provider: care site facility hospital clinic where provider works"
+      year_of_birth: "provider: provider year of birth"
+      gender_concept_id: "provider: provider biological sex gender"
+      provider_source_value: "provider: original provider identifier from source system"
+      specialty_source_value: "provider: original specialty value from source system"
+      gender_source_value: "provider: original gender value from source system"
+
+  care_site:
+    description: "Facilities where care is delivered (CDM v5.4 CARE_SITE)"
+    fields:
+      care_site_id:
+        type: "integer"
+        required: true
+        description: "Unique identifier for each care site"
+        ddl: "INTEGER PRIMARY KEY"
+      care_site_name:
+        type: "string"
+        required: false
+        description: "Name of the care site (hospital, clinic, etc.)"
+        ddl: "VARCHAR(255)"
+      place_of_service_concept_id:
+        type: "integer"
+        required: false
+        description: "Place of service as a standard concept ID"
+        vocabulary: "Place of Service"
+        ddl: "INTEGER"
+      location_id:
+        type: "integer"
+        required: false
+        description: "Foreign key to location"
+        ddl: "INTEGER"
+        fk: "location.location_id"
+      care_site_source_value:
+        type: "string"
+        required: false
+        description: "Care site identifier as it appears in source data"
+        ddl: "VARCHAR(50)"
+      place_of_service_source_value:
+        type: "string"
+        required: false
+        description: "Place of service as it appears in source data"
+        ddl: "VARCHAR(50)"
+    source_patterns:
+      care_site_id: "care_site_id"
+      facility_id: "care_site_id"
+      hospital_id: "care_site_id"
+      clinic_id: "care_site_id"
+      site_id: "care_site_id"
+      care_site_name: "care_site_name"
+      facility_name: "care_site_name"
+      hospital_name: "care_site_name"
+      clinic_name: "care_site_name"
+      place_of_service: "place_of_service_source_value"
+      pos: "place_of_service_source_value"
+    embedding_descriptions:
+      care_site_id: "care site: unique facility hospital clinic identifier"
+      care_site_name: "care site: facility name hospital name clinic name"
+      place_of_service_concept_id: "care site: place of service category inpatient outpatient ED"
+      location_id: "care site: physical location address foreign key"
+      care_site_source_value: "care site: original facility identifier from source system"
+      place_of_service_source_value: "care site: original place of service value from source"
+
+  death:
+    description: "Records of patient deaths (CDM v5.4 DEATH); one row per person"
+    fields:
+      person_id:
+        type: "integer"
+        required: true
+        description: "Foreign key to person; also the primary key of this table"
+        ddl: "INTEGER PRIMARY KEY"
+        fk: "person.person_id"
+      death_date:
+        type: "date"
+        required: true
+        description: "Date the patient died"
+        ddl: "DATE NOT NULL"
+      death_datetime:
+        type: "datetime"
+        required: false
+        description: "Datetime the patient died"
+        ddl: "TIMESTAMP"
+      death_type_concept_id:
+        type: "integer"
+        required: false
+        description: "Provenance of the death record (EHR, claim, registry, etc.)"
+        vocabulary: "Type Concept"
+        ddl: "INTEGER"
+      cause_concept_id:
+        type: "integer"
+        required: false
+        description: "Cause of death as a standard concept ID"
+        ddl: "INTEGER"
+      cause_source_value:
+        type: "string"
+        required: false
+        description: "Cause of death code or string from the source system"
+        ddl: "VARCHAR(50)"
+      cause_source_concept_id:
+        type: "integer"
+        required: false
+        description: "Cause of death source-vocabulary concept ID"
+        ddl: "INTEGER"
+    source_patterns:
+      death_date: "death_date"
+      date_of_death: "death_date"
+      dod: "death_date"
+      expired_date: "death_date"
+      death_datetime: "death_datetime"
+      death_time: "death_datetime"
+      cause_of_death: "cause_source_value"
+      death_cause: "cause_source_value"
+      cause_code: "cause_source_value"
+      death_cause_code: "cause_source_value"
+      death_type: "death_type_concept_id"
+    embedding_descriptions:
+      person_id: "death: patient who died foreign key to person"
+      death_date: "death: date the patient died date of death"
+      death_datetime: "death: datetime the patient died time of death"
+      death_type_concept_id: "death: provenance of death record EHR claim registry obituary"
+      cause_concept_id: "death: cause of death standard concept"
+      cause_source_value: "death: original cause of death code or text from source"
+
+  observation_period:
+    description: "Continuous spans where a patient is observed (CDM v5.4 OBSERVATION_PERIOD)"
+    fields:
+      observation_period_id:
+        type: "integer"
+        required: true
+        description: "Unique identifier for each observation period"
+        ddl: "INTEGER PRIMARY KEY"
+      person_id:
+        type: "integer"
+        required: true
+        description: "Foreign key to person"
+        ddl: "INTEGER NOT NULL"
+        fk: "person.person_id"
+      observation_period_start_date:
+        type: "date"
+        required: true
+        description: "Start of the observation period"
+        ddl: "DATE NOT NULL"
+      observation_period_end_date:
+        type: "date"
+        required: true
+        description: "End of the observation period"
+        ddl: "DATE NOT NULL"
+      period_type_concept_id:
+        type: "integer"
+        required: true
+        description: "Provenance of the observation period (claims, EHR, etc.)"
+        vocabulary: "Type Concept"
+        ddl: "INTEGER NOT NULL"
+    source_patterns:
+      observation_period_id: "observation_period_id"
+      obs_period_id: "observation_period_id"
+      enrollment_id: "observation_period_id"
+      coverage_id: "observation_period_id"
+      observation_period_start_date: "observation_period_start_date"
+      enrollment_start: "observation_period_start_date"
+      coverage_start: "observation_period_start_date"
+      eligibility_start: "observation_period_start_date"
+      observation_period_end_date: "observation_period_end_date"
+      enrollment_end: "observation_period_end_date"
+      coverage_end: "observation_period_end_date"
+      eligibility_end: "observation_period_end_date"
+      period_type: "period_type_concept_id"
+    embedding_descriptions:
+      observation_period_id: "observation period: unique enrollment coverage period identifier"
+      person_id: "observation period: patient associated with this period"
+      observation_period_start_date: "observation period: start of enrollment coverage eligibility"
+      observation_period_end_date: "observation period: end of enrollment coverage eligibility"
+      period_type_concept_id: "observation period: provenance type claims EHR registry"
+
+  device_exposure:
+    description: "Records of medical devices used by patients (CDM v5.4 DEVICE_EXPOSURE)"
+    fields:
+      device_exposure_id:
+        type: "integer"
+        required: true
+        description: "Unique identifier for each device exposure record"
+        ddl: "INTEGER PRIMARY KEY"
+      person_id:
+        type: "integer"
+        required: true
+        description: "Foreign key to person"
+        ddl: "INTEGER NOT NULL"
+        fk: "person.person_id"
+      device_concept_id:
+        type: "integer"
+        required: true
+        description: "Standard concept ID for the device"
+        ddl: "INTEGER NOT NULL"
+      device_exposure_start_date:
+        type: "date"
+        required: true
+        description: "Date the device exposure began"
+        ddl: "DATE NOT NULL"
+      device_exposure_end_date:
+        type: "date"
+        required: false
+        description: "Date the device exposure ended"
+        ddl: "DATE"
+      device_type_concept_id:
+        type: "integer"
+        required: true
+        description: "Provenance of the device record"
+        vocabulary: "Type Concept"
+        ddl: "INTEGER NOT NULL"
+      unique_device_id:
+        type: "string"
+        required: false
+        description: "FDA Unique Device Identifier (UDI) string"
+        ddl: "VARCHAR(255)"
+      quantity:
+        type: "integer"
+        required: false
+        description: "Number of devices used"
+        ddl: "INTEGER"
+      provider_id:
+        type: "integer"
+        required: false
+        description: "Provider associated with the exposure"
+        ddl: "INTEGER"
+        fk: "provider.provider_id"
+      visit_occurrence_id:
+        type: "integer"
+        required: false
+        description: "Visit during which the device was used"
+        ddl: "INTEGER"
+        fk: "visit_occurrence.visit_occurrence_id"
+      device_source_value:
+        type: "string"
+        required: false
+        description: "Device code or string as it appears in source data"
+        ddl: "VARCHAR(50)"
+      device_source_concept_id:
+        type: "integer"
+        required: false
+        description: "Device source-vocabulary concept ID"
+        ddl: "INTEGER"
+    source_patterns:
+      device_id: "device_exposure_id"
+      device_exposure_id: "device_exposure_id"
+      implant_id: "device_exposure_id"
+      device_code: "device_source_value"
+      implant_code: "device_source_value"
+      udi: "unique_device_id"
+      unique_device_id: "unique_device_id"
+      device_start_date: "device_exposure_start_date"
+      implant_date: "device_exposure_start_date"
+      device_end_date: "device_exposure_end_date"
+      implant_removal_date: "device_exposure_end_date"
+      device_quantity: "quantity"
+    embedding_descriptions:
+      device_exposure_id: "device exposure: unique device or implant exposure record identifier"
+      person_id: "device exposure: patient receiving the device"
+      device_concept_id: "device exposure: standard medical device concept stent pacemaker prosthesis"
+      device_exposure_start_date: "device exposure: date device implant began use"
+      device_exposure_end_date: "device exposure: date device implant ended or was removed"
+      device_type_concept_id: "device exposure: provenance type EHR claim manufacturer"
+      unique_device_id: "device exposure: FDA UDI unique device identifier"
+      quantity: "device exposure: number of devices used quantity"
+      provider_id: "device exposure: provider performing the implantation"
+      visit_occurrence_id: "device exposure: hospital visit when device was used"
+      device_source_value: "device exposure: original device code from source system"
+
+  note:
+    description: "Free-text clinical notes attached to patient records (CDM v5.4 NOTE)"
+    fields:
+      note_id:
+        type: "integer"
+        required: true
+        description: "Unique identifier for each note"
+        ddl: "INTEGER PRIMARY KEY"
+      person_id:
+        type: "integer"
+        required: true
+        description: "Foreign key to person"
+        ddl: "INTEGER NOT NULL"
+        fk: "person.person_id"
+      note_date:
+        type: "date"
+        required: true
+        description: "Date the note was created"
+        ddl: "DATE NOT NULL"
+      note_datetime:
+        type: "datetime"
+        required: false
+        description: "Datetime the note was created"
+        ddl: "TIMESTAMP"
+      note_type_concept_id:
+        type: "integer"
+        required: true
+        description: "Type of the note (e.g., progress note, discharge summary)"
+        vocabulary: "Type Concept"
+        ddl: "INTEGER NOT NULL"
+      note_class_concept_id:
+        type: "integer"
+        required: true
+        description: "Class of the note (e.g., LOINC document type)"
+        ddl: "INTEGER NOT NULL"
+      note_title:
+        type: "string"
+        required: false
+        description: "Title of the note"
+        ddl: "VARCHAR(250)"
+      note_text:
+        type: "string"
+        required: true
+        description: "Free-text body of the clinical note"
+        ddl: "TEXT NOT NULL"
+      encoding_concept_id:
+        type: "integer"
+        required: true
+        description: "Encoding of the note text (e.g., UTF-8)"
+        ddl: "INTEGER NOT NULL"
+      language_concept_id:
+        type: "integer"
+        required: true
+        description: "Language of the note (e.g., English)"
+        ddl: "INTEGER NOT NULL"
+      provider_id:
+        type: "integer"
+        required: false
+        description: "Provider who authored the note"
+        ddl: "INTEGER"
+        fk: "provider.provider_id"
+      visit_occurrence_id:
+        type: "integer"
+        required: false
+        description: "Visit the note is associated with"
+        ddl: "INTEGER"
+        fk: "visit_occurrence.visit_occurrence_id"
+      note_source_value:
+        type: "string"
+        required: false
+        description: "Source-system identifier or label for the note"
+        ddl: "VARCHAR(50)"
+    source_patterns:
+      note_id: "note_id"
+      clinical_note_id: "note_id"
+      narrative_id: "note_id"
+      document_id: "note_id"
+      note_date: "note_date"
+      note_datetime: "note_datetime"
+      note_text: "note_text"
+      narrative_text: "note_text"
+      note_body: "note_text"
+      clinical_note: "note_text"
+      note_title: "note_title"
+      note_type: "note_type_concept_id"
+      document_type: "note_class_concept_id"
+    embedding_descriptions:
+      note_id: "note: unique clinical note narrative document identifier"
+      person_id: "note: patient the note is about"
+      note_date: "note: date the clinical note was created"
+      note_datetime: "note: datetime the clinical note was created"
+      note_type_concept_id: "note: type of note progress note discharge summary consult"
+      note_class_concept_id: "note: class of note LOINC document type"
+      note_title: "note: title or heading of the clinical note"
+      note_text: "note: free text body narrative content of the clinical note"
+      encoding_concept_id: "note: text encoding UTF-8 ASCII character set"
+      language_concept_id: "note: language of the note English Spanish other"
+      provider_id: "note: provider who authored the note"
+      visit_occurrence_id: "note: hospital visit the note is associated with"
+      note_source_value: "note: original note identifier from source system"
+
+  # ---------------------------------------------------------------------------
+  # v0.2.0 Slice 2B — OMOP CDM v5.4 vocabulary tables (column subset).
+  # These are loaded directly from OHDSI Athena, not user-mapped from EHR
+  # data, so source_patterns are minimal/identity-only. Column subset covers
+  # what OHDSI tooling consumes; defer concept_synonym, concept_ancestor,
+  # drug_strength, source_to_concept_map to v0.3.0+.
+  # ---------------------------------------------------------------------------
+
+  concept:
+    description: "Standard concepts and their attributes (CDM v5.4 CONCEPT)"
+    fields:
+      concept_id:
+        type: "integer"
+        required: true
+        description: "Unique numeric concept identifier"
+        ddl: "INTEGER PRIMARY KEY"
+      concept_name:
+        type: "string"
+        required: true
+        description: "Human-readable concept name"
+        ddl: "VARCHAR(255) NOT NULL"
+      domain_id:
+        type: "string"
+        required: true
+        description: "Domain this concept belongs to (Condition, Drug, etc.)"
+        ddl: "VARCHAR(20) NOT NULL"
+        fk: "domain.domain_id"
+      vocabulary_id:
+        type: "string"
+        required: true
+        description: "Vocabulary this concept comes from (SNOMED, RxNorm, etc.)"
+        ddl: "VARCHAR(20) NOT NULL"
+        fk: "vocabulary.vocabulary_id"
+      concept_class_id:
+        type: "string"
+        required: true
+        description: "Concept class within the vocabulary"
+        ddl: "VARCHAR(20) NOT NULL"
+        fk: "concept_class.concept_class_id"
+      standard_concept:
+        type: "string"
+        required: false
+        description: "S = Standard, C = Classification, null = non-standard"
+        ddl: "VARCHAR(1)"
+      concept_code:
+        type: "string"
+        required: true
+        description: "Code from the source vocabulary"
+        ddl: "VARCHAR(50) NOT NULL"
+      valid_start_date:
+        type: "date"
+        required: true
+        description: "Date the concept became valid"
+        ddl: "DATE NOT NULL"
+      valid_end_date:
+        type: "date"
+        required: true
+        description: "Date the concept stopped being valid"
+        ddl: "DATE NOT NULL"
+      invalid_reason:
+        type: "string"
+        required: false
+        description: "D = deprecated, U = upgraded, null = active"
+        ddl: "VARCHAR(1)"
+    source_patterns:
+      concept_id: "concept_id"
+    embedding_descriptions:
+      concept_id: "concept: standard OMOP concept identifier"
+      concept_name: "concept: human-readable concept name"
+      vocabulary_id: "concept: source vocabulary SNOMED LOINC RxNorm ICD"
+      domain_id: "concept: domain Condition Drug Measurement Procedure"
+      concept_class_id: "concept: concept class within the vocabulary"
+      standard_concept: "concept: standard concept flag S C null"
+      concept_code: "concept: source-vocabulary code"
+
+  vocabulary:
+    description: "Source vocabularies (CDM v5.4 VOCABULARY)"
+    fields:
+      vocabulary_id:
+        type: "string"
+        required: true
+        description: "Vocabulary short identifier (e.g., SNOMED, RxNorm)"
+        ddl: "VARCHAR(20) PRIMARY KEY"
+      vocabulary_name:
+        type: "string"
+        required: true
+        description: "Full vocabulary name"
+        ddl: "VARCHAR(255) NOT NULL"
+      vocabulary_reference:
+        type: "string"
+        required: true
+        description: "Reference URL for the vocabulary source"
+        ddl: "VARCHAR(255) NOT NULL"
+      vocabulary_version:
+        type: "string"
+        required: false
+        description: "Version of the vocabulary"
+        ddl: "VARCHAR(255)"
+      vocabulary_concept_id:
+        type: "integer"
+        required: true
+        description: "Concept ID representing the vocabulary itself"
+        ddl: "INTEGER NOT NULL"
+        fk: "concept.concept_id"
+    source_patterns:
+      vocabulary_id: "vocabulary_id"
+    embedding_descriptions:
+      vocabulary_id: "vocabulary: short vocabulary identifier SNOMED LOINC RxNorm"
+      vocabulary_name: "vocabulary: full name of the vocabulary"
+      vocabulary_version: "vocabulary: version string of the vocabulary release"
+
+  concept_relationship:
+    description: "Relationships between concepts (CDM v5.4 CONCEPT_RELATIONSHIP)"
+    fields:
+      concept_id_1:
+        type: "integer"
+        required: true
+        description: "Source concept of the relationship"
+        ddl: "INTEGER NOT NULL"
+        fk: "concept.concept_id"
+      concept_id_2:
+        type: "integer"
+        required: true
+        description: "Target concept of the relationship"
+        ddl: "INTEGER NOT NULL"
+        fk: "concept.concept_id"
+      relationship_id:
+        type: "string"
+        required: true
+        description: "Type of relationship (e.g., 'Maps to', 'Is a')"
+        ddl: "VARCHAR(20) NOT NULL"
+      valid_start_date:
+        type: "date"
+        required: true
+        description: "Date the relationship became valid"
+        ddl: "DATE NOT NULL"
+      valid_end_date:
+        type: "date"
+        required: true
+        description: "Date the relationship stopped being valid"
+        ddl: "DATE NOT NULL"
+      invalid_reason:
+        type: "string"
+        required: false
+        description: "D = deprecated, null = active"
+        ddl: "VARCHAR(1)"
+    source_patterns:
+      concept_id_1: "concept_id_1"
+    embedding_descriptions:
+      concept_id_1: "concept relationship: source concept identifier"
+      concept_id_2: "concept relationship: target concept identifier"
+      relationship_id: "concept relationship: type of relationship Maps to Is a"
+
+  domain:
+    description: "Concept domains (CDM v5.4 DOMAIN)"
+    fields:
+      domain_id:
+        type: "string"
+        required: true
+        description: "Domain short identifier (e.g., Condition, Drug)"
+        ddl: "VARCHAR(20) PRIMARY KEY"
+      domain_name:
+        type: "string"
+        required: true
+        description: "Full name of the domain"
+        ddl: "VARCHAR(255) NOT NULL"
+      domain_concept_id:
+        type: "integer"
+        required: true
+        description: "Concept ID representing the domain itself"
+        ddl: "INTEGER NOT NULL"
+        fk: "concept.concept_id"
+    source_patterns:
+      domain_id: "domain_id"
+    embedding_descriptions:
+      domain_id: "domain: short domain identifier Condition Drug Measurement"
+      domain_name: "domain: full name of the OMOP domain"
+
+  concept_class:
+    description: "Concept classes within vocabularies (CDM v5.4 CONCEPT_CLASS)"
+    fields:
+      concept_class_id:
+        type: "string"
+        required: true
+        description: "Concept class short identifier"
+        ddl: "VARCHAR(20) PRIMARY KEY"
+      concept_class_name:
+        type: "string"
+        required: true
+        description: "Full concept class name"
+        ddl: "VARCHAR(255) NOT NULL"
+      concept_class_concept_id:
+        type: "integer"
+        required: true
+        description: "Concept ID representing the concept class itself"
+        ddl: "INTEGER NOT NULL"
+        fk: "concept.concept_id"
+    source_patterns:
+      concept_class_id: "concept_class_id"
+    embedding_descriptions:
+      concept_class_id: "concept class: short concept class identifier"
+      concept_class_name: "concept class: full concept class name"
+
 # Default fallback entity for unmapped columns
 default_entity: "observation"
 default_field: "observation_source_value"
