@@ -15,7 +15,7 @@ Reproducibility notes:
   within ±1% (LLM nondeterminism).
 """
 
-from benchmarks.athena_icd_snomed.runner import (
+from portiere.benchmarks.athena_icd_snomed.runner import (
     BenchmarkResult,
     compute_metrics,
     run_benchmark,

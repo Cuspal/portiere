@@ -87,10 +87,33 @@ def _load_athena_relationships(athena_dir: Path) -> pd.DataFrame:
     return pd.read_csv(athena_dir / "CONCEPT_RELATIONSHIP.csv", sep="\t", low_memory=False)
 
 
+def _generate_test_ids(
+    concept: pd.DataFrame, cr: pd.DataFrame, *, n: int = 1000, seed: int = 42
+) -> set[int]:
+    """Generate a deterministic held-out test set from an Athena export.
+
+    Used when the caller doesn't supply a ``test_set_path`` and the
+    bundled ``gold_test_set.csv`` doesn't ship in the wheel yet.
+    Sampling is seeded so a re-run produces the same IDs.
+    """
+    icd = concept[concept["vocabulary_id"] == "ICD10CM"]
+    has_gold = cr[
+        (cr["relationship_id"] == "Maps to") & cr["concept_id_1"].isin(icd["concept_id"])
+    ]["concept_id_1"].drop_duplicates()
+    pool = icd[icd["concept_id"].isin(has_gold)]
+    if len(pool) == 0:
+        return set()
+    if len(pool) <= n:
+        return set(pool["concept_id"].astype(int))
+    sampled = pool["concept_id"].sample(n=n, random_state=seed)
+    return set(sampled.astype(int))
+
+
 def run_benchmark(
     athena_dir: str | Path,
     *,
-    test_set_path: str | Path,
+    test_set_path: str | Path | None = None,
+    test_set_size: int = 1000,
     k: int = 10,
 ) -> BenchmarkResult:
     """Run the ICD-10-CM → SNOMED benchmark against a real Athena export.
@@ -100,6 +123,10 @@ def run_benchmark(
             (extracted directory containing ``CONCEPT.csv`` etc.).
         test_set_path: Path to ``gold_test_set.csv`` — a single column
             ``icd10cm_concept_id`` of held-out test concept IDs.
+            If ``None``, a deterministic sample is generated in-memory
+            from the Athena export (seed=42).
+        test_set_size: Size of in-memory test set (only used when
+            ``test_set_path`` is None). Default 1000.
         k: Top-k cutoff for retrieval (default 10).
 
     Returns:
@@ -109,7 +136,10 @@ def run_benchmark(
     concept = _load_athena_concept(athena)
     cr = _load_athena_relationships(athena)
 
-    test_ids = set(pd.read_csv(test_set_path)["icd10cm_concept_id"].astype(int))
+    if test_set_path is not None:
+        test_ids = set(pd.read_csv(test_set_path)["icd10cm_concept_id"].astype(int))
+    else:
+        test_ids = _generate_test_ids(concept, cr, n=test_set_size)
 
     # Gold mappings: ICD source → set of SNOMED standard concepts
     maps_to = cr[(cr["relationship_id"] == "Maps to") & cr["concept_id_1"].isin(test_ids)]

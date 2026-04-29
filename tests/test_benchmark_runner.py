@@ -150,7 +150,7 @@ def _make_synthetic_athena(tmp_path: Path) -> Path:
 
 class TestComputeMetrics:
     def test_perfect_top1(self):
-        from benchmarks.athena_icd_snomed.runner import compute_metrics
+        from portiere.benchmarks.athena_icd_snomed.runner import compute_metrics
 
         # Every prediction puts the gold answer at rank 0
         predictions = {
@@ -165,7 +165,7 @@ class TestComputeMetrics:
         assert m.mrr == 1.0
 
     def test_top5_better_than_top1(self):
-        from benchmarks.athena_icd_snomed.runner import compute_metrics
+        from portiere.benchmarks.athena_icd_snomed.runner import compute_metrics
 
         # Gold is at rank 2 for all → top_1 = 0, top_5 = 1.0
         predictions = {
@@ -180,7 +180,7 @@ class TestComputeMetrics:
         assert m.mrr == pytest.approx(1 / 3, rel=1e-3)
 
     def test_missing_gold_excluded(self):
-        from benchmarks.athena_icd_snomed.runner import compute_metrics
+        from portiere.benchmarks.athena_icd_snomed.runner import compute_metrics
 
         # Test concept 999 has no gold mapping → excluded from N
         predictions = {100: [200], 999: [777]}
@@ -190,7 +190,7 @@ class TestComputeMetrics:
         assert m.top_1 == 1.0
 
     def test_no_predictions_returns_zero(self):
-        from benchmarks.athena_icd_snomed.runner import compute_metrics
+        from portiere.benchmarks.athena_icd_snomed.runner import compute_metrics
 
         m = compute_metrics({}, {100: {200}})
         assert m.n == 0
@@ -203,7 +203,7 @@ class TestComputeMetrics:
 
 class TestRunBenchmark:
     def test_runs_against_synthetic_athena(self, tmp_path):
-        from benchmarks.athena_icd_snomed.runner import run_benchmark
+        from portiere.benchmarks.athena_icd_snomed.runner import run_benchmark
 
         athena = _make_synthetic_athena(tmp_path)
         test_set = tmp_path / "gold_test_set.csv"
@@ -223,7 +223,7 @@ class TestRunBenchmark:
 
 class TestWriteExpectedResults:
     def test_round_trip(self, tmp_path):
-        from benchmarks.athena_icd_snomed.runner import (
+        from portiere.benchmarks.athena_icd_snomed.runner import (
             BenchmarkResult,
             write_expected_results,
         )
