@@ -192,8 +192,7 @@ class TestSlice2NewOMOPClinicalEntities:
 
     @staticmethod
     def _descs_for(omop, entity):
-        return {k: v for k, v in omop.get_target_descriptions_tupled().items()
-                if k[0] == entity}
+        return {k: v for k, v in omop.get_target_descriptions_tupled().items() if k[0] == entity}
 
     def test_provider_entity(self, omop):
         schema = omop.get_schema()
@@ -346,11 +345,9 @@ class TestSlice2NewFHIRResources:
 
     @staticmethod
     def _descs_for(fhir, entity):
-        return {k: v for k, v in fhir.get_target_descriptions_tupled().items()
-                if k[0] == entity}
+        return {k: v for k, v in fhir.get_target_descriptions_tupled().items() if k[0] == entity}
 
-    def _assert_resource(self, fhir, name, required_fields, *,
-                         require_patterns=True):
+    def _assert_resource(self, fhir, name, required_fields, *, require_patterns=True):
         schema = fhir.get_schema()
         assert name in schema, f"FHIR `{name}` resource missing"
         for f in required_fields:
@@ -360,55 +357,61 @@ class TestSlice2NewFHIRResources:
         assert len(self._descs_for(fhir, name)) >= 3
 
     def test_practitioner_resource(self, fhir):
-        self._assert_resource(fhir, "Practitioner",
-                              ["id", "identifier", "name", "telecom",
-                               "qualification", "gender", "active"])
+        self._assert_resource(
+            fhir,
+            "Practitioner",
+            ["id", "identifier", "name", "telecom", "qualification", "gender", "active"],
+        )
 
     def test_organization_resource(self, fhir):
-        self._assert_resource(fhir, "Organization",
-                              ["id", "identifier", "active", "type",
-                               "name", "address"])
+        self._assert_resource(
+            fhir, "Organization", ["id", "identifier", "active", "type", "name", "address"]
+        )
 
     def test_location_resource(self, fhir):
-        self._assert_resource(fhir, "Location",
-                              ["id", "identifier", "status", "name",
-                               "type", "address"])
+        self._assert_resource(
+            fhir, "Location", ["id", "identifier", "status", "name", "type", "address"]
+        )
 
     def test_specimen_resource(self, fhir):
-        self._assert_resource(fhir, "Specimen",
-                              ["id", "identifier", "status", "type",
-                               "subject", "collection"])
+        self._assert_resource(
+            fhir, "Specimen", ["id", "identifier", "status", "type", "subject", "collection"]
+        )
 
     def test_immunization_resource(self, fhir):
-        self._assert_resource(fhir, "Immunization",
-                              ["id", "status", "vaccineCode", "patient",
-                               "occurrenceDateTime"])
+        self._assert_resource(
+            fhir, "Immunization", ["id", "status", "vaccineCode", "patient", "occurrenceDateTime"]
+        )
 
     def test_service_request_resource(self, fhir):
-        self._assert_resource(fhir, "ServiceRequest",
-                              ["id", "status", "intent", "code",
-                               "subject", "authoredOn"])
+        self._assert_resource(
+            fhir, "ServiceRequest", ["id", "status", "intent", "code", "subject", "authoredOn"]
+        )
 
     def test_medication_administration_resource(self, fhir):
-        self._assert_resource(fhir, "MedicationAdministration",
-                              ["id", "status", "medicationCodeableConcept",
-                               "subject", "effectiveDateTime"])
+        self._assert_resource(
+            fhir,
+            "MedicationAdministration",
+            ["id", "status", "medicationCodeableConcept", "subject", "effectiveDateTime"],
+        )
 
     def test_medication_dispense_resource(self, fhir):
-        self._assert_resource(fhir, "MedicationDispense",
-                              ["id", "status", "medicationCodeableConcept",
-                               "subject", "whenHandedOver", "quantity"])
+        self._assert_resource(
+            fhir,
+            "MedicationDispense",
+            ["id", "status", "medicationCodeableConcept", "subject", "whenHandedOver", "quantity"],
+        )
 
     def test_bundle_resource(self, fhir):
         # Bundle is a container resource — no source_patterns expected
-        self._assert_resource(fhir, "Bundle",
-                              ["id", "type", "entry", "total"],
-                              require_patterns=False)
+        self._assert_resource(
+            fhir, "Bundle", ["id", "type", "entry", "total"], require_patterns=False
+        )
 
     def test_document_reference_resource(self, fhir):
-        self._assert_resource(fhir, "DocumentReference",
-                              ["id", "status", "type", "subject",
-                               "date", "content"])
+        self._assert_resource(
+            fhir, "DocumentReference", ["id", "status", "type", "subject", "date", "content"]
+        )
 
 
 class TestSlice2EntityReachability:
@@ -419,8 +422,7 @@ class TestSlice2EntityReachability:
 
     def test_at_least_two_new_omop_entities_reachable(self):
         omop = YAMLTargetModel.from_name("omop_cdm_v5.4")
-        new = {"provider", "care_site", "death", "observation_period",
-               "device_exposure", "note"}
+        new = {"provider", "care_site", "death", "observation_period", "device_exposure", "note"}
         targets = {v[0] for v in omop.get_source_patterns().values()}
         hit = new & targets
         assert len(hit) >= 2, (
@@ -430,9 +432,17 @@ class TestSlice2EntityReachability:
 
     def test_at_least_two_new_fhir_resources_reachable(self):
         fhir = YAMLTargetModel.from_name("fhir_r4")
-        new = {"Practitioner", "Organization", "Location", "Specimen",
-               "Immunization", "ServiceRequest", "MedicationAdministration",
-               "MedicationDispense", "DocumentReference"}
+        new = {
+            "Practitioner",
+            "Organization",
+            "Location",
+            "Specimen",
+            "Immunization",
+            "ServiceRequest",
+            "MedicationAdministration",
+            "MedicationDispense",
+            "DocumentReference",
+        }
         targets = {v[0] for v in fhir.get_source_patterns().values()}
         hit = new & targets
         assert len(hit) >= 2, (
