@@ -1,0 +1,19 @@
+name: Security Report (DO NOT USE)
+description: Security issues must be reported privately — this template only redirects you to the right channel
+labels: ["security", "needs-redirect"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Stop — wrong channel
+
+        Please do **not** report security vulnerabilities via public issues.
+
+        Use one of these private channels instead:
+
+        - **Email:** security@cuspal.co
+        - **GitHub:** [private vulnerability reporting](https://github.com/Cuspal/portiere/security/advisories/new)
+
+        See [SECURITY.md](https://github.com/Cuspal/portiere/blob/main/SECURITY.md) for the full policy.
+
+        If you opened this template by accident, please close it and use one of the channels above.
