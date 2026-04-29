@@ -13,7 +13,7 @@
   <a href="https://pypi.org/project/portiere-health/"><img src="https://img.shields.io/pypi/pyversions/portiere-health.svg" alt="Python Versions"></a>
   <a href="https://github.com/Cuspal/portiere/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
   <a href="https://github.com/Cuspal/portiere/actions"><img src="https://img.shields.io/github/actions/workflow/status/Cuspal/portiere/ci.yml?branch=main" alt="Build Status"></a>
-  <a href="https://github.com/Cuspal/portiere/actions"><img src="https://img.shields.io/badge/coverage-75%25-green.svg" alt="Coverage"></a>
+  <a href="https://github.com/Cuspal/portiere/actions"><img src="https://img.shields.io/badge/coverage-80%25-brightgreen.svg" alt="Coverage"></a>
   <a href="https://github.com/Cuspal/portiere"><img src="https://img.shields.io/github/stars/Cuspal/portiere?style=social" alt="GitHub Stars"></a>
 </p>
 

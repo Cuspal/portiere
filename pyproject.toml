@@ -181,6 +181,17 @@ addopts = "-v"
 
 [tool.coverage.run]
 source = ["portiere"]
+# Exclude cloud-stub modules from coverage measurement.
+# Their constructors raise NotImplementedError in the open-source SDK,
+# making every method body guaranteed unreachable. Coverage on them
+# is meaningless until Portiere Cloud actually implements the surface.
+# These will be unexcluded the moment cloud features ship.
+omit = [
+    "src/portiere/auth.py",
+    "src/portiere/client.py",
+    "src/portiere/storage/cloud_backend.py",
+    "src/portiere/sync/sync_manager.py",
+]
 
 [tool.coverage.report]
 show_missing = true
@@ -190,5 +201,7 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "raise NotImplementedError",
     "@overload",
+    "@(abc\\.)?abstractmethod",
+    "^\\s*\\.\\.\\.\\s*$",  # bare-ellipsis stub bodies
 ]
 
