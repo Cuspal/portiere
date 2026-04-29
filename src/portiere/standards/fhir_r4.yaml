@@ -465,6 +465,720 @@ entities:
       effectiveDateTime: "DiagnosticReport: when diagnostic was performed"
       result: "DiagnosticReport: references to Observation resources"
 
+  # ---------------------------------------------------------------------------
+  # v0.2.0 Slice 2C — FHIR R4 resources (opinionated subset).
+  # Field lists below cover the required + commonly-used optional fields.
+  # PRs welcome to add long-tail fields; see HL7 FHIR R4 spec for full reference.
+  # ---------------------------------------------------------------------------
+
+  Practitioner:
+    description: "A person directly providing care (FHIR R4 §7.13)"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique practitioner identifier"
+      identifier:
+        type: "Identifier[]"
+        required: false
+        description: "Business identifier (NPI, license number, etc.)"
+      active:
+        type: "boolean"
+        required: false
+        description: "Whether this practitioner record is in active use"
+      name:
+        type: "HumanName[]"
+        required: false
+        description: "Practitioner full name"
+      telecom:
+        type: "ContactPoint[]"
+        required: false
+        description: "Contact details (phone, email, fax)"
+      address:
+        type: "Address[]"
+        required: false
+        description: "Address(es) for the practitioner"
+      gender:
+        type: "code"
+        required: false
+        description: "Administrative gender (male, female, other, unknown)"
+        valueset: "http://hl7.org/fhir/ValueSet/administrative-gender"
+      birthDate:
+        type: "date"
+        required: false
+        description: "Practitioner date of birth"
+      qualification:
+        type: "BackboneElement[]"
+        required: false
+        description: "Certifications, licenses, board certifications"
+      communication:
+        type: "CodeableConcept[]"
+        required: false
+        description: "Languages the practitioner can communicate in"
+    source_patterns:
+      provider_id: "id"
+      physician_id: "id"
+      doctor_id: "id"
+      practitioner_id: "id"
+      npi: "identifier"
+      provider_npi: "identifier"
+      provider_name: "name"
+      physician_name: "name"
+      doctor_name: "name"
+      practitioner_name: "name"
+      provider_phone: "telecom"
+      provider_email: "telecom"
+      specialty: "qualification"
+      provider_specialty: "qualification"
+    embedding_descriptions:
+      id: "Practitioner: unique practitioner physician provider doctor identifier"
+      identifier: "Practitioner: NPI license number business identifier"
+      active: "Practitioner: whether the practitioner record is in active use"
+      name: "Practitioner: physician name doctor name provider full name"
+      telecom: "Practitioner: contact details phone email"
+      address: "Practitioner: practitioner address"
+      gender: "Practitioner: practitioner gender male female"
+      birthDate: "Practitioner: practitioner date of birth"
+      qualification: "Practitioner: certifications licenses board certifications specialties"
+      communication: "Practitioner: languages spoken by the practitioner"
+
+  Organization:
+    description: "A formal organization or healthcare entity (FHIR R4 §7.16)"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique organization identifier"
+      identifier:
+        type: "Identifier[]"
+        required: false
+        description: "Business identifier for the organization (e.g., NPI, tax ID)"
+      active:
+        type: "boolean"
+        required: false
+        description: "Whether the organization is currently active"
+      type:
+        type: "CodeableConcept[]"
+        required: false
+        description: "Kind of organization (provider, payer, government, etc.)"
+        valueset: "http://hl7.org/fhir/ValueSet/organization-type"
+      name:
+        type: "string"
+        required: false
+        description: "Name used for the organization"
+      alias:
+        type: "string[]"
+        required: false
+        description: "Alternate names the organization is known as"
+      telecom:
+        type: "ContactPoint[]"
+        required: false
+        description: "Contact details for the organization"
+      address:
+        type: "Address[]"
+        required: false
+        description: "Address of the organization"
+      partOf:
+        type: "Reference(Organization)"
+        required: false
+        description: "Parent organization this is part of"
+    source_patterns:
+      org_id: "id"
+      organization_id: "id"
+      hospital_id: "id"
+      facility_id: "id"
+      payer_id: "id"
+      org_name: "name"
+      organization_name: "name"
+      hospital_name: "name"
+      facility_name: "name"
+      payer_name: "name"
+      org_type: "type"
+      organization_type: "type"
+    embedding_descriptions:
+      id: "Organization: unique organization hospital facility payer identifier"
+      identifier: "Organization: business identifier NPI tax ID"
+      active: "Organization: whether the organization is currently active"
+      type: "Organization: organization category provider payer government"
+      name: "Organization: organization hospital clinic payer full name"
+      alias: "Organization: alternate names the organization is known as"
+      telecom: "Organization: organization contact details phone email"
+      address: "Organization: organization mailing or physical address"
+      partOf: "Organization: parent organization reference"
+
+  Location:
+    description: "Physical place where services are provided (FHIR R4 §7.18)"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique location identifier"
+      identifier:
+        type: "Identifier[]"
+        required: false
+        description: "Business identifier for the location"
+      status:
+        type: "code"
+        required: false
+        description: "active | suspended | inactive"
+        valueset: "http://hl7.org/fhir/ValueSet/location-status"
+      name:
+        type: "string"
+        required: false
+        description: "Name of the location"
+      description:
+        type: "string"
+        required: false
+        description: "Additional details about the location"
+      mode:
+        type: "code"
+        required: false
+        description: "instance | kind"
+      type:
+        type: "CodeableConcept[]"
+        required: false
+        description: "Type of function performed (ward, ED, OR, etc.)"
+      telecom:
+        type: "ContactPoint[]"
+        required: false
+        description: "Contact details for this location"
+      address:
+        type: "Address"
+        required: false
+        description: "Physical address of the location"
+      physicalType:
+        type: "CodeableConcept"
+        required: false
+        description: "Physical form (room, bed, building, vehicle)"
+      managingOrganization:
+        type: "Reference(Organization)"
+        required: false
+        description: "Organization responsible for this location"
+    source_patterns:
+      location_id: "id"
+      unit_id: "id"
+      room_id: "id"
+      ward_id: "id"
+      bed_id: "id"
+      location_name: "name"
+      unit_name: "name"
+      ward_name: "name"
+      department: "type"
+      department_type: "type"
+      location_type: "type"
+      location_status: "status"
+    embedding_descriptions:
+      id: "Location: unique location unit room ward identifier"
+      identifier: "Location: business identifier for the physical location"
+      status: "Location: location status active suspended inactive"
+      name: "Location: location unit ward room name"
+      description: "Location: additional details about the location"
+      type: "Location: type of function ward ED OR ICU"
+      telecom: "Location: location contact phone fax"
+      address: "Location: physical address of the location"
+      physicalType: "Location: physical form room bed building vehicle"
+      managingOrganization: "Location: organization that manages the location"
+
+  Specimen:
+    description: "Sample for diagnostic testing (FHIR R4 §5.6)"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique specimen identifier"
+      identifier:
+        type: "Identifier[]"
+        required: false
+        description: "External business identifier for the specimen"
+      accessionIdentifier:
+        type: "Identifier"
+        required: false
+        description: "Lab accession number"
+      status:
+        type: "code"
+        required: false
+        description: "available | unavailable | unsatisfactory | entered-in-error"
+        valueset: "http://hl7.org/fhir/ValueSet/specimen-status"
+      type:
+        type: "CodeableConcept"
+        required: false
+        description: "Kind of material the specimen is (blood, urine, tissue)"
+      subject:
+        type: "Reference(Patient)"
+        required: false
+        description: "Patient the specimen is from"
+      receivedTime:
+        type: "dateTime"
+        required: false
+        description: "Time the specimen was received by the lab"
+      collection:
+        type: "BackboneElement"
+        required: false
+        description: "Details of collection (collector, date, body site, method)"
+      container:
+        type: "BackboneElement[]"
+        required: false
+        description: "Container holding the specimen"
+    source_patterns:
+      specimen_id: "id"
+      sample_id: "id"
+      lab_specimen_id: "id"
+      accession_number: "accessionIdentifier"
+      lab_accession: "accessionIdentifier"
+      specimen_type: "type"
+      sample_type: "type"
+      specimen_status: "status"
+      collection_date: "collection"
+      collection_time: "collection"
+    embedding_descriptions:
+      id: "Specimen: unique specimen sample lab specimen identifier"
+      identifier: "Specimen: external business identifier for the specimen"
+      accessionIdentifier: "Specimen: laboratory accession number"
+      status: "Specimen: specimen status available unavailable unsatisfactory"
+      type: "Specimen: kind of specimen blood urine tissue swab"
+      subject: "Specimen: patient the specimen was collected from"
+      receivedTime: "Specimen: time the specimen was received by the lab"
+      collection: "Specimen: collection details collector date body site method"
+      container: "Specimen: container holding the specimen"
+
+  Immunization:
+    description: "Vaccine administration event (FHIR R4 §5.10)"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique immunization record identifier"
+      identifier:
+        type: "Identifier[]"
+        required: false
+        description: "Business identifier for the immunization"
+      status:
+        type: "code"
+        required: true
+        description: "completed | entered-in-error | not-done"
+        valueset: "http://hl7.org/fhir/ValueSet/immunization-status"
+      vaccineCode:
+        type: "CodeableConcept"
+        required: true
+        description: "Vaccine product administered (CVX, NDC, ATC)"
+      patient:
+        type: "Reference(Patient)"
+        required: true
+        description: "Patient who received the vaccination"
+      encounter:
+        type: "Reference(Encounter)"
+        required: false
+        description: "Encounter immunization was administered as part of"
+      occurrenceDateTime:
+        type: "dateTime"
+        required: true
+        description: "Date and time the vaccine was administered"
+      recorded:
+        type: "dateTime"
+        required: false
+        description: "Date the record was first captured"
+      primarySource:
+        type: "boolean"
+        required: false
+        description: "Whether the data is from the source who administered"
+      lotNumber:
+        type: "string"
+        required: false
+        description: "Vaccine lot number"
+      expirationDate:
+        type: "date"
+        required: false
+        description: "Vaccine expiration date"
+      site:
+        type: "CodeableConcept"
+        required: false
+        description: "Body site of administration"
+      route:
+        type: "CodeableConcept"
+        required: false
+        description: "Route of administration (IM, SC, PO)"
+    source_patterns:
+      immunization_id: "id"
+      vaccine_id: "id"
+      vaccine_code: "vaccineCode"
+      cvx_code: "vaccineCode"
+      vaccine_name: "vaccineCode"
+      vaccine_date: "occurrenceDateTime"
+      immunization_date: "occurrenceDateTime"
+      administration_date: "occurrenceDateTime"
+      vaccine_lot: "lotNumber"
+      lot_number: "lotNumber"
+      vaccine_expiration: "expirationDate"
+    embedding_descriptions:
+      id: "Immunization: unique immunization vaccine record identifier"
+      identifier: "Immunization: business identifier for the immunization record"
+      status: "Immunization: immunization status completed entered-in-error not-done"
+      vaccineCode: "Immunization: vaccine product CVX NDC code"
+      patient: "Immunization: patient who received the vaccination"
+      encounter: "Immunization: encounter the vaccination was given in"
+      occurrenceDateTime: "Immunization: date and time vaccine was administered"
+      lotNumber: "Immunization: vaccine lot number"
+      expirationDate: "Immunization: vaccine expiration date"
+      site: "Immunization: body site of administration arm thigh"
+      route: "Immunization: route of administration intramuscular subcutaneous oral"
+
+  ServiceRequest:
+    description: "Order or referral for a service (FHIR R4 §5.11)"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique service request identifier"
+      identifier:
+        type: "Identifier[]"
+        required: false
+        description: "Business identifier for the request"
+      status:
+        type: "code"
+        required: true
+        description: "draft | active | on-hold | revoked | completed | entered-in-error | unknown"
+        valueset: "http://hl7.org/fhir/ValueSet/request-status"
+      intent:
+        type: "code"
+        required: true
+        description: "proposal | plan | order | original-order | reflex-order | filler-order"
+        valueset: "http://hl7.org/fhir/ValueSet/request-intent"
+      category:
+        type: "CodeableConcept[]"
+        required: false
+        description: "Classification of the requested service"
+      priority:
+        type: "code"
+        required: false
+        description: "routine | urgent | asap | stat"
+        valueset: "http://hl7.org/fhir/ValueSet/request-priority"
+      code:
+        type: "CodeableConcept"
+        required: false
+        description: "What is being requested (LOINC, CPT, SNOMED)"
+      subject:
+        type: "Reference(Patient)"
+        required: true
+        description: "Patient the request is about"
+      encounter:
+        type: "Reference(Encounter)"
+        required: false
+        description: "Encounter associated with the request"
+      occurrenceDateTime:
+        type: "dateTime"
+        required: false
+        description: "When the service should occur"
+      authoredOn:
+        type: "dateTime"
+        required: false
+        description: "Date the request was authored"
+      requester:
+        type: "Reference(Practitioner)"
+        required: false
+        description: "Practitioner who placed the request"
+    source_patterns:
+      order_id: "id"
+      referral_id: "id"
+      request_id: "id"
+      service_request_id: "id"
+      order_status: "status"
+      order_intent: "intent"
+      order_priority: "priority"
+      service_code: "code"
+      order_code: "code"
+      requested_date: "occurrenceDateTime"
+      order_date: "authoredOn"
+      ordering_provider: "requester"
+      ordered_by: "requester"
+    embedding_descriptions:
+      id: "ServiceRequest: unique order request referral identifier"
+      identifier: "ServiceRequest: business identifier for the order"
+      status: "ServiceRequest: order status draft active completed"
+      intent: "ServiceRequest: order intent proposal plan order"
+      category: "ServiceRequest: classification of the requested service"
+      priority: "ServiceRequest: order priority routine urgent stat"
+      code: "ServiceRequest: what is being ordered LOINC CPT SNOMED"
+      subject: "ServiceRequest: patient the order is for"
+      encounter: "ServiceRequest: encounter associated with the order"
+      occurrenceDateTime: "ServiceRequest: when the service should occur"
+      authoredOn: "ServiceRequest: date the order was authored"
+      requester: "ServiceRequest: ordering practitioner provider"
+
+  MedicationAdministration:
+    description: "Record of medication actually given to a patient (FHIR R4 §5.20)"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique medication administration identifier"
+      identifier:
+        type: "Identifier[]"
+        required: false
+        description: "Business identifier for the administration"
+      status:
+        type: "code"
+        required: true
+        description: "in-progress | not-done | on-hold | completed | entered-in-error | stopped | unknown"
+        valueset: "http://hl7.org/fhir/ValueSet/medication-admin-status"
+      statusReason:
+        type: "CodeableConcept[]"
+        required: false
+        description: "Reason administration was not performed"
+      medicationCodeableConcept:
+        type: "CodeableConcept"
+        required: true
+        description: "Medication administered (RxNorm, NDC, etc.)"
+      subject:
+        type: "Reference(Patient)"
+        required: true
+        description: "Patient who received the medication"
+      context:
+        type: "Reference(Encounter)"
+        required: false
+        description: "Encounter or episode of care"
+      effectiveDateTime:
+        type: "dateTime"
+        required: true
+        description: "When the medication was administered"
+      performer:
+        type: "BackboneElement[]"
+        required: false
+        description: "Who administered the medication"
+      dosage:
+        type: "BackboneElement"
+        required: false
+        description: "Dose, route, rate of administration"
+    source_patterns:
+      med_admin_id: "id"
+      mar_id: "id"
+      administration_id: "id"
+      medication_admin_id: "id"
+      drug_admin_code: "medicationCodeableConcept"
+      med_admin_code: "medicationCodeableConcept"
+      administered_drug: "medicationCodeableConcept"
+      admin_date: "effectiveDateTime"
+      administration_time: "effectiveDateTime"
+      administered_at: "effectiveDateTime"
+      administered_by: "performer"
+      admin_dose: "dosage"
+      administration_dose: "dosage"
+    embedding_descriptions:
+      id: "MedicationAdministration: unique medication administration MAR identifier"
+      identifier: "MedicationAdministration: business identifier for the administration"
+      status: "MedicationAdministration: status in-progress completed not-done"
+      statusReason: "MedicationAdministration: reason administration was not performed"
+      medicationCodeableConcept: "MedicationAdministration: medication given RxNorm NDC code"
+      subject: "MedicationAdministration: patient who received the medication"
+      context: "MedicationAdministration: encounter or episode of care"
+      effectiveDateTime: "MedicationAdministration: when medication was administered"
+      performer: "MedicationAdministration: nurse provider who administered"
+      dosage: "MedicationAdministration: dose route rate of administration"
+
+  MedicationDispense:
+    description: "Record of a medication dispensed to a patient (FHIR R4 §5.21)"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique medication dispense identifier"
+      identifier:
+        type: "Identifier[]"
+        required: false
+        description: "Business identifier for the dispense"
+      status:
+        type: "code"
+        required: true
+        description: "preparation | in-progress | cancelled | on-hold | completed | entered-in-error | stopped | declined | unknown"
+        valueset: "http://hl7.org/fhir/ValueSet/medicationdispense-status"
+      medicationCodeableConcept:
+        type: "CodeableConcept"
+        required: true
+        description: "Medication dispensed (RxNorm, NDC)"
+      subject:
+        type: "Reference(Patient)"
+        required: true
+        description: "Patient the medication was dispensed for"
+      context:
+        type: "Reference(Encounter)"
+        required: false
+        description: "Encounter or episode of care"
+      performer:
+        type: "BackboneElement[]"
+        required: false
+        description: "Who performed the dispense"
+      quantity:
+        type: "SimpleQuantity"
+        required: false
+        description: "Amount of medication dispensed"
+      daysSupply:
+        type: "SimpleQuantity"
+        required: false
+        description: "Days supply per dispense"
+      whenPrepared:
+        type: "dateTime"
+        required: false
+        description: "When the dispense was prepared"
+      whenHandedOver:
+        type: "dateTime"
+        required: false
+        description: "When the medication was handed over"
+    source_patterns:
+      dispense_id: "id"
+      pharmacy_dispense_id: "id"
+      medication_dispense_id: "id"
+      rx_dispense_id: "id"
+      dispensed_drug_code: "medicationCodeableConcept"
+      dispensed_med_code: "medicationCodeableConcept"
+      drug_dispensed: "medicationCodeableConcept"
+      dispensed_quantity: "quantity"
+      quantity_dispensed: "quantity"
+      days_supply: "daysSupply"
+      dispense_date: "whenHandedOver"
+      handed_over_date: "whenHandedOver"
+    embedding_descriptions:
+      id: "MedicationDispense: unique medication dispense pharmacy fill identifier"
+      identifier: "MedicationDispense: business identifier for the dispense"
+      status: "MedicationDispense: dispense status preparation in-progress completed cancelled"
+      medicationCodeableConcept: "MedicationDispense: medication dispensed RxNorm NDC"
+      subject: "MedicationDispense: patient the medication was dispensed for"
+      context: "MedicationDispense: encounter or episode of care"
+      performer: "MedicationDispense: pharmacist who performed the dispense"
+      quantity: "MedicationDispense: amount of medication dispensed"
+      daysSupply: "MedicationDispense: days supply per dispense"
+      whenPrepared: "MedicationDispense: when the dispense was prepared"
+      whenHandedOver: "MedicationDispense: when the medication was handed over"
+
+  Bundle:
+    description: "Container for a collection of resources (FHIR R4 §3.4)"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique bundle identifier"
+      meta:
+        type: "Meta"
+        required: false
+        description: "Metadata about the resource"
+      identifier:
+        type: "Identifier"
+        required: false
+        description: "Persistent identifier for the bundle"
+      type:
+        type: "code"
+        required: true
+        description: "document | message | transaction | transaction-response | batch | batch-response | history | searchset | collection"
+        valueset: "http://hl7.org/fhir/ValueSet/bundle-type"
+      timestamp:
+        type: "instant"
+        required: false
+        description: "When the bundle was assembled"
+      total:
+        type: "unsignedInt"
+        required: false
+        description: "Total search results (searchset bundles only)"
+      link:
+        type: "BackboneElement[]"
+        required: false
+        description: "Links related to the bundle"
+      entry:
+        type: "BackboneElement[]"
+        required: false
+        description: "Entries containing the resources in the bundle"
+      signature:
+        type: "Signature"
+        required: false
+        description: "Digital signature for the bundle"
+    embedding_descriptions:
+      id: "Bundle: unique bundle container identifier"
+      meta: "Bundle: metadata about the resource"
+      identifier: "Bundle: persistent identifier for the bundle"
+      type: "Bundle: bundle type document message transaction batch searchset collection"
+      timestamp: "Bundle: when the bundle was assembled"
+      total: "Bundle: total search results count for searchset bundles"
+      link: "Bundle: links related to the bundle paging"
+      entry: "Bundle: entries containing the resources"
+      signature: "Bundle: digital signature for the bundle"
+
+  DocumentReference:
+    description: "Reference to a document (FHIR R4 §5.13)"
+    fields:
+      id:
+        type: "string"
+        required: true
+        description: "Unique document reference identifier"
+      identifier:
+        type: "Identifier[]"
+        required: false
+        description: "Other identifiers for the document"
+      masterIdentifier:
+        type: "Identifier"
+        required: false
+        description: "Master version-specific identifier"
+      status:
+        type: "code"
+        required: true
+        description: "current | superseded | entered-in-error"
+        valueset: "http://hl7.org/fhir/ValueSet/document-reference-status"
+      docStatus:
+        type: "code"
+        required: false
+        description: "preliminary | final | amended | entered-in-error"
+        valueset: "http://hl7.org/fhir/ValueSet/composition-status"
+      type:
+        type: "CodeableConcept"
+        required: false
+        description: "Kind of document (LOINC document type, e.g., discharge summary)"
+      category:
+        type: "CodeableConcept[]"
+        required: false
+        description: "High-level kind of document being referenced"
+      subject:
+        type: "Reference(Patient)"
+        required: false
+        description: "Patient the document is about"
+      date:
+        type: "instant"
+        required: false
+        description: "When this DocumentReference was created"
+      author:
+        type: "Reference(Practitioner)[]"
+        required: false
+        description: "Who and/or what authored the document"
+      description:
+        type: "string"
+        required: false
+        description: "Human-readable description"
+      content:
+        type: "BackboneElement[]"
+        required: true
+        description: "Document referenced (attachment + format)"
+    source_patterns:
+      document_id: "id"
+      doc_id: "id"
+      chart_doc_id: "id"
+      note_ref: "id"
+      document_ref_id: "id"
+      document_status: "status"
+      document_type: "type"
+      doc_type: "type"
+      document_category: "category"
+      document_date: "date"
+      document_author: "author"
+      document_description: "description"
+    embedding_descriptions:
+      id: "DocumentReference: unique document reference identifier"
+      identifier: "DocumentReference: other identifiers for the document"
+      masterIdentifier: "DocumentReference: master version-specific identifier"
+      status: "DocumentReference: status current superseded entered-in-error"
+      docStatus: "DocumentReference: document status preliminary final amended"
+      type: "DocumentReference: kind of document discharge summary progress note operative"
+      category: "DocumentReference: high-level document category"
+      subject: "DocumentReference: patient the document is about"
+      date: "DocumentReference: when the reference was created"
+      author: "DocumentReference: practitioner who authored the document"
+      description: "DocumentReference: human-readable description"
+      content: "DocumentReference: document attachment and format"
+
 # FHIR required fields per resource
 required_fields:
   Patient: ["id", "gender"]
@@ -475,6 +1189,16 @@ required_fields:
   Encounter: ["id", "status", "class", "subject"]
   AllergyIntolerance: ["id", "patient"]
   DiagnosticReport: ["id", "status", "code", "subject"]
+  Practitioner: ["id"]
+  Organization: ["id"]
+  Location: ["id"]
+  Specimen: ["id"]
+  Immunization: ["id", "status", "vaccineCode", "patient", "occurrenceDateTime"]
+  ServiceRequest: ["id", "status", "intent", "subject"]
+  MedicationAdministration: ["id", "status", "medicationCodeableConcept", "subject", "effectiveDateTime"]
+  MedicationDispense: ["id", "status", "medicationCodeableConcept", "subject"]
+  Bundle: ["id", "type"]
+  DocumentReference: ["id", "status", "content"]
 
 # Default fallback resource for unmapped columns
 default_entity: "Observation"
