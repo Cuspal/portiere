@@ -284,10 +284,13 @@ class LocalConceptMapper:
                     "target_concept_id": None,
                 }
 
-        # Add source info and candidates
+        # Add source info and candidates. Return the full ranked list the
+        # retrieval pipeline produced (capped upstream at limit=10) so
+        # benchmarks measuring rank-k accuracy see the real signal.
+        # Review-UI consumers re-slice as needed.
         result["source_code"] = source_code
         result["source_description"] = source_description
-        result["candidates"] = candidates[:5]
+        result["candidates"] = candidates
 
         return result
 

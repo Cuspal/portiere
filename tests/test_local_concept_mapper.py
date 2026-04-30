@@ -361,6 +361,48 @@ class TestLocalConceptMapperMapCode:
         assert result["confidence"] == 0.0
 
 
+class TestLocalConceptMapperCandidatesNotTruncated:
+    """Regression: ``map_code`` must not silently truncate candidates at 5.
+
+    v0.2.0 had a hardcoded ``candidates[:5]`` cap in the result dict that
+    made the ICD→SNOMED benchmark's top-10 metric structurally identical
+    to top-5 (ranks 6-10 were dropped before the metric ever saw them,
+    producing the published top_5 == top_10 == 0.528 artifact). The
+    mapper must return all candidates the retrieval pipeline produced;
+    downstream consumers (review UIs) re-slice as they wish.
+    """
+
+    @pytest.mark.asyncio
+    async def test_returns_all_candidates_from_retrieval_pipeline(self):
+        from portiere.local.concept_mapper import LocalConceptMapper
+
+        config = _make_config()
+        mapper = LocalConceptMapper(config)
+        mapper._initialized = True
+        mapper._code_index = {}
+        mapper._reranker = None
+        mapper._router = None  # exercise the no-LLM fallback path used by the benchmark
+
+        ten_candidates = [
+            {
+                "concept_id": 1000 + i,
+                "concept_name": f"Concept {i}",
+                "score": 0.9 - 0.05 * i,
+                "vocabulary_id": "SNOMED",
+                "domain_id": "Condition",
+            }
+            for i in range(10)
+        ]
+        mock_backend = MagicMock()
+        mock_backend.search.return_value = ten_candidates
+        mapper._knowledge_backend = mock_backend
+
+        result = await mapper.map_code("CODE", source_description="desc")
+
+        assert len(result["candidates"]) == 10
+        assert [c["concept_id"] for c in result["candidates"]] == [1000 + i for i in range(10)]
+
+
 class TestLocalConceptMapperMapBatch:
     @pytest.mark.asyncio
     async def test_map_batch_maps_all_codes(self):

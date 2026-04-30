@@ -197,6 +197,28 @@ class TestComputeMetrics:
         assert m.top_1 == 0.0
         assert m.mrr == 0.0
 
+    def test_top10_differentiates_from_top5(self):
+        """Regression: top_10 must reflect ranks 6-10 when present.
+
+        The v0.2.0 published numbers showed top_5 == top_10 == 0.528
+        because upstream truncation capped the candidate list at 5
+        before it reached this metric. With a properly sized prediction
+        list, a hit at rank 7 must lift top_10 above top_5.
+        """
+        from portiere.benchmarks.athena_icd_snomed.runner import compute_metrics
+
+        # Gold at rank 7 (index 6) for src=100, rank 1 (index 0) for src=101
+        predictions = {
+            100: [990, 991, 992, 993, 994, 995, 200, 996, 997, 998],
+            101: [201, 999, 998, 997, 996, 995, 994, 993, 992, 991],
+        }
+        gold = {100: {200}, 101: {201}}
+        m = compute_metrics(predictions, gold)
+        assert m.top_1 == 0.5  # only src=101 has gold at rank 1
+        assert m.top_5 == 0.5  # src=100's rank-7 hit doesn't count
+        assert m.top_10 == 1.0  # both within top-10
+        assert m.top_10 > m.top_5
+
 
 # ── run_benchmark() ───────────────────────────────────────────────
 
