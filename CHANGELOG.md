@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-04-30
+
+The "benchmark integrity hotfix." Re-publishes the ICD-10-CM → SNOMED top-10 number after fixing a silent candidate-list truncation that made the published top-5 and top-10 figures structurally identical.
+
+### Fixed
+
+- **`LocalConceptMapper.map_code` returned only the first 5 candidates** instead of the full ranked list the retrieval pipeline produced (up to 10). The hardcoded `candidates[:5]` was sized for review-UI display and incorrectly applied as the universal cap, so any consumer reading `ConceptMappingItem.candidates` for top-k retrieval analysis lost ranks 6–10. The mapper now returns the full ranked list; review-UI consumers re-slice as needed.
+
+### Changed
+
+- **`expected_results.json` re-published** against the same Athena 2026-04-30 vocabulary release. `top_1` (0.288) and `top_5` (0.528) are unchanged — the truncation didn't drop ranks 0–4. `top_10` and `mrr` are corrected: the v0.2.0 published `top_10 == top_5 == 0.528` was an artifact of the truncation, not a property of the retrieval. The corrected numbers are the new BM25-only baseline that v0.3.0's hybrid embedding work must beat.
+
+### Tests
+
+- New `TestLocalConceptMapperCandidatesNotTruncated::test_returns_all_candidates_from_retrieval_pipeline` — regression test asserting the mapper returns all 10 candidates when the backend produces them.
+- New `TestComputeMetrics::test_top10_differentiates_from_top5` — defense-in-depth metric assertion that catches future regressions of the same class.
+
 ## [0.2.0] - 2026-04-30
 
 The "credibility release." Closes the gap between v0.1.0's claims and reality across standards coverage, plausibility validation, reproducibility, demo activation, benchmarks, and repo hygiene.

@@ -10,7 +10,7 @@ repository-code: "https://github.com/Cuspal/portiere"
 license: Apache-2.0
 type: software
 date-released: "2026-04-30"
-version: 0.2.0
+version: 0.2.1
 keywords:
   - healthcare
   - clinical-data
