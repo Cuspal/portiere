@@ -255,7 +255,7 @@ def build_knowledge_layer(
         "milvus": lambda: _build_milvus(concepts, output_dir, embedding_gateway, **backend_kwargs),
     }
 
-    paths: dict[str, str] = {}
+    paths: dict[str, str | list[str]] = {}
 
     if backend == "hybrid":
         if not hybrid_backends:
