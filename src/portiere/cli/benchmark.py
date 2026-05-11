@@ -45,6 +45,15 @@ def benchmark_group() -> None:
     ),
 )
 @click.option(
+    "--stratify-by",
+    type=click.Choice(["domain"], case_sensitive=False),
+    default=None,
+    help=(
+        "Stratify the in-memory test set by 'domain'. Only applied when "
+        "--test-set is not provided. Default: uniform random sampling."
+    ),
+)
+@click.option(
     "--out",
     type=click.Path(),
     default="bench_run.json",
@@ -68,6 +77,7 @@ def athena_icd_snomed(
     athena_dir: str,
     test_set: str | None,
     backend: str,
+    stratify_by: str | None,
     out: str,
     athena_release_date: str | None,
     test_set_size: int,
@@ -122,6 +132,7 @@ def athena_icd_snomed(
         test_set_path=test_set,
         test_set_size=test_set_size,
         backend=backend,
+        stratify_by=stratify_by,
     )
     append_run_to_expected_results(
         result,

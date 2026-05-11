@@ -15,11 +15,14 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import pandas as pd
 
 import portiere
+from portiere.benchmarks.athena_icd_snomed.sampling import (
+    generate_test_ids as _sampling_generate_test_ids,
+)
 from portiere.config import EmbeddingConfig, KnowledgeLayerConfig, PortiereConfig
 from portiere.knowledge import build_knowledge_layer
 
@@ -93,25 +96,16 @@ def _load_athena_relationships(athena_dir: Path) -> pd.DataFrame:
 
 
 def _generate_test_ids(
-    concept: pd.DataFrame, cr: pd.DataFrame, *, n: int = 1000, seed: int = 42
+    concept: pd.DataFrame,
+    cr: pd.DataFrame,
+    *,
+    n: int = 1000,
+    seed: int = 42,
+    stratify_by: str | None = None,
 ) -> set[int]:
-    """Generate a deterministic held-out test set from an Athena export.
-
-    Used when the caller doesn't supply a ``test_set_path`` and the
-    bundled ``gold_test_set.csv`` doesn't ship in the wheel yet.
-    Sampling is seeded so a re-run produces the same IDs.
-    """
-    icd = concept[concept["vocabulary_id"] == "ICD10CM"]
-    has_gold = cr[
-        (cr["relationship_id"] == "Maps to") & cr["concept_id_1"].isin(icd["concept_id"])
-    ]["concept_id_1"].drop_duplicates()
-    pool = icd[icd["concept_id"].isin(has_gold)]
-    if len(pool) == 0:
-        return set()
-    if len(pool) <= n:
-        return set(pool["concept_id"].astype(int))
-    sampled = pool["concept_id"].sample(n=n, random_state=seed)
-    return set(sampled.astype(int))
+    return _sampling_generate_test_ids(
+        concept, cr, n=n, seed=seed, stratify_by=cast(Literal[None, "domain"], stratify_by)
+    )
 
 
 def run_benchmark(
@@ -121,6 +115,7 @@ def run_benchmark(
     test_set_size: int = 1000,
     k: int = 10,
     backend: str = "hybrid",
+    stratify_by: str | None = None,
 ) -> BenchmarkResult:
     """Run the ICD-10-CM → SNOMED benchmark against a real Athena export.
 
@@ -145,7 +140,7 @@ def run_benchmark(
     if test_set_path is not None:
         test_ids = set(pd.read_csv(test_set_path)["icd10cm_concept_id"].astype(int))
     else:
-        test_ids = _generate_test_ids(concept, cr, n=test_set_size)
+        test_ids = _generate_test_ids(concept, cr, n=test_set_size, stratify_by=stratify_by)
 
     # Gold mappings: ICD source → set of SNOMED standard concepts
     maps_to = cr[(cr["relationship_id"] == "Maps to") & cr["concept_id_1"].isin(test_ids)]
