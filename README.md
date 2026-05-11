@@ -153,6 +153,7 @@ Install only what you need:
 | | Qdrant | `pip install "portiere-health[qdrant]"` |
 | | Milvus | `pip install "portiere-health[milvus]"` |
 | **Quality** | Great Expectations | `pip install "portiere-health[quality]"` |
+| **FHIR** | US Core validation + Bundle/NDJSON export | `pip install "portiere-health[fhir]"` |
 | **Everything** | All extras | `pip install "portiere-health[all]"` |
 
 > **Requirements:** Python 3.10+

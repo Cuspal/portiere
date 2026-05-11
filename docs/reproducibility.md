@@ -80,7 +80,7 @@ Replay does three things:
 
 2. **Reconstruct the project.** A new `portiere.init()` is called with the manifest's recorded `target_model`, `task`, `source_standard`, and `vocabularies_requested`. The new project gets a `replay-` prefixed name to avoid clobbering the original's storage.
 
-3. **Re-attach the source.** If `source_data.path` points to an existing file, it's added to the new project. From there, the caller can re-invoke pipeline ops as needed; v0.2.0 stops at reconstruction. Auto-replaying every recorded stage is a v0.3.0 feature.
+3. **Re-attach the source.** If `source_data.path` points to an existing file, it's added to the new project. From there, the caller can re-invoke pipeline ops as needed; v0.3.0 still stops at reconstruction. Auto-replaying every recorded stage (`portiere replay --auto-replay`) is a v0.3.1 feature.
 
 ### Common replay errors
 
@@ -95,7 +95,7 @@ Replay does three things:
 
 - **Bit-identical outputs.** LLM sampling, BM25 tie-breaks, and FAISS thread effects all introduce small nondeterminism. The same input, same model revision, same vocab will produce *very similar* mappings, but the per-row decisions can flicker at the edge of confidence thresholds.
 - **Perfect environment recreation.** Replay validates artifact identity but doesn't reinstall Python packages or pin transitive deps. Pin your environment with `pip freeze > requirements.lock.txt` for that level of fidelity.
-- **Full stage replay.** v0.2.0 reconstructs the project and re-attaches the source; the caller re-invokes pipeline ops. Auto-replay of recorded stages comes in v0.3.0.
+- **Full stage replay.** v0.3.0 reconstructs the project and re-attaches the source; the caller re-invokes pipeline ops. Auto-replay of recorded stages (`portiere replay --auto-replay`) comes in v0.3.1.
 
 ## Audit / compliance use
 
