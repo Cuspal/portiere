@@ -518,6 +518,99 @@ class TestSampling:
         with pytest.raises(ValueError, match="stratify_by"):
             generate_test_ids(concept, cr, n=3, seed=42, stratify_by="claim-frequency")
 
+    def test_empty_pool_returns_empty_set(self):
+        """When no ICD codes have Maps-to relationships, return an empty set."""
+        from portiere.benchmarks.athena_icd_snomed.sampling import generate_test_ids
+
+        concept = pd.DataFrame(
+            [{"concept_id": 1, "vocabulary_id": "ICD10CM", "domain_id": "Condition"}]
+        )
+        cr = pd.DataFrame(columns=["concept_id_1", "concept_id_2", "relationship_id"])
+
+        assert generate_test_ids(concept, cr, n=10, seed=42) == set()
+
+    def test_stratification_proportional_across_domains(self):
+        """Stratified sample preserves per-domain proportions."""
+        from portiere.benchmarks.athena_icd_snomed.sampling import generate_test_ids
+
+        # 80 ICD codes: 60 Condition + 20 Drug. Stratify n=10 should give
+        # ~8 Condition + ~2 Drug (or trimmed to exactly 10).
+        rows = []
+        for i in range(60):
+            rows.append(
+                {
+                    "concept_id": 1000 + i,
+                    "concept_name": f"cond-{i}",
+                    "domain_id": "Condition",
+                    "vocabulary_id": "ICD10CM",
+                }
+            )
+        for i in range(20):
+            rows.append(
+                {
+                    "concept_id": 2000 + i,
+                    "concept_name": f"drug-{i}",
+                    "domain_id": "Drug",
+                    "vocabulary_id": "ICD10CM",
+                }
+            )
+        concept = pd.DataFrame(rows)
+        cr = pd.DataFrame(
+            [
+                {
+                    "concept_id_1": r["concept_id"],
+                    "concept_id_2": 9999,
+                    "relationship_id": "Maps to",
+                }
+                for r in rows
+            ]
+        )
+
+        ids = generate_test_ids(concept, cr, n=10, seed=42, stratify_by="domain")
+        assert len(ids) == 10
+        cond_ids = {r["concept_id"] for r in rows if r["domain_id"] == "Condition"}
+        drug_ids = {r["concept_id"] for r in rows if r["domain_id"] == "Drug"}
+        n_cond = len(ids & cond_ids)
+        n_drug = len(ids & drug_ids)
+        # Proportional: Condition should dominate; both domains should be present.
+        assert n_cond >= n_drug
+        assert n_cond + n_drug == 10
+
+    def test_stratification_handles_undersized_domain(self):
+        """When a domain has fewer rows than its proportional share, fall back to its full pool."""
+        from portiere.benchmarks.athena_icd_snomed.sampling import generate_test_ids
+
+        # Tiny "Drug" domain — share rounds to >1 but only 1 row exists.
+        rows = [
+            *[
+                {
+                    "concept_id": 1000 + i,
+                    "concept_name": f"c-{i}",
+                    "domain_id": "Condition",
+                    "vocabulary_id": "ICD10CM",
+                }
+                for i in range(50)
+            ],
+            {
+                "concept_id": 9000,
+                "concept_name": "lone-drug",
+                "domain_id": "Drug",
+                "vocabulary_id": "ICD10CM",
+            },
+        ]
+        concept = pd.DataFrame(rows)
+        cr = pd.DataFrame(
+            [
+                {"concept_id_1": r["concept_id"], "concept_id_2": 1, "relationship_id": "Maps to"}
+                for r in rows
+            ]
+        )
+
+        ids = generate_test_ids(concept, cr, n=20, seed=42, stratify_by="domain")
+        # Should not crash; the lone drug is either included or not depending on rounding.
+        assert len(ids) <= 20
+        assert all(isinstance(i, int) for i in ids)
+
 
 # ── stratified run_benchmark ──────────────────────────────────────
 

@@ -245,3 +245,93 @@ class TestValidateCLI:
         )
         assert result.exit_code == 0
         assert "us-core-6.1.0" in result.output
+
+    def test_validate_cli_missing_profile_errors(self, tmp_path):
+        import json
+
+        from click.testing import CliRunner
+
+        from portiere.cli import cli
+
+        resources_file = tmp_path / "resources.json"
+        resources_file.write_text(json.dumps([{"resourceType": "Patient"}]))
+
+        result = CliRunner().invoke(cli, ["validate", "--input", str(resources_file)])
+        assert result.exit_code != 0
+        assert "--fhir-profile" in result.output
+
+    def test_validate_cli_unsupported_profile_errors(self, tmp_path):
+        import json
+
+        from click.testing import CliRunner
+
+        from portiere.cli import cli
+
+        resources_file = tmp_path / "resources.json"
+        resources_file.write_text(json.dumps([{"resourceType": "Patient"}]))
+
+        result = CliRunner().invoke(
+            cli,
+            [
+                "validate",
+                "--fhir-profile",
+                "mcode-1.0",
+                "--input",
+                str(resources_file),
+            ],
+        )
+        assert result.exit_code != 0
+        assert "Unsupported" in result.output or "mcode-1.0" in result.output
+
+    def test_validate_cli_fails_when_resources_invalid(self, tmp_path):
+        pytest.importorskip("fhir.resources")
+        pytest.importorskip("fhirpathpy")
+        import json
+
+        from click.testing import CliRunner
+
+        from portiere.cli import cli
+
+        resources_file = tmp_path / "resources.json"
+        resources_file.write_text(json.dumps([{"resourceType": "Patient", "id": "p1"}]))
+
+        result = CliRunner().invoke(
+            cli,
+            [
+                "validate",
+                "--fhir-profile",
+                "us-core-6.1.0",
+                "--input",
+                str(resources_file),
+            ],
+        )
+        assert result.exit_code == 1
+        assert "FAIL" in result.output
+
+    def test_validate_cli_accepts_single_resource_object(self, tmp_path):
+        pytest.importorskip("fhir.resources")
+        pytest.importorskip("fhirpathpy")
+        import json
+
+        from click.testing import CliRunner
+
+        from portiere.cli import cli
+
+        # Top-level object (not array) — the CLI wraps it into a list
+        resources_file = tmp_path / "resources.json"
+        resources_file.write_text(
+            json.dumps({"resourceType": "Bundle", "id": "b1", "type": "collection"})
+        )
+
+        result = CliRunner().invoke(
+            cli,
+            [
+                "validate",
+                "--fhir-profile",
+                "us-core-6.1.0",
+                "--input",
+                str(resources_file),
+            ],
+        )
+        assert result.exit_code == 0
+        assert "PASS" in result.output
