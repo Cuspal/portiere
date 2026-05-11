@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-XX-XX
+## [0.3.0] - 2026-05-11
 
 The "hybrid retrieval & FHIR interoperability" release. Adds a 3-row retrieval ablation (BM25 / SapBERT-FAISS / Hybrid via RRF) on the same Athena release as v0.2.1, US Core 6.1.0 profile validation, and FHIR Bundle + NDJSON export.
 
