@@ -2,37 +2,50 @@
 
 Portiere's accuracy on the canonical OMOP concept-mapping task: given an ICD-10-CM source code, predict the standard SNOMED CT concept it should map to. Evaluated against the OHDSI Athena `CONCEPT_RELATIONSHIP` gold standard.
 
-## Headline numbers
+## Headline numbers (v0.3.0 — 3-backend ablation)
 
-| Metric | Score | N |
-|---|---:|---:|
-| Top-1 accuracy | **0.288** | 1,000 |
-| Top-5 accuracy | **0.528** | 1,000 |
-| Top-10 accuracy | **0.528** | 1,000 |
-| MRR | **0.38151666666666617** | 1,000 |
+| Backend                                       | top-1 | top-5 | top-10 |   MRR | N |
+|-----------------------------------------------|------:|------:|-------:|------:|---:|
+| **BM25 (sparse only)**                        | **0.288** | **0.528** | **0.588** | **0.390** | 1,000 |
+| SapBERT + FAISS (dense only)                  | 0.278 | 0.473 |  0.551 | 0.361 | 1,000 |
+| SapBERT + BM25 + FAISS via RRF (hybrid)       | 0.251 | 0.473 |  0.558 | 0.343 | 1,000 |
 
-Athena release: `2026-04-30`. Numbers above are from `benchmarks/athena_icd_snomed/expected_results.json` — that JSON is the source of truth; this table cites it.
+Athena release: `2026-04-30`. Numbers are the source-of-truth values from `src/portiere/benchmarks/athena_icd_snomed/expected_results.json`.
 
-Reproduce on your own Athena export:
+**Honest result:** BM25 wins. On ICD-10-CM → SNOMED, the gold mapping shares vocabulary with the source — there's strong lexical overlap between an ICD description and its target SNOMED description — so a tuned sparse retriever beats both SapBERT-FAISS and the hybrid RRF combiner. The hybrid is dragged below BM25 by the weaker FAISS component when RRF averages ranks across retrievers.
+
+This shape is consistent with the published medical-IR literature: dense retrieval shines on noisy free-text queries (clinical notes, patient-described symptoms) where lexical overlap is low. On structured code-to-code tasks like this one, lexical retrieval is the right default.
+
+We publish all three rows so users can pick the right backend for their actual data, not just the one that wins this specific benchmark.
+
+Reproduce any row:
 
 ```bash
-portiere benchmark athena-icd-snomed --athena-dir /path/to/athena
+portiere benchmark athena-icd-snomed --backend bm25s  --athena-dir /path/to/athena
+portiere benchmark athena-icd-snomed --backend faiss  --athena-dir /path/to/athena
+portiere benchmark athena-icd-snomed --backend hybrid --athena-dir /path/to/athena
 ```
 
-Differences within ±1% are expected (LLM sampling, BM25 ties).
+Differences within ±1% are expected (LLM sampling, BM25 ties, FAISS index re-build).
 
 ## Methodology
 
 ### Test set
 
 - **Source pool:** ICD-10-CM concepts in `CONCEPT.csv` that have at least one `Maps to` row in `CONCEPT_RELATIONSHIP.csv`. (Some ICD-10-CM codes have no Maps-to in Athena and are excluded — there's nothing to score against.)
-- **Sampling:** random sample of N=1,000 with `seed=42`. Stratified sampling by domain or specificity is a v0.3.0 enhancement.
+- **Sampling:** random sample of N=1,000 with `seed=42`. v0.3.0 adds opt-in proportional stratification by Athena domain — pass `--stratify-by domain` to the CLI. Default behavior (uniform random) is unchanged from v0.2.1 so the published rows above remain reproducible.
 - **Persistence:** the held-out concept_ids are committed at [`benchmarks/athena_icd_snomed/gold_test_set.csv`](../../benchmarks/athena_icd_snomed/gold_test_set.csv) — **integer IDs only, no Athena content**, so the file is license-clean to ship.
 - **Generation:** [`scripts/build_benchmark_test_set.py`](../../scripts/build_benchmark_test_set.py) regenerates the test set deterministically from any Athena export. Run once at release-prep time and commit the output.
 
 ### Knowledge layer
 
-The runner builds a BM25s index from the rest of Athena (excluding the test concepts) over **SNOMED standard concepts only**. v0.2.0 uses pure-Python BM25s — no embedding model, no GPU. Future versions can repeat the benchmark with FAISS / hybrid retrieval and publish comparison numbers.
+The runner builds an index from the rest of Athena (excluding the test concepts) over **SNOMED standard concepts only**. v0.3.0 supports three retrieval backends, selected via `--backend`:
+
+- `bm25s` — pure-Python BM25s, no embedding model, no GPU. Fastest to build.
+- `faiss` — SapBERT (`cambridgeltl/SapBERT-from-PubMedBERT-fulltext`) embeddings indexed in FAISS.
+- `hybrid` — both indexes, results combined via Reciprocal Rank Fusion (RRF) with `k=60`.
+
+Embedding indexing requires `sentence-transformers` and ~600 MB of model weights; the BM25 baseline has no such dependency.
 
 ### Inference
 
@@ -82,10 +95,10 @@ Diff your `my_bench_run.json` against `benchmarks/athena_icd_snomed/expected_res
 
 ## Known limitations
 
-- **Test-set construction is uniformly random**, not stratified by domain or specificity. ICD-10-CM has uneven coverage by clinical area (a lot of injury codes, fewer rare disease codes); a stratified sample would give a more domain-balanced view of accuracy. Planned for v0.3.0.
-- **No baseline comparison.** USAGI (the OHDSI community's official mapping tool) is the obvious comparator; integrating it requires a Java environment and a fresh harness, deferred to v0.3.0.
-- **One vocabulary pair only.** ICD-9-CM → SNOMED, RxNorm → ATC, and LOINC-cross-vocab benchmarks are all good additions for v0.3.0.
-- **BM25-only retrieval.** v0.2.0 ships the demo with a pure-lexical baseline. The published numbers are not the maximum Portiere achieves — embedding-based retrieval (SapBERT + FAISS) typically lifts top-1 by 5–15 points. Re-running with `--config-embedding huggingface --config-knowledge faiss` is straightforward; we just don't ship those numbers in v0.2.0.
+- **No baseline comparison.** USAGI (the OHDSI community's official mapping tool) is the obvious comparator; integrating it requires a Java environment and a fresh harness — deferred to v0.3.x.
+- **One vocabulary pair only.** ICD-9-CM → SNOMED, RxNorm → ATC, and LOINC-cross-vocab benchmarks are all good additions — planned for v0.3.x / v0.4.0.
+- **Dense / hybrid did not lift this benchmark.** As discussed above, the lexical-overlap structure of ICD→SNOMED favors sparse retrieval. The three rows are still useful: they let users see the floor for their backend choice and avoid the trap of assuming "hybrid is always better."
+- **Test-set construction defaults to uniformly random.** Stratified sampling is available via `--stratify-by domain` but does not change the published rows (which use uniform sampling for v0.2.1 comparability).
 
 ## Why this benchmark
 

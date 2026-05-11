@@ -46,7 +46,7 @@ For real ICD-10-CM → SNOMED CT mapping, download Athena (free with registratio
 
 ## Regenerating from upstream
 
-`scripts/build_demo_data.py` documents how this bundle could be regenerated reproducibly from upstream sources (Synthea + CMS ICD-10-CM + LOINC + RxNorm). For v0.2.0 the bundle is hand-curated and committed directly; the script is a v0.3.0 enhancement.
+`scripts/build_demo_data.py` documents how this bundle could be regenerated reproducibly from upstream sources (Synthea + CMS ICD-10-CM + LOINC + RxNorm). The bundle is hand-curated and committed directly; an automated rebuild script is a v0.3.x enhancement.
 
 ## Licensing
 

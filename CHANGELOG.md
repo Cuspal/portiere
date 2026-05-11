@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-XX-XX
+
+The "hybrid retrieval & FHIR interoperability" release. Adds a 3-row retrieval ablation (BM25 / SapBERT-FAISS / Hybrid via RRF) on the same Athena release as v0.2.1, US Core 6.1.0 profile validation, and FHIR Bundle + NDJSON export.
+
+### Added
+
+- **Hybrid retrieval benchmark** ([docs/benchmarks/athena-icd-snomed.md](docs/benchmarks/athena-icd-snomed.md)):
+  - 3-row ablation table (BM25 / SapBERT-FAISS / Hybrid via RRF), n=1,000, Athena 2026-04-30.
+  - `portiere benchmark athena-icd-snomed --backend bm25s|faiss|hybrid` runs each row.
+  - `--stratify-by domain` adds proportional per-domain sampling (opt-in; default uniform preserves v0.2.1 behavior).
+  - Honest finding: on this lexical-overlap-heavy task, BM25 (top-1 0.288, MRR 0.390) outperforms dense (top-1 0.278) and hybrid (top-1 0.251). All three rows are published so users pick the right backend for their data.
+- **FHIR US Core 6.1.0 profile validation** ([docs/fhir-profile-validation.md](docs/fhir-profile-validation.md)):
+  - `Project.validate(fhir_profile="us-core-6.1.0", resources=[...])` and `portiere validate --fhir-profile us-core-6.1.0 --input <file>`.
+  - 10 resource types covered (Patient, Practitioner, Organization, Encounter, Condition, Observation, MedicationRequest, AllergyIntolerance, Procedure, DocumentReference).
+  - `fhir.resources` (Pydantic v2 schema) + `fhirpathpy` (FHIRPath invariants) composition.
+  - Snapshot StructureDefinitions bundled in `src/portiere/standards/fhir_profiles/us_core_6_1_0/` (~1.7 MB).
+- **FHIR Bundle + NDJSON export** ([docs/fhir-bundle-export.md](docs/fhir-bundle-export.md)):
+  - `portiere export --format bundle --out <file>` writes a transaction Bundle JSON (`POST` per entry, `urn:uuid:` `fullUrl`).
+  - `portiere export --format ndjson --out <dir>` writes one `<ResourceType>.ndjson` file per type (FHIR Bulk Data `$export` convention).
+  - Optional `--fhir-profile us-core-6.1.0` validates before writing; failures exit non-zero with no output bytes written.
+- **New notebooks**: `18_hybrid_benchmark_walkthrough.ipynb`, `19_fhir_bundle_export.ipynb`.
+- **New optional dependency group**: `fhir` extra (`fhir.resources>=7.0.0`, `fhirpathpy>=0.1.0`).
+
+### Changed
+
+- `expected_results.json` schema: now `{"athena_release_date": ..., "runs": [...]}` array supporting multi-backend rows; `append_run_to_expected_results()` upserts a row by backend key.
+- README: corrected benchmark headline to the 3-row hybrid ablation; explicit v0.3.1 pointer for Mapping Review UI (previously labelled "v0.3.0 marquee").
+
+### Deferred (target version listed in [specs/2026-04-30-v0.3.0-release-design.md](specs/2026-04-30-v0.3.0-release-design.md) §3)
+
+- Mapping Review Web UI → v0.3.1
+- `portiere replay --auto-replay` → v0.3.1
+- USAGI baseline comparison → v0.3.x
+- mCODE / IPS / additional FHIR profiles → v0.3.x
+- Strict ValueSet binding mode → v0.3.x
+- LOINC / RxNorm benchmark pairs → v0.3.x / v0.4.0
+
+### Migration notes
+
+No breaking changes from v0.2.1. The `expected_results.json` schema change is additive — older single-run JSONs still parse for ad-hoc tooling.
+
 ## [0.2.1] - 2026-04-30
 
 The "benchmark integrity hotfix." Re-publishes the ICD-10-CM → SNOMED top-10 number after fixing a silent candidate-list truncation that made the published top-5 and top-10 figures structurally identical.

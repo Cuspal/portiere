@@ -15,9 +15,9 @@ Both run during `GXValidator.validate()` and feed into the same plausibility sco
 
 ## YAML DSL
 
-### Rule types (locked for v0.2.0)
+### Rule types (unchanged in v0.3.0)
 
-The DSL has exactly five rule types. Adding a sixth is a v0.3.0 conversation, not a v0.2.0 patch.
+The DSL has exactly five rule types — same set as v0.2.0. Adding a sixth is a v0.3.x conversation.
 
 | Type | Purpose | Example |
 |---|---|---|
@@ -130,7 +130,7 @@ For built-in standards (OMOP / FHIR), contribute upstream:
 2. Wire it into the registry's dispatch table.
 3. Test it in `tests/test_plausibility_omop.py` or `_fhir.py`.
 
-Custom standards can't ship Python rules without contributing upstream — the `[quality]` extra ships only the built-in dispatch. If you need a custom standard's plausibility check that doesn't fit the DSL, the v0.2.0 path is to compute it in your own code and feed the result into the validator alongside the standard one. Plugin-style custom Python rules are a v0.3.0 conversation.
+Custom standards can't ship Python rules without contributing upstream — the `[quality]` extra ships only the built-in dispatch. If you need a custom standard's plausibility check that doesn't fit the DSL, the current path is to compute it in your own code and feed the result into the validator alongside the standard one. Plugin-style custom Python rules are a v0.3.x conversation.
 
 ## FK validation backend: DuckDB
 
