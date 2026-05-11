@@ -20,6 +20,7 @@ from __future__ import annotations
 import click
 
 from portiere.cli.benchmark import benchmark_group as _benchmark_group
+from portiere.cli.export import export_cmd as _export_cmd
 from portiere.cli.models import models as _models_group
 from portiere.cli.quickstart import quickstart_command as _quickstart_command
 from portiere.cli.replay import replay_command as _replay_command
@@ -36,6 +37,7 @@ cli.add_command(_replay_command)
 cli.add_command(_quickstart_command)
 cli.add_command(_benchmark_group)
 cli.add_command(_validate_command)
+cli.add_command(_export_cmd)
 
 
 __all__ = ["cli"]
