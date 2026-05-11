@@ -1,4 +1,5 @@
 """Tests for FHIR profile validator (US Core 6.1.0)."""
+
 from __future__ import annotations
 
 import pytest
@@ -79,9 +80,7 @@ class TestSchemaValidator:
         patient = {
             "resourceType": "Patient",
             "id": "p1",
-            "identifier": [
-                {"system": "urn:oid:2.16.840.1.113883.4.1", "value": "111-22-3333"}
-            ],
+            "identifier": [{"system": "urn:oid:2.16.840.1.113883.4.1", "value": "111-22-3333"}],
             "name": [{"family": "Doe", "given": ["Jane"]}],
             "gender": "female",
             "birthDate": "1990-01-15",
@@ -153,9 +152,7 @@ class TestUsCoreOrchestrator:
             {
                 "resourceType": "Patient",
                 "id": "p1",
-                "identifier": [
-                    {"system": "urn:oid:2.16.840.1.113883.4.1", "value": "111-22-3333"}
-                ],
+                "identifier": [{"system": "urn:oid:2.16.840.1.113883.4.1", "value": "111-22-3333"}],
                 "name": [{"family": "Doe", "given": ["Jane"]}],
                 "gender": "female",
             }

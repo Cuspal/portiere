@@ -1,4 +1,5 @@
 """Sanity check: US Core 6.1.0 profile JSONs are present and reasonably sized."""
+
 from __future__ import annotations
 
 import json
@@ -6,13 +7,24 @@ from pathlib import Path
 
 PROFILES_DIR = (
     Path(__file__).resolve().parents[1]
-    / "src" / "portiere" / "standards" / "fhir_profiles" / "us_core_6_1_0"
+    / "src"
+    / "portiere"
+    / "standards"
+    / "fhir_profiles"
+    / "us_core_6_1_0"
 )
 
 EXPECTED_RESOURCES = {
-    "Patient", "Practitioner", "Organization", "Encounter", "Condition",
-    "Observation", "MedicationRequest", "AllergyIntolerance",
-    "Procedure", "DocumentReference",
+    "Patient",
+    "Practitioner",
+    "Organization",
+    "Encounter",
+    "Condition",
+    "Observation",
+    "MedicationRequest",
+    "AllergyIntolerance",
+    "Procedure",
+    "DocumentReference",
 }
 
 
