@@ -17,6 +17,7 @@ Reproducibility notes:
 
 from portiere.benchmarks.athena_icd_snomed.runner import (
     BenchmarkResult,
+    append_run_to_expected_results,
     compute_metrics,
     run_benchmark,
     write_expected_results,
@@ -24,6 +25,7 @@ from portiere.benchmarks.athena_icd_snomed.runner import (
 
 __all__ = [
     "BenchmarkResult",
+    "append_run_to_expected_results",
     "compute_metrics",
     "run_benchmark",
     "write_expected_results",

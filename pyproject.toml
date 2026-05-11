@@ -178,6 +178,9 @@ check_untyped_defs = true
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "-v"
+markers = [
+    "slow: tests that require model downloads or large indexes (deselect with '-m \"not slow\"')",
+]
 
 [tool.coverage.run]
 source = ["portiere"]
