@@ -323,20 +323,43 @@ class Project(BaseModel):
 
     def validate(  # type: ignore[override]
         self,
-        engine: AbstractEngine,
-        output_path: str,
+        engine: AbstractEngine | None = None,
+        output_path: str | None = None,
+        *,
+        fhir_profile: str | None = None,
+        resources: list[dict] | None = None,
     ):
         """
         Run validation checks on transformed data.
 
+        When ``fhir_profile`` is provided, validates the supplied ``resources``
+        list against that FHIR profile and returns a ``ProfileValidationReport``.
+        Otherwise runs Great Expectations validation on ETL output files.
+
         Args:
-            engine: Compute engine
-            output_path: Path to transformed data
+            engine: Compute engine (required for GX path).
+            output_path: Path to transformed data (required for GX path).
+            fhir_profile: Profile name, e.g. ``"us-core-6.1.0"``.
+            resources: FHIR resource dicts to validate (used with ``fhir_profile``).
 
         Returns:
-            Validation report
+            ``ProfileValidationReport`` when ``fhir_profile`` is set, else GX report dict.
         """
+        if fhir_profile is not None:
+            _SUPPORTED_PROFILES = {"us-core-6.1.0"}
+            if fhir_profile not in _SUPPORTED_PROFILES:
+                raise ValueError(
+                    f"Unsupported fhir_profile={fhir_profile!r}. "
+                    f"Supported: {', '.join(sorted(_SUPPORTED_PROFILES))}"
+                )
+            from portiere.quality.fhir_profile.us_core import validate_against_us_core
+
+            return validate_against_us_core(resources or [])
+
         from portiere.stages.stage5_validate import validate_output
+
+        if engine is None or output_path is None:
+            raise ValueError("engine and output_path are required for GX validation.")
 
         logger.info("Running validation", output_path=output_path)
 
