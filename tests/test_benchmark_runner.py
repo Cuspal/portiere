@@ -462,3 +462,125 @@ class TestBenchmarkCLI:
         loaded = json.loads(out_json.read_text())
         assert "runs" in loaded
         assert any(r["backend"] == "bm25s" for r in loaded["runs"])
+
+
+# ── sampling ─────────────────────────────────────────────────────
+
+
+class TestSampling:
+    def test_uniform_sampling_matches_v021_behavior(self, tmp_path):
+        """Default uniform sampling must produce the same IDs as the v0.2.1 runner."""
+        from portiere.benchmarks.athena_icd_snomed.sampling import generate_test_ids
+
+        athena = _make_synthetic_athena(tmp_path)
+        concept = pd.read_csv(athena / "CONCEPT.csv", sep="\t", low_memory=False)
+        cr = pd.read_csv(athena / "CONCEPT_RELATIONSHIP.csv", sep="\t", low_memory=False)
+
+        ids_a = generate_test_ids(concept, cr, n=3, seed=42, stratify_by=None)
+        ids_b = generate_test_ids(concept, cr, n=3, seed=42, stratify_by=None)
+        assert ids_a == ids_b
+        assert len(ids_a) == 3
+        assert all(isinstance(i, int) for i in ids_a)
+
+    def test_uniform_sampling_deterministic_across_seeds(self, tmp_path):
+        """Different seeds produce different (but still deterministic) sets."""
+        from portiere.benchmarks.athena_icd_snomed.sampling import generate_test_ids
+
+        athena = _make_synthetic_athena(tmp_path)
+        concept = pd.read_csv(athena / "CONCEPT.csv", sep="\t", low_memory=False)
+        cr = pd.read_csv(athena / "CONCEPT_RELATIONSHIP.csv", sep="\t", low_memory=False)
+
+        ids_42 = generate_test_ids(concept, cr, n=3, seed=42, stratify_by=None)
+        ids_42_again = generate_test_ids(concept, cr, n=3, seed=42, stratify_by=None)
+        assert ids_42 == ids_42_again
+
+    def test_domain_stratification_returns_correct_count(self, tmp_path):
+        """Stratified sample size must equal n (when pool is big enough)."""
+        from portiere.benchmarks.athena_icd_snomed.sampling import generate_test_ids
+
+        athena = _make_synthetic_athena(tmp_path)
+        concept = pd.read_csv(athena / "CONCEPT.csv", sep="\t", low_memory=False)
+        cr = pd.read_csv(athena / "CONCEPT_RELATIONSHIP.csv", sep="\t", low_memory=False)
+
+        # Fixture has 5 ICD codes in 1 domain (Condition) — pool <= n so
+        # all 5 are returned regardless of stratification.
+        ids = generate_test_ids(concept, cr, n=5, seed=42, stratify_by="domain")
+        assert len(ids) <= 5
+        assert all(isinstance(i, int) for i in ids)
+
+    def test_invalid_stratify_by_raises(self, tmp_path):
+        from portiere.benchmarks.athena_icd_snomed.sampling import generate_test_ids
+
+        athena = _make_synthetic_athena(tmp_path)
+        concept = pd.read_csv(athena / "CONCEPT.csv", sep="\t", low_memory=False)
+        cr = pd.read_csv(athena / "CONCEPT_RELATIONSHIP.csv", sep="\t", low_memory=False)
+
+        with pytest.raises(ValueError, match="stratify_by"):
+            generate_test_ids(concept, cr, n=3, seed=42, stratify_by="claim-frequency")
+
+
+# ── stratified run_benchmark ──────────────────────────────────────
+
+
+class TestStratifiedRunBenchmark:
+    def test_run_benchmark_accepts_stratify_by_kwarg(self, tmp_path):
+        from portiere.benchmarks.athena_icd_snomed.runner import run_benchmark
+
+        athena = _make_synthetic_athena(tmp_path)
+        test_set = tmp_path / "gold_test_set.csv"
+        result = run_benchmark(
+            athena,
+            test_set_path=test_set,
+            backend="bm25s",
+            stratify_by="domain",
+        )
+        assert result.n == 3
+
+    def test_cli_accepts_stratify_by_flag(self, tmp_path):
+        from click.testing import CliRunner
+
+        from portiere.cli import cli
+
+        athena = _make_synthetic_athena(tmp_path)
+        test_set = tmp_path / "gold_test_set.csv"
+        out_json = tmp_path / "bench_run.json"
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "benchmark",
+                "athena-icd-snomed",
+                "--athena-dir",
+                str(athena),
+                "--test-set",
+                str(test_set),
+                "--backend",
+                "bm25s",
+                "--stratify-by",
+                "domain",
+                "--out",
+                str(out_json),
+            ],
+        )
+        assert result.exit_code == 0, result.output
+
+    def test_cli_rejects_unknown_stratify_value(self, tmp_path):
+        from click.testing import CliRunner
+
+        from portiere.cli import cli
+
+        athena = _make_synthetic_athena(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "benchmark",
+                "athena-icd-snomed",
+                "--athena-dir",
+                str(athena),
+                "--stratify-by",
+                "claim-frequency",
+            ],
+        )
+        assert result.exit_code != 0
+        assert "claim-frequency" in result.output or "Invalid value" in result.output
