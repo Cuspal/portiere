@@ -54,7 +54,7 @@ Portiere combines **clinical-domain embeddings** (SapBERT as default model), **l
 - **BYO-LLM** — Bring your own LLM: OpenAI, Anthropic Claude, AWS Bedrock, Ollama (local).
 - **Pluggable Engines** — Polars (default), PySpark / Databricks, Pandas, DuckDB.
 - **Standalone ETL Artifacts** — Generated ETL scripts run without the SDK.
-- **Confidence Routing** — Auto-accept, needs-review, and manual tiers with human-in-the-loop (library-only in v0.2.0; web review UI is the v0.3.0 marquee feature).
+- **Confidence Routing** — Auto-accept, needs-review, and manual tiers with human-in-the-loop (library-only today; web review UI ships in v0.3.1, ~2 weeks after v0.3.0).
 - **Cross-Standard Mapping** — Transform between standards (OMOP ↔ FHIR, HL7v2 → FHIR, OMOP → OpenEHR).
 - **Local-First** — All processing runs on your machine; no cloud dependency.
 
@@ -620,32 +620,47 @@ For a programmatic listing: `python -c "from portiere.standards import YAMLTarge
 Portiere is in active development. Current limitations (will be addressed in upcoming releases):
 
 - **Standards coverage is partial.** OMOP CDM v5.4: 19 of ~37 tables. FHIR R4: 18 of 145 resources. PRs to extend coverage are welcome.
-- **No FHIR profile validation.** Validation against FHIR profiles (US Core, mCODE, IPS) is not yet supported. **Planned for v0.3.0.**
-- **No Mapping Review UI.** The HITL review workflow is library-only in v0.2.0 (approve / override / reject via Python). Web UI is the **v0.3.0 marquee feature**.
+- **FHIR profile coverage is US Core only.** v0.3.0 validates against US Core 6.1.0 (10 resource types). mCODE / IPS / additional profiles **planned for v0.3.x.**
+- **No Mapping Review UI.** The HITL review workflow is library-only today (approve / override / reject via Python). Streamlit-based Web UI **ships in v0.3.1 (~2 weeks after v0.3.0).**
 - **No PHI scrubbing.** PHI detection is column-name-pattern only — not a redactor. Free-text PHI scrubbing (Microsoft Presidio integration, HIPAA Safe Harbor) **planned for v0.4.0.**
 - **SNOMED CT and CPT-4 not bundled.** Both have licensing constraints. `portiere quickstart` operates on bundled ICD-10-CM/LOINC/RxNorm only; for SNOMED, see [vocabulary setup](docs/documentations/15-vocabulary-setup.md).
 - **Replay is not bit-deterministic.** `portiere replay` reproduces pipeline state from a manifest, but outputs may differ within ±1% due to LLM sampling and other legitimate nondeterminism. See [reproducibility guide](docs/reproducibility.md).
-- **One benchmark published.** v0.2.0 publishes ICD-10-CM → SNOMED only. Stratified sampling, USAGI baseline, and additional vocabulary pairs **planned for v0.3.0.**
+- **One benchmark published.** v0.3.0 publishes the ICD-10-CM → SNOMED 3-row ablation (BM25 / FAISS / hybrid). USAGI baseline, LOINC / RxNorm pairs **planned for v0.3.x.**
 
 ## Roadmap
 
-- **v0.3.0:** Mapping Review Web UI (Streamlit/FastAPI); FHIR profile validation (US Core, mCODE, IPS); FHIR Bundle / NDJSON Bulk Data export; USAGI baseline comparison; stratified benchmark sampling.
-- **v0.4.0:** PHI scrubber (Microsoft Presidio integration, HIPAA Safe Harbor); MCP server for Claude / LangChain tool / VS Code extension; active learning loop on curator overrides.
-- **v0.5.0+:** PCORnet / Sentinel / i2b2 / CDISC SDTM CDMs; clinical NLP path (scispaCy / GLiNER-clinical) for free-text → concepts; OHDSI DataQualityDashboard parity.
+- **v0.3.1 (next, ~2 weeks):** Mapping Review Web UI (Streamlit); `portiere replay --auto-replay`.
+- **v0.3.x:** USAGI baseline comparison row; mCODE / IPS profiles; additional benchmark pairs (LOINC, RxNorm); strict ValueSet binding mode.
+- **v0.4.0:** PHI scrubber (Microsoft Presidio, HIPAA Safe Harbor); active-learning loop; MCP / LangChain / dbt integration surface.
+- **v0.5.0+:** PCORnet / Sentinel / i2b2 / CDISC SDTM CDMs; clinical NLP path (scispaCy / GLiNER-clinical); OHDSI DataQualityDashboard parity.
 
-Each release tracks via GitHub Milestones; please open issues or PRs against the relevant milestone.
+Each release tracks via GitHub Milestones; please open issues or PRs against the relevant milestone. See [specs/](specs/) for the design docs behind each release.
 
 ## Benchmarks
 
-v0.2.0 publishes one accuracy benchmark: **ICD-10-CM → SNOMED concept mapping** against the OHDSI Athena `CONCEPT_RELATIONSHIP` gold standard, BM25-only retrieval baseline (no embeddings).
+ICD-10-CM → SNOMED concept mapping, n=1,000 held-out, Athena 2026-04-30, against the OHDSI `CONCEPT_RELATIONSHIP` gold standard. Three retrieval backends compared:
 
-| Metric | Score | N |
-|---|---:|---:|
-| Top-1 accuracy | 0.288 | 1,000 |
-| Top-5 accuracy | 0.528 | 1,000 |
-| MRR | 0.38151666666666617 | 1,000 |
+| Backend                                       | top-1 | top-5 | top-10 |   MRR |
+|-----------------------------------------------|------:|------:|-------:|------:|
+| **BM25 (sparse only)**                        | **0.288** | **0.528** | **0.588** | **0.390** |
+| SapBERT + FAISS (dense only)                  | 0.278 | 0.473 |  0.551 | 0.361 |
+| SapBERT + BM25 + FAISS via RRF (hybrid)       | 0.251 | 0.473 |  0.558 | 0.343 |
 
-Athena release: 2026-04-30. Reproduce: `portiere benchmark athena-icd-snomed --athena-dir /path/to/athena`. Methodology: [docs/benchmarks/athena-icd-snomed.md](docs/benchmarks/athena-icd-snomed.md).
+**Honest result:** on this lexical-overlap-heavy task (ICD descriptions → SNOMED descriptions), BM25 wins. Dense retrieval and the hybrid RRF combiner under-perform here — semantic similarity does not help when the gold mapping shares vocabulary with the source. We publish all three rows so users can pick the right backend for their data; hybrid pays off on noisier free-text inputs (not measured in v0.3.0).
+
+Reproduce any row: `portiere benchmark athena-icd-snomed --backend bm25s|faiss|hybrid --athena-dir <path>`.
+Stratified sampling (opt-in): add `--stratify-by domain` to sample proportionally across Athena domains.
+Methodology: [docs/benchmarks/athena-icd-snomed.md](docs/benchmarks/athena-icd-snomed.md).
+
+## FHIR Interoperability
+
+v0.3.0 adds:
+
+- **US Core 6.1.0 profile validation** — `Project.validate(fhir_profile="us-core-6.1.0")` or `portiere validate --fhir-profile us-core-6.1.0 --input resources.json`. 10 resource types covered (Patient, Practitioner, Organization, Encounter, Condition, Observation, MedicationRequest, AllergyIntolerance, Procedure, DocumentReference).
+- **Bundle + NDJSON export** — `portiere export --format bundle --out out.json` or `--format ndjson --out out_dir/`. Optional `--fhir-profile us-core-6.1.0` validates before writing.
+
+Install the FHIR extra: `pip install "portiere-health[fhir]"`.
+See: [docs/fhir-profile-validation.md](docs/fhir-profile-validation.md), [docs/fhir-bundle-export.md](docs/fhir-bundle-export.md).
 
 
 ## Star History
