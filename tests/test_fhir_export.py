@@ -157,6 +157,132 @@ class TestExportCli:
         assert (out_dir / "Observation.ndjson").exists()
 
 
+class TestExportCliErrorPaths:
+    def test_input_not_a_list_exits_2(self, tmp_path):
+        from click.testing import CliRunner
+
+        from portiere.cli import cli
+
+        resources_file = tmp_path / "resources.json"
+        resources_file.write_text(json.dumps({"resourceType": "Patient", "id": "p1"}))
+
+        result = CliRunner().invoke(
+            cli,
+            [
+                "export",
+                "--input",
+                str(resources_file),
+                "--format",
+                "bundle",
+                "--out",
+                str(tmp_path / "out.json"),
+            ],
+        )
+        assert result.exit_code == 2
+        assert "JSON array" in result.output
+
+    def test_fhir_profile_passes_then_exports(self, tmp_path):
+        pytest.importorskip("fhir.resources")
+        pytest.importorskip("fhirpathpy")
+        from click.testing import CliRunner
+
+        from portiere.cli import cli
+
+        resources_file = tmp_path / "resources.json"
+        resources_file.write_text(
+            json.dumps(
+                [
+                    {
+                        "resourceType": "Patient",
+                        "id": "p1",
+                        "identifier": [{"system": "urn:x", "value": "1"}],
+                        "name": [{"family": "Doe", "given": ["Jane"]}],
+                        "gender": "female",
+                    }
+                ]
+            )
+        )
+        out_file = tmp_path / "bundle.json"
+
+        result = CliRunner().invoke(
+            cli,
+            [
+                "export",
+                "--input",
+                str(resources_file),
+                "--format",
+                "bundle",
+                "--out",
+                str(out_file),
+                "--fhir-profile",
+                "us-core-6.1.0",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert out_file.exists()
+        assert "Validating" in result.output
+
+    def test_fhir_profile_fail_blocks_export(self, tmp_path):
+        pytest.importorskip("fhir.resources")
+        pytest.importorskip("fhirpathpy")
+        from click.testing import CliRunner
+
+        from portiere.cli import cli
+
+        # Patient missing required US Core fields
+        resources_file = tmp_path / "resources.json"
+        resources_file.write_text(json.dumps([{"resourceType": "Patient", "id": "p1"}]))
+        out_file = tmp_path / "bundle.json"
+
+        result = CliRunner().invoke(
+            cli,
+            [
+                "export",
+                "--input",
+                str(resources_file),
+                "--format",
+                "bundle",
+                "--out",
+                str(out_file),
+                "--fhir-profile",
+                "us-core-6.1.0",
+            ],
+        )
+        assert result.exit_code == 1
+        assert "Validation failed" in result.output
+        assert not out_file.exists()
+
+    def test_fhir_profile_fail_truncates_failure_list(self, tmp_path):
+        pytest.importorskip("fhir.resources")
+        pytest.importorskip("fhirpathpy")
+        from click.testing import CliRunner
+
+        from portiere.cli import cli
+
+        # 6 bad patients (1 schema-missing-rt each) → triggers "and N more" line
+        resources_file = tmp_path / "resources.json"
+        resources_file.write_text(
+            json.dumps([{"resourceType": "Patient", "id": f"p{i}"} for i in range(6)])
+        )
+
+        result = CliRunner().invoke(
+            cli,
+            [
+                "export",
+                "--input",
+                str(resources_file),
+                "--format",
+                "bundle",
+                "--out",
+                str(tmp_path / "b.json"),
+                "--fhir-profile",
+                "us-core-6.1.0",
+            ],
+        )
+        assert result.exit_code == 1
+        assert "and " in result.output and " more" in result.output
+
+
 class TestFhirExportRoundTrip:
     def test_bundle_round_trips_through_fhir_resources(self):
         """Exported Bundle parses back as a fhir.resources Bundle model."""
