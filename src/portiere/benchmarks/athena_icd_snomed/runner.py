@@ -15,11 +15,14 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import pandas as pd
 
 import portiere
+from portiere.benchmarks.athena_icd_snomed.sampling import (
+    generate_test_ids as _sampling_generate_test_ids,
+)
 from portiere.config import EmbeddingConfig, KnowledgeLayerConfig, PortiereConfig
 from portiere.knowledge import build_knowledge_layer
 
@@ -100,10 +103,7 @@ def _generate_test_ids(
     seed: int = 42,
     stratify_by: str | None = None,
 ) -> set[int]:
-    from portiere.benchmarks.athena_icd_snomed.sampling import generate_test_ids
-    from typing import Literal, cast
-
-    return generate_test_ids(
+    return _sampling_generate_test_ids(
         concept, cr, n=n, seed=seed, stratify_by=cast(Literal[None, "domain"], stratify_by)
     )
 
