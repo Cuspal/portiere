@@ -15,8 +15,13 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any, cast
 
 import pandas as pd
+
+import portiere
+from portiere.config import EmbeddingConfig, KnowledgeLayerConfig, PortiereConfig
+from portiere.knowledge import build_knowledge_layer
 
 
 @dataclass
@@ -115,6 +120,7 @@ def run_benchmark(
     test_set_path: str | Path | None = None,
     test_set_size: int = 1000,
     k: int = 10,
+    backend: str = "hybrid",
 ) -> BenchmarkResult:
     """Run the ICD-10-CM → SNOMED benchmark against a real Athena export.
 
@@ -158,22 +164,19 @@ def run_benchmark(
     # release-prep when work_dir was Path(athena).parent / "_bench_index").
     import tempfile
 
-    import portiere
-    from portiere.config import EmbeddingConfig, KnowledgeLayerConfig, PortiereConfig
-    from portiere.knowledge import build_knowledge_layer
-
     work_dir = Path(tempfile.mkdtemp(prefix="portiere_bench_athena_icd_snomed_"))
     knowledge_paths = build_knowledge_layer(
         athena_path=str(athena),
         output_path=str(work_dir),
-        backend="bm25s",
+        backend=backend,
         vocabularies=["SNOMED"],
     )
 
+    embedding_cfg = EmbeddingConfig(provider="none") if backend == "bm25s" else EmbeddingConfig()
     config = PortiereConfig(
         local_project_dir=work_dir,
-        knowledge_layer=KnowledgeLayerConfig(backend="bm25s", **knowledge_paths),
-        embedding=EmbeddingConfig(provider="none"),
+        knowledge_layer=KnowledgeLayerConfig(backend=cast(Any, backend), **knowledge_paths),
+        embedding=embedding_cfg,
     )
     project = portiere.init(
         name="bench-icd-snomed",
@@ -216,6 +219,44 @@ def run_benchmark(
         predictions[src_id] = ranked
 
     return compute_metrics(predictions, gold)
+
+
+def append_run_to_expected_results(
+    result: BenchmarkResult,
+    *,
+    backend: str,
+    athena_release_date: str,
+    out: str | Path,
+) -> None:
+    """Append (or replace) a single backend's run row in the multi-run JSON.
+
+    The top-level shape is::
+
+        {"athena_release_date": "...", "runs": [{"backend": "...", ...}, ...]}
+
+    Re-running with the same ``backend`` overwrites that row so that
+    per-backend CLI invocations accumulate into one file.
+    """
+    out = Path(out)
+    if out.exists():
+        payload = json.loads(out.read_text())
+    else:
+        payload = {"athena_release_date": athena_release_date, "runs": []}
+
+    payload["athena_release_date"] = athena_release_date
+    runs = [r for r in payload.get("runs", []) if r.get("backend") != backend]
+    runs.append(
+        {
+            "backend": backend,
+            "n": result.n,
+            "top_1": result.top_1,
+            "top_5": result.top_5,
+            "top_10": result.top_10,
+            "mrr": result.mrr,
+        }
+    )
+    payload["runs"] = runs
+    out.write_text(json.dumps(payload, indent=2, sort_keys=True))
 
 
 def write_expected_results(

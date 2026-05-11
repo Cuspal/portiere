@@ -177,7 +177,10 @@ check_untyped_defs = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "-v"
+addopts = "-v -m 'not slow'"
+markers = [
+    "slow: tests that require model downloads or large indexes (run explicitly with '-m slow')",
+]
 
 [tool.coverage.run]
 source = ["portiere"]

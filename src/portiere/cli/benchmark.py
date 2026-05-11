@@ -36,10 +36,19 @@ def benchmark_group() -> None:
     ),
 )
 @click.option(
+    "--backend",
+    type=click.Choice(["bm25s", "faiss", "hybrid"], case_sensitive=False),
+    default="hybrid",
+    help=(
+        "Retrieval backend: bm25s (sparse only), faiss (dense only), "
+        "or hybrid (BM25 + FAISS via RRF — recommended)."
+    ),
+)
+@click.option(
     "--out",
     type=click.Path(),
     default="bench_run.json",
-    help="Output JSON path for the per-run results.",
+    help="Output JSON path. Each backend's run is appended to the 'runs' array.",
 )
 @click.option(
     "--athena-release-date",
@@ -58,24 +67,24 @@ def benchmark_group() -> None:
 def athena_icd_snomed(
     athena_dir: str,
     test_set: str | None,
+    backend: str,
     out: str,
     athena_release_date: str | None,
     test_set_size: int,
 ) -> None:
-    """Run the ICD-10-CM → SNOMED concept mapping benchmark.
+    """Run the ICD-10-CM → SNOMED concept mapping benchmark for one backend.
 
-    Outputs a JSON file with top-1 / top-5 / top-10 / MRR. The
-    repository's ``src/portiere/benchmarks/athena_icd_snomed/expected_results.json``
-    contains the published reference numbers for comparison.
+    Run with each of --backend bm25s, --backend faiss, --backend hybrid
+    to populate the 3-row ablation table. Each invocation appends (or
+    replaces) its row in the output JSON's "runs" array.
     """
     import datetime as _dt
 
     from portiere.benchmarks.athena_icd_snomed.runner import (
+        append_run_to_expected_results,
         run_benchmark,
-        write_expected_results,
     )
 
-    # Resolve test set: explicit > bundled default > generate in-memory
     if test_set is None:
         bundled = (
             Path(__file__).resolve().parents[1]
@@ -102,6 +111,7 @@ def athena_icd_snomed(
 
     click.echo(f"Athena dir:           {athena_dir}")
     click.echo(f"Athena release date:  {athena_release_date}")
+    click.echo(f"Backend:              {backend}")
     if test_set:
         click.echo(f"Test set:             {test_set}")
     click.echo("Running benchmark...")
@@ -111,8 +121,14 @@ def athena_icd_snomed(
         athena_dir,
         test_set_path=test_set,
         test_set_size=test_set_size,
+        backend=backend,
     )
-    write_expected_results(result, athena_release_date=athena_release_date, out=out)
+    append_run_to_expected_results(
+        result,
+        backend=backend,
+        athena_release_date=athena_release_date,
+        out=out,
+    )
 
     click.echo()
     click.echo(f"  N:     {result.n}")
@@ -121,4 +137,4 @@ def athena_icd_snomed(
     click.echo(f"  top-10:{result.top_10:.3f}")
     click.echo(f"  MRR:   {result.mrr:.3f}")
     click.echo()
-    click.echo(f"Full results: {out}")
+    click.echo(f"Run appended to: {out}")

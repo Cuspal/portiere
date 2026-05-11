@@ -229,7 +229,7 @@ class TestRunBenchmark:
 
         athena = _make_synthetic_athena(tmp_path)
         test_set = tmp_path / "gold_test_set.csv"
-        result = run_benchmark(athena, test_set_path=test_set)
+        result = run_benchmark(athena, test_set_path=test_set, backend="bm25s")
         assert result.n == 3
         # Shape only — metric values depend on Portiere config and
         # the BM25-based fallback retrieval; we don't assert specific
@@ -238,6 +238,56 @@ class TestRunBenchmark:
         assert 0.0 <= result.top_5 <= 1.0
         assert result.top_5 >= result.top_1
         assert 0.0 <= result.mrr <= 1.0
+
+    def test_backend_parameter_is_propagated(self, tmp_path, monkeypatch):
+        """The backend kwarg must end up in the KnowledgeLayerConfig."""
+        from portiere.benchmarks.athena_icd_snomed import runner as bench_runner
+
+        captured: dict = {}
+        original_factory = bench_runner.PortiereConfig
+
+        def _capture(*args, **kwargs):
+            captured["knowledge_layer"] = kwargs.get("knowledge_layer")
+            return original_factory(*args, **kwargs)
+
+        monkeypatch.setattr(bench_runner, "PortiereConfig", _capture)
+
+        athena = _make_synthetic_athena(tmp_path)
+        test_set = tmp_path / "gold_test_set.csv"
+        bench_runner.run_benchmark(athena, test_set_path=test_set, backend="bm25s")
+
+        assert captured["knowledge_layer"].backend == "bm25s"
+
+    @pytest.mark.parametrize("backend", ["bm25s"])
+    def test_each_backend_produces_a_valid_result(self, tmp_path, backend):
+        from portiere.benchmarks.athena_icd_snomed.runner import run_benchmark
+
+        athena = _make_synthetic_athena(tmp_path)
+        test_set = tmp_path / "gold_test_set.csv"
+        result = run_benchmark(athena, test_set_path=test_set, backend=backend)
+
+        assert result.n == 3
+        assert 0.0 <= result.top_1 <= 1.0
+        assert 0.0 <= result.top_5 <= 1.0
+        assert 0.0 <= result.top_10 <= 1.0
+        assert result.top_5 >= result.top_1
+        assert result.top_10 >= result.top_5
+
+    @pytest.mark.slow
+    @pytest.mark.parametrize("backend", ["faiss", "hybrid"])
+    def test_each_embedding_backend_produces_a_valid_result(self, tmp_path, backend):
+        from portiere.benchmarks.athena_icd_snomed.runner import run_benchmark
+
+        athena = _make_synthetic_athena(tmp_path)
+        test_set = tmp_path / "gold_test_set.csv"
+        result = run_benchmark(athena, test_set_path=test_set, backend=backend)
+
+        assert result.n == 3
+        assert 0.0 <= result.top_1 <= 1.0
+        assert 0.0 <= result.top_5 <= 1.0
+        assert 0.0 <= result.top_10 <= 1.0
+        assert result.top_5 >= result.top_1
+        assert result.top_10 >= result.top_5
 
 
 # ── write_expected_results() ──────────────────────────────────────
@@ -257,6 +307,87 @@ class TestWriteExpectedResults:
         assert loaded["n"] == 1000
         assert loaded["top_1"] == 0.62
         assert loaded["athena_release_date"] == "2024-09-01"
+
+
+# ── append_run_to_expected_results() ─────────────────────────────
+
+
+class TestMultiRunResults:
+    def test_append_run_creates_runs_array(self, tmp_path):
+        from portiere.benchmarks.athena_icd_snomed.runner import (
+            BenchmarkResult,
+            append_run_to_expected_results,
+        )
+
+        out = tmp_path / "expected_results.json"
+        result = BenchmarkResult(n=1000, top_1=0.288, top_5=0.528, top_10=0.553, mrr=0.382)
+        append_run_to_expected_results(
+            result,
+            backend="bm25s",
+            athena_release_date="2026-04-30",
+            out=out,
+        )
+
+        loaded = json.loads(out.read_text())
+        assert loaded["athena_release_date"] == "2026-04-30"
+        assert len(loaded["runs"]) == 1
+        assert loaded["runs"][0] == {
+            "backend": "bm25s",
+            "n": 1000,
+            "top_1": 0.288,
+            "top_5": 0.528,
+            "top_10": 0.553,
+            "mrr": 0.382,
+        }
+
+    def test_appending_a_second_run_preserves_the_first(self, tmp_path):
+        from portiere.benchmarks.athena_icd_snomed.runner import (
+            BenchmarkResult,
+            append_run_to_expected_results,
+        )
+
+        out = tmp_path / "expected_results.json"
+        append_run_to_expected_results(
+            BenchmarkResult(n=1000, top_1=0.288, top_5=0.528, top_10=0.553, mrr=0.382),
+            backend="bm25s",
+            athena_release_date="2026-04-30",
+            out=out,
+        )
+        append_run_to_expected_results(
+            BenchmarkResult(n=1000, top_1=0.342, top_5=0.604, top_10=0.631, mrr=0.451),
+            backend="faiss",
+            athena_release_date="2026-04-30",
+            out=out,
+        )
+
+        loaded = json.loads(out.read_text())
+        backends = [r["backend"] for r in loaded["runs"]]
+        assert backends == ["bm25s", "faiss"]
+
+    def test_appending_replaces_existing_run_for_same_backend(self, tmp_path):
+        """Re-running with a backend already present overwrites that row."""
+        from portiere.benchmarks.athena_icd_snomed.runner import (
+            BenchmarkResult,
+            append_run_to_expected_results,
+        )
+
+        out = tmp_path / "expected_results.json"
+        append_run_to_expected_results(
+            BenchmarkResult(n=1000, top_1=0.10, top_5=0.20, top_10=0.30, mrr=0.15),
+            backend="hybrid",
+            athena_release_date="2026-04-30",
+            out=out,
+        )
+        append_run_to_expected_results(
+            BenchmarkResult(n=1000, top_1=0.40, top_5=0.65, top_10=0.68, mrr=0.50),
+            backend="hybrid",
+            athena_release_date="2026-04-30",
+            out=out,
+        )
+
+        loaded = json.loads(out.read_text())
+        assert len(loaded["runs"]) == 1
+        assert loaded["runs"][0]["top_1"] == 0.40
 
 
 # ── CLI ──────────────────────────────────────────────────────────
@@ -291,6 +422,8 @@ class TestBenchmarkCLI:
                 str(athena),
                 "--test-set",
                 str(test_set),
+                "--backend",
+                "bm25s",
                 "--out",
                 str(out_json),
             ],
@@ -298,4 +431,34 @@ class TestBenchmarkCLI:
         assert result.exit_code == 0, result.output
         assert out_json.exists()
         loaded = json.loads(out_json.read_text())
-        assert loaded["n"] == 3
+        assert loaded["runs"][0]["n"] == 3
+
+    def test_benchmark_cli_accepts_backend_flag(self, tmp_path):
+        from click.testing import CliRunner
+
+        from portiere.cli import cli
+
+        athena = _make_synthetic_athena(tmp_path)
+        test_set = tmp_path / "gold_test_set.csv"
+        out_json = tmp_path / "bench_run.json"
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "benchmark",
+                "athena-icd-snomed",
+                "--athena-dir",
+                str(athena),
+                "--test-set",
+                str(test_set),
+                "--backend",
+                "bm25s",
+                "--out",
+                str(out_json),
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert out_json.exists()
+        loaded = json.loads(out_json.read_text())
+        assert "runs" in loaded
+        assert any(r["backend"] == "bm25s" for r in loaded["runs"])
