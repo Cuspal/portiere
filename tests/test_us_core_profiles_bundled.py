@@ -30,6 +30,6 @@ def test_each_profile_is_a_snapshot_structure_definition():
 
 
 def test_total_size_under_5_mb():
-    # Full snapshot SDs are ~150–250 KB each; 10 files ≈ 1.7 MB unminified.
+    # Full snapshot SDs are ~150-250 KB each; 10 files are roughly 1.7 MB unminified.
     total = sum(p.stat().st_size for p in PROFILES_DIR.glob("*.json"))
     assert total < 5 * 1024 * 1024, f"US Core profiles total {total // 1024} KB — over budget"

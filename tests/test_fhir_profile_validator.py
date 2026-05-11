@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import pytest
 
-
 # ── ProfileValidationReport ───────────────────────────────────────
 
 
@@ -222,7 +221,7 @@ class TestProjectValidateFhirProfile:
         from portiere.models.project import Project
 
         project = Project(id="p1", name="test-project")
-        with pytest.raises(ValueError, match="[Uu]nsupported"):
+        with pytest.raises(ValueError, match=r"[Uu]nsupported"):
             project.validate(fhir_profile="unknown-profile-1.0", resources=[])
 
 
