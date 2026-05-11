@@ -267,7 +267,7 @@ def build_knowledge_layer(
                     f"Supported: {', '.join(sorted(builder_map.keys()))}"
                 )
             paths.update(builder_map[sub_backend]())
-        paths["hybrid_backends"] = ",".join(hybrid_backends)
+        paths["hybrid_backends"] = hybrid_backends
     elif backend in builder_map:
         paths.update(builder_map[backend]())
     else:
