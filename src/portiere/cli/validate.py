@@ -26,7 +26,7 @@ def validate_command(fhir_profile: str | None, input_path: str) -> None:
     if fhir_profile is None:
         raise click.UsageError("--fhir-profile is required.")
 
-    _SUPPORTED = {"us-core-6.1.0"}
+    _SUPPORTED = {"us-core-6.1.0", "mcode-2.0.0"}
     if fhir_profile not in _SUPPORTED:
         raise click.BadParameter(
             f"Unsupported profile {fhir_profile!r}. Supported: {', '.join(sorted(_SUPPORTED))}",
@@ -37,9 +37,14 @@ def validate_command(fhir_profile: str | None, input_path: str) -> None:
         raw = json.load(fh)
     resources: list[dict] = raw if isinstance(raw, list) else [raw]
 
-    from portiere.quality.fhir_profile.us_core import validate_against_us_core
+    if fhir_profile == "us-core-6.1.0":
+        from portiere.quality.fhir_profile.us_core import validate_against_us_core
 
-    report = validate_against_us_core(resources)
+        report = validate_against_us_core(resources)
+    else:
+        from portiere.quality.fhir_profile.mcode import validate_against_mcode
+
+        report = validate_against_mcode(resources)
 
     click.echo(f"Profile: {report.profile}")
     click.echo(f"Resources: {report.total_resources}  Skipped: {len(report.skipped)}")

@@ -346,15 +346,19 @@ class Project(BaseModel):
             ``ProfileValidationReport`` when ``fhir_profile`` is set, else GX report dict.
         """
         if fhir_profile is not None:
-            _SUPPORTED_PROFILES = {"us-core-6.1.0"}
+            _SUPPORTED_PROFILES = {"us-core-6.1.0", "mcode-2.0.0"}
             if fhir_profile not in _SUPPORTED_PROFILES:
                 raise ValueError(
                     f"Unsupported fhir_profile={fhir_profile!r}. "
                     f"Supported: {', '.join(sorted(_SUPPORTED_PROFILES))}"
                 )
-            from portiere.quality.fhir_profile.us_core import validate_against_us_core
+            if fhir_profile == "us-core-6.1.0":
+                from portiere.quality.fhir_profile.us_core import validate_against_us_core
 
-            return validate_against_us_core(resources or [])
+                return validate_against_us_core(resources or [])
+            from portiere.quality.fhir_profile.mcode import validate_against_mcode
+
+            return validate_against_mcode(resources or [])
 
         from portiere.stages.stage5_validate import validate_output
 

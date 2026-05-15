@@ -1,6 +1,6 @@
-# FHIR Profile Validation (US Core 6.1.0)
+# FHIR Profile Validation (US Core 6.1.0, mCODE 2.0.0)
 
-v0.3.0 adds conformance validation for generated FHIR resources against the [HL7 US Core 6.1.0](https://hl7.org/fhir/us/core/STU6.1/) Implementation Guide.
+v0.3.0 adds conformance validation against the [HL7 US Core 6.1.0](https://hl7.org/fhir/us/core/STU6.1/) Implementation Guide. v0.3.1 extends the framework with [mCODE STU3 2.0.0](https://hl7.org/fhir/us/mcode/STU3/) (minimal Common Oncology Data Elements).
 
 ## Overview
 
@@ -14,7 +14,9 @@ Failures with `severity="error"` mark the report as failing; `severity="warning"
 
 ## Coverage
 
-10 resource types are validated. Anything outside this set passes through with its `resourceType` recorded in `report.skipped`.
+### US Core 6.1.0 — 10 resource types
+
+Validation keys on `resourceType`. Anything outside this set passes through with its `resourceType` recorded in `report.skipped`.
 
 | Resource              | Profile |
 |-----------------------|---------|
@@ -29,7 +31,19 @@ Failures with `severity="error"` mark the report as failing; `severity="warning"
 | Procedure             | `us-core-procedure` |
 | DocumentReference     | `us-core-documentreference` |
 
-Source: HL7 US Core IG 6.1.0 snapshot StructureDefinitions, bundled in `src/portiere/standards/fhir_profiles/us_core_6_1_0/`. The fetch recipe is `scripts/build_us_core_profiles.py`.
+### mCODE STU3 2.0.0 — 5 core oncology profiles
+
+mCODE uses `meta.profile` (not `resourceType`) to claim a profile — one base `Patient` is also an mCODE `CancerPatient` only when `meta.profile` contains the CancerPatient canonical URL. Resources without an mCODE `meta.profile` claim pass through to `report.skipped`.
+
+| Profile (stem)            | Claimed via `meta.profile` URL substring             | Base resource type |
+|---------------------------|------------------------------------------------------|--------------------|
+| `CancerPatient`           | `mcode-cancer-patient`                               | Patient            |
+| `PrimaryCancerCondition`  | `mcode-primary-cancer-condition`                     | Condition          |
+| `CancerDiseaseStatus`     | `mcode-cancer-disease-status`                        | Observation        |
+| `CancerStage`             | `mcode-cancer-stage`                                 | Observation        |
+| `TNMStageGroup`           | `mcode-tnm-stage-group`                              | Observation        |
+
+Source: HL7 IG snapshot StructureDefinitions, bundled in `src/portiere/standards/fhir_profiles/{us_core_6_1_0,mcode_2_0_0}/`. The fetch recipe is `scripts/build_fhir_profiles.py` (single script covers both profile sets).
 
 ## Permissive ValueSet binding (v0.3.0 default)
 
@@ -81,6 +95,11 @@ print(report.skipped)         # []
 portiere validate \
   --fhir-profile us-core-6.1.0 \
   --input resources.json
+
+# mCODE — same shape:
+portiere validate \
+  --fhir-profile mcode-2.0.0 \
+  --input oncology_resources.json
 ```
 
 Input is a JSON array of FHIR resource dicts. The command exits non-zero on any error-severity failure and prints each failure to stderr.
@@ -116,5 +135,7 @@ The lower-level building blocks (`validate_resource_schema`, `validate_invariant
 
 ## Future profiles
 
-- **mCODE** (oncology) and **IPS** (International Patient Summary) — v0.3.x.
-- **Custom profiles** — drop a snapshot StructureDefinition JSON next to the US Core ones and follow the `validate_against_us_core` pattern. Documented examples will land alongside mCODE/IPS support.
+- **mCODE expanded** (treatments, staging beyond the v0.3.1 core 5: medication-administration, radiotherapy, surgical-procedure, additional staging systems) — v0.3.2.
+- **IPS** (International Patient Summary) — v0.3.2.
+- **Strict ValueSet binding** (`--strict-bindings`) — v0.3.x.
+- **Custom profiles** — drop a snapshot StructureDefinition JSON under `src/portiere/standards/fhir_profiles/<my_profile>/` and write a thin orchestrator mirroring `us_core.py` or `mcode.py` (the two existing reference implementations).
