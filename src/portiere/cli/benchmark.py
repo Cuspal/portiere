@@ -37,11 +37,12 @@ def benchmark_group() -> None:
 )
 @click.option(
     "--backend",
-    type=click.Choice(["bm25s", "faiss", "hybrid"], case_sensitive=False),
+    type=click.Choice(["bm25s", "faiss", "hybrid", "usagi"], case_sensitive=False),
     default="hybrid",
     help=(
         "Retrieval backend: bm25s (sparse only), faiss (dense only), "
-        "or hybrid (BM25 + FAISS via RRF — recommended)."
+        "hybrid (BM25 + FAISS via RRF — recommended), or usagi "
+        "(OHDSI USAGI baseline; requires Java 17 and USAGI_JAR env var)."
     ),
 )
 @click.option(
