@@ -24,6 +24,7 @@ from portiere.cli.export import export_cmd as _export_cmd
 from portiere.cli.models import models as _models_group
 from portiere.cli.quickstart import quickstart_command as _quickstart_command
 from portiere.cli.replay import replay_command as _replay_command
+from portiere.cli.review import review_command as _review_command
 from portiere.cli.validate import validate_command as _validate_command
 
 
@@ -38,6 +39,7 @@ cli.add_command(_quickstart_command)
 cli.add_command(_benchmark_group)
 cli.add_command(_validate_command)
 cli.add_command(_export_cmd)
+cli.add_command(_review_command)
 
 
 __all__ = ["cli"]

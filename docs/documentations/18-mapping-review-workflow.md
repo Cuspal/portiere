@@ -2,6 +2,15 @@
 
 This guide covers the complete review workflow for schema and concept mappings — how to browse mapping results, approve or reject individual items, override with manual corrections, export to CSV for clinical SME review, and reload edited files back into the SDK.
 
+**v0.3.1 adds a Streamlit-based Review UI:**
+
+```bash
+pip install "portiere-health[review]"   # adds streamlit>=1.30
+portiere review <project-dir>           # launches the UI at http://127.0.0.1:8501
+```
+
+The UI reads from the project's existing storage (`<project_dir>/schema_mappings/schema_mapping.yaml`), persists reviewed decisions to `schema_mapping_reviewed.json` next to the original, and never modifies the source-of-truth YAML. The Python API below remains the testable surface; the UI is a convenience layer on top.
+
 ---
 
 ## Table of Contents
