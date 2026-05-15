@@ -35,7 +35,7 @@ import click
 )
 @click.option(
     "--fhir-profile",
-    type=click.Choice(["us-core-6.1.0"], case_sensitive=False),
+    type=click.Choice(["us-core-6.1.0", "mcode-2.0.0"], case_sensitive=False),
     default=None,
     help=(
         "Optional: validate resources against this profile BEFORE writing. "
@@ -53,11 +53,16 @@ def export_cmd(input_path: str, fmt: str, out: str, fhir_profile: str | None) ->
         )
         sys.exit(2)
 
-    if fhir_profile == "us-core-6.1.0":
-        from portiere.quality.fhir_profile.us_core import validate_against_us_core
+    if fhir_profile is not None:
+        click.echo(f"Validating against {fhir_profile}...")
+        if fhir_profile == "us-core-6.1.0":
+            from portiere.quality.fhir_profile.us_core import validate_against_us_core
 
-        click.echo("Validating against us-core-6.1.0...")
-        report = validate_against_us_core(resources)
+            report = validate_against_us_core(resources)
+        else:
+            from portiere.quality.fhir_profile.mcode import validate_against_mcode
+
+            report = validate_against_mcode(resources)
         if not report.passed:
             click.echo(
                 f"Validation failed: {len(report.failures)} error(s). "
