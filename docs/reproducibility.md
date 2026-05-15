@@ -80,7 +80,23 @@ Replay does three things:
 
 2. **Reconstruct the project.** A new `portiere.init()` is called with the manifest's recorded `target_model`, `task`, `source_standard`, and `vocabularies_requested`. The new project gets a `replay-` prefixed name to avoid clobbering the original's storage.
 
-3. **Re-attach the source.** If `source_data.path` points to an existing file, it's added to the new project. From there, the caller can re-invoke pipeline ops as needed; v0.3.0 still stops at reconstruction. Auto-replaying every recorded stage (`portiere replay --auto-replay`) is a v0.3.1 feature.
+3. **Re-attach the source.** If `source_data.path` points to an existing file, it's added to the new project. From there, the caller can re-invoke pipeline ops as needed.
+
+### Auto-replay (`--auto-replay`, v0.3.1+)
+
+Pass `--auto-replay` to additionally re-run each recorded stage and compare outputs to the manifest within per-stage tolerance bands:
+
+| Stage      | Tolerance                                                              |
+|------------|------------------------------------------------------------------------|
+| `ingest`   | Source-data sha256 verified upstream; format must match the recorded value. |
+| `schema`   | `n_mappings` identical.                                                |
+| `concept`  | `n_mappings` must not drop; `auto_rate` within ±1% absolute.           |
+| `etl`      | `row_count` and column set identical (paths may differ).               |
+| `validate` | `all_passed` flag identical (binary).                                  |
+
+Stages whose dependencies are not available in the current environment (e.g., `concept` requires the same LLM + knowledge layer as the original run; `validate` requires the recorded output directory to still exist) are recorded as `UNAVAILABLE` and do not fail the report. v0.3.1's `auto_replay()` is honest about what it can verify without a live re-execution environment; the full re-execution path for the LLM-bound stages is a v0.3.x roadmap item once we settle on how to seed BYO-LLM config from a manifest.
+
+Exit codes: `0` = all attempted stages passed (or were `UNAVAILABLE`); `1` = at least one stage failed comparison; `2` = artifact-verification failed (same as plain `replay`).
 
 ### Common replay errors
 
@@ -95,7 +111,7 @@ Replay does three things:
 
 - **Bit-identical outputs.** LLM sampling, BM25 tie-breaks, and FAISS thread effects all introduce small nondeterminism. The same input, same model revision, same vocab will produce *very similar* mappings, but the per-row decisions can flicker at the edge of confidence thresholds.
 - **Perfect environment recreation.** Replay validates artifact identity but doesn't reinstall Python packages or pin transitive deps. Pin your environment with `pip freeze > requirements.lock.txt` for that level of fidelity.
-- **Full stage replay.** v0.3.0 reconstructs the project and re-attaches the source; the caller re-invokes pipeline ops. Auto-replay of recorded stages (`portiere replay --auto-replay`) comes in v0.3.1.
+- **Full stage replay for LLM-bound stages.** v0.3.1's `--auto-replay` re-runs cheap deterministic stages (`ingest`, `validate` when the output directory still exists) and records LLM-dependent stages (`schema`, `concept`, `etl`) as `UNAVAILABLE`. End-to-end re-execution of those — including BYO-LLM config rehydration from the manifest — is a v0.3.x roadmap item.
 
 ## Audit / compliance use
 
