@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-XX-XX
+
+The "review UI + reproducibility" release. Adds the Streamlit Mapping Review UI (schema-mapping page), `portiere replay --auto-replay`, mCODE STU3 2.0.0 profile validation, and a USAGI baseline row in the ICD→SNOMED benchmark.
+
+### Added
+
+- **Mapping Review UI** ([docs/mapping-review-ui.md](docs/mapping-review-ui.md)):
+  - `portiere review <project-dir>` launches a Streamlit app at `http://127.0.0.1:8501`.
+  - Schema-mapping page: per-row approve / override / reject; sidebar status filter; candidate inspector.
+  - Decisions persist to `<project_dir>/schema_mappings/schema_mapping_reviewed.json` next to the original; originals never modified.
+  - New `review = ["streamlit>=1.30"]` optional-dependency group.
+  - Local-only by default (`--host 127.0.0.1`); `--host 0.0.0.0` opt-in with explicit warning.
+- **`portiere replay --auto-replay`** ([docs/reproducibility.md](docs/reproducibility.md)):
+  - Re-runs each recorded stage and compares outputs to the manifest within locked tolerance bands (ingest format-equality, schema n_mappings-equality, concept ±1% auto_rate drift, etl row+column-set equality, validate all_passed binary).
+  - Stages whose dependencies are unavailable in the current environment record as `UNAVAILABLE` and do not fail the overall report.
+  - Exits 0 (all stages within tolerance), 1 (drift), or 2 (artifact-verification failure).
+- **mCODE STU3 2.0.0 profile validation** ([docs/fhir-profile-validation.md](docs/fhir-profile-validation.md)):
+  - `Project.validate(fhir_profile="mcode-2.0.0")` and `portiere validate --fhir-profile mcode-2.0.0`.
+  - 5 core oncology profiles bundled (~720 KB): CancerPatient, PrimaryCancerCondition, CancerDiseaseStatus, CancerStage, TNMStageGroup.
+  - Profile claimed via `meta.profile` URL substring rather than `resourceType` (mCODE convention).
+- **USAGI baseline benchmark row** ([docs/benchmarks/athena-icd-snomed.md](docs/benchmarks/athena-icd-snomed.md)):
+  - `portiere benchmark athena-icd-snomed --backend usagi`: subprocess wrapper around OHDSI USAGI's batch mode.
+  - SHA-pinned JAR fetch script (`scripts/download_usagi.sh`) + tag-push-only CI workflow (`.github/workflows/usagi-baseline.yml`).
+  - Tests marked `@pytest.mark.slow` so default CI is unaffected.
+- **New notebooks**: `20_mapping_review_walkthrough.ipynb`, `21_auto_replay.ipynb`.
+
+### Changed
+
+- `scripts/build_us_core_profiles.py` → `scripts/build_fhir_profiles.py` — unified script that covers both US Core 6.1.0 and mCODE 2.0.0 profile sets via subcommand.
+- README: Mapping Review section is no longer "coming soon" — it documents the shipped UI. Roadmap advances `v0.3.2` (concept-mapping review, mCODE-extended, IPS, strict ValueSet binding) and `v0.4.0`.
+
+### Deferred (target version)
+
+- **Concept-mapping page in the Review UI** → v0.3.2.
+- **Bulk actions** (approve-all / reject-all on filtered subset) → v0.3.2.
+- **mCODE-extended** (treatments, surgical procedures, additional staging) → v0.3.2.
+- **IPS profile** → v0.3.2.
+- **Strict ValueSet binding mode** (`--strict-bindings`) → v0.3.x.
+- **Full BYO-LLM rehydration** for `replay --auto-replay` LLM-bound stages (currently `UNAVAILABLE`) → v0.3.x.
+- **LOINC / RxNorm benchmark pairs** → v0.3.x / v0.4.0.
+
+### Migration notes
+
+No breaking changes from v0.3.0. The new `review` extra is opt-in (`pip install "portiere-health[review]"`); existing code paths are unchanged.
+
 ## [0.3.0] - 2026-05-11
 
 The "hybrid retrieval & FHIR interoperability" release. Adds a 3-row retrieval ablation (BM25 / SapBERT-FAISS / Hybrid via RRF) on the same Athena release as v0.2.1, US Core 6.1.0 profile validation, and FHIR Bundle + NDJSON export.

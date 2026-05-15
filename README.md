@@ -54,7 +54,7 @@ Portiere combines **clinical-domain embeddings** (SapBERT as default model), **l
 - **BYO-LLM** — Bring your own LLM: OpenAI, Anthropic Claude, AWS Bedrock, Ollama (local).
 - **Pluggable Engines** — Polars (default), PySpark / Databricks, Pandas, DuckDB.
 - **Standalone ETL Artifacts** — Generated ETL scripts run without the SDK.
-- **Confidence Routing** — Auto-accept, needs-review, and manual tiers with human-in-the-loop (library-only today; web review UI ships in v0.3.1, ~2 weeks after v0.3.0).
+- **Confidence Routing** — Auto-accept, needs-review, and manual tiers with human-in-the-loop. Streamlit-based **Mapping Review UI** ships in v0.3.1: `pip install "portiere-health[review]"` then `portiere review <project-dir>`.
 - **Cross-Standard Mapping** — Transform between standards (OMOP ↔ FHIR, HL7v2 → FHIR, OMOP → OpenEHR).
 - **Local-First** — All processing runs on your machine; no cloud dependency.
 
@@ -621,18 +621,18 @@ For a programmatic listing: `python -c "from portiere.standards import YAMLTarge
 Portiere is in active development. Current limitations (will be addressed in upcoming releases):
 
 - **Standards coverage is partial.** OMOP CDM v5.4: 19 of ~37 tables. FHIR R4: 18 of 145 resources. PRs to extend coverage are welcome.
-- **FHIR profile coverage is US Core only.** v0.3.0 validates against US Core 6.1.0 (10 resource types). mCODE / IPS / additional profiles **planned for v0.3.x.**
-- **No Mapping Review UI.** The HITL review workflow is library-only today (approve / override / reject via Python). Streamlit-based Web UI **ships in v0.3.1 (~2 weeks after v0.3.0).**
+- **FHIR profile coverage is US Core + mCODE only.** v0.3.0 validates against US Core 6.1.0 (10 resource types); v0.3.1 adds mCODE STU3 2.0.0 (5 oncology profiles). IPS, mCODE-extended (treatments, additional staging) **planned for v0.3.2.**
+- **Mapping Review UI covers schema mappings.** v0.3.1 ships the Streamlit-based UI for schema-mapping review (approve / override / reject); concept-mapping review **planned for v0.3.2.**
 - **No PHI scrubbing.** PHI detection is column-name-pattern only — not a redactor. Free-text PHI scrubbing (Microsoft Presidio integration, HIPAA Safe Harbor) **planned for v0.4.0.**
 - **SNOMED CT and CPT-4 not bundled.** Both have licensing constraints. `portiere quickstart` operates on bundled ICD-10-CM/LOINC/RxNorm only; for SNOMED, see [vocabulary setup](docs/documentations/15-vocabulary-setup.md).
-- **Replay is not bit-deterministic.** `portiere replay` reproduces pipeline state from a manifest, but outputs may differ within ±1% due to LLM sampling and other legitimate nondeterminism. See [reproducibility guide](docs/reproducibility.md).
-- **One benchmark published.** v0.3.0 publishes the ICD-10-CM → SNOMED 3-row ablation (BM25 / FAISS / hybrid). USAGI baseline, LOINC / RxNorm pairs **planned for v0.3.x.**
+- **Replay reproduces stages best-effort.** `portiere replay --auto-replay` re-runs deterministic stages (ingest, validate) and records LLM-bound stages (schema, concept, ETL) as `UNAVAILABLE`. Full BYO-LLM rehydration **planned for v0.3.x.** Within-tolerance outputs may still differ ±1% due to LLM sampling. See [reproducibility guide](docs/reproducibility.md).
+- **Benchmark coverage.** v0.3.1 publishes the ICD-10-CM → SNOMED 4-row ablation (BM25 / FAISS / hybrid / USAGI baseline). LOINC / RxNorm pairs **planned for v0.3.x.**
 
 ## Roadmap
 
-- **v0.3.1 (next, ~2 weeks):** Mapping Review Web UI (Streamlit); `portiere replay --auto-replay`.
-- **v0.3.x:** USAGI baseline comparison row; mCODE / IPS profiles; additional benchmark pairs (LOINC, RxNorm); strict ValueSet binding mode.
-- **v0.4.0:** PHI scrubber (Microsoft Presidio, HIPAA Safe Harbor); active-learning loop; MCP / LangChain / dbt integration surface.
+- **v0.3.2 (next):** Concept-mapping page in the Review UI (with bulk actions); mCODE-extended (treatments, surgical procedures, additional staging systems); IPS profile; strict ValueSet binding mode (`--strict-bindings`).
+- **v0.3.x:** Full BYO-LLM rehydration for `replay --auto-replay` LLM-bound stages; additional benchmark pairs (LOINC, RxNorm); active-learning loop on review-UI override decisions.
+- **v0.4.0:** PHI scrubber (Microsoft Presidio, HIPAA Safe Harbor); MCP / LangChain / dbt integration surface.
 - **v0.5.0+:** PCORnet / Sentinel / i2b2 / CDISC SDTM CDMs; clinical NLP path (scispaCy / GLiNER-clinical); OHDSI DataQualityDashboard parity.
 
 Each release tracks via GitHub Milestones; please open issues or PRs against the relevant milestone. See [specs/](specs/) for the design docs behind each release.
@@ -655,13 +655,35 @@ Methodology: [docs/benchmarks/athena-icd-snomed.md](docs/benchmarks/athena-icd-s
 
 ## FHIR Interoperability
 
-v0.3.0 adds:
+v0.3.0 + v0.3.1 ship:
 
-- **US Core 6.1.0 profile validation** — `Project.validate(fhir_profile="us-core-6.1.0")` or `portiere validate --fhir-profile us-core-6.1.0 --input resources.json`. 10 resource types covered (Patient, Practitioner, Organization, Encounter, Condition, Observation, MedicationRequest, AllergyIntolerance, Procedure, DocumentReference).
-- **Bundle + NDJSON export** — `portiere export --format bundle --out out.json` or `--format ndjson --out out_dir/`. Optional `--fhir-profile us-core-6.1.0` validates before writing.
+- **US Core 6.1.0 profile validation** — `Project.validate(fhir_profile="us-core-6.1.0")` or `portiere validate --fhir-profile us-core-6.1.0 --input resources.json`. 10 resource types (Patient, Practitioner, Organization, Encounter, Condition, Observation, MedicationRequest, AllergyIntolerance, Procedure, DocumentReference).
+- **mCODE STU3 2.0.0 profile validation** *(v0.3.1)* — `--fhir-profile mcode-2.0.0`. 5 core oncology profiles (CancerPatient, PrimaryCancerCondition, CancerDiseaseStatus, CancerStage, TNMStageGroup). Profile is keyed on `meta.profile` URL substring (not `resourceType`).
+- **Bundle + NDJSON export** — `portiere export --format bundle --out out.json` or `--format ndjson --out out_dir/`. Optional `--fhir-profile us-core-6.1.0|mcode-2.0.0` validates before writing.
 
 Install the FHIR extra: `pip install "portiere-health[fhir]"`.
 See: [docs/fhir-profile-validation.md](docs/fhir-profile-validation.md), [docs/fhir-bundle-export.md](docs/fhir-bundle-export.md).
+
+## Mapping Review UI (v0.3.1)
+
+Streamlit-based human-in-the-loop review of AI-generated schema mappings:
+
+```bash
+pip install "portiere-health[review]"
+portiere review <project-dir>        # opens http://127.0.0.1:8501
+```
+
+Reviewer actions: **approve** (accept AI suggestion), **reject** (mark unmappable), **override** (replace with `table.column`). Decisions persist to `<project_dir>/schema_mappings/schema_mapping_reviewed.json` next to the original — originals never modified. Local-only by default (no auth); `--host 0.0.0.0` opt-in for LAN demos.
+
+See: [docs/mapping-review-ui.md](docs/mapping-review-ui.md). Concept-mapping review **coming in v0.3.2.**
+
+## Reproducibility (v0.3.1)
+
+```bash
+portiere replay --auto-replay manifest.lock.json
+```
+
+Re-runs each recorded stage and compares outputs to the manifest within tolerance bands. Stages whose dependencies are unavailable (LLM, knowledge layer) record as `UNAVAILABLE` and do not fail the report; full BYO-LLM rehydration is a v0.3.x roadmap item. See [docs/reproducibility.md](docs/reproducibility.md).
 
 
 ## Star History
