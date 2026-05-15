@@ -1,0 +1,52 @@
+name: USAGI Baseline
+
+# USAGI is the OHDSI Java baseline. Running it requires a JAR + JVM and is
+# slow, so we only execute on tag pushes (release verification) and on
+# manual dispatch. Default CI excludes USAGI via @pytest.mark.slow.
+#
+# Security note: this workflow uses only secrets (repo-owner-controlled) and
+# github.workspace (runner path). It does not consume any untrusted user
+# input (issue titles, PR bodies, commit messages, head_ref, etc.).
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    env:
+      USAGI_JAR_SHA256: ${{ secrets.USAGI_JAR_SHA256 }}
+      USAGI_JAR: ${{ github.workspace }}/vendor/usagi.jar
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Cache USAGI JAR
+        id: cache-usagi
+        uses: actions/cache@v4
+        with:
+          path: vendor/usagi.jar
+          key: usagi-1.4.4-jar
+
+      - name: Download USAGI JAR
+        if: steps.cache-usagi.outputs.cache-hit != 'true'
+        run: bash scripts/download_usagi.sh
+
+      - name: Install Portiere with quality+fhir extras
+        run: pip install -e ".[quality,fhir,polars]" pytest pytest-cov
+
+      - name: Run USAGI baseline tests
+        run: pytest tests/test_usagi_baseline.py -v -m slow

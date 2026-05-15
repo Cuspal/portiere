@@ -23,6 +23,9 @@ import portiere
 from portiere.benchmarks.athena_icd_snomed.sampling import (
     generate_test_ids as _sampling_generate_test_ids,
 )
+from portiere.benchmarks.athena_icd_snomed.usagi_baseline import (
+    run_usagi as _run_usagi_or_raise,
+)
 from portiere.config import EmbeddingConfig, KnowledgeLayerConfig, PortiereConfig
 from portiere.knowledge import build_knowledge_layer
 
@@ -151,6 +154,29 @@ def run_benchmark(
     # description as the input. The map_concepts() flow returns its
     # candidates list, which we treat as the ranked prediction.
     test_concept_rows = concept[concept["concept_id"].isin(test_ids)]
+
+    # USAGI baseline: bypass Portiere's pipeline, route through OHDSI's
+    # mapping tool via subprocess. Returns predictions in the same shape.
+    if backend == "usagi":
+        import os
+
+        input_rows = [
+            {
+                "concept_id": int(row["concept_id"]),
+                "concept_code": str(row["concept_code"]),
+                "concept_name": str(row["concept_name"]),
+            }
+            for _idx, row in test_concept_rows.iterrows()
+        ]
+        if not input_rows:
+            return BenchmarkResult(n=0, top_1=0.0, top_5=0.0, top_10=0.0, mrr=0.0)
+        usagi_jar = Path(os.environ.get("USAGI_JAR", "vendor/usagi.jar"))
+        usagi_predictions = _run_usagi_or_raise(
+            input_rows=input_rows,
+            athena_concept_csv=athena / "CONCEPT.csv",
+            usagi_jar=usagi_jar,
+        )
+        return compute_metrics(usagi_predictions, gold)
 
     # Build a knowledge index from the rest of Athena (excluding test concepts)
     # — for v0.2.0 we use a simple BM25s index over all standard concepts.

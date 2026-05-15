@@ -2,13 +2,16 @@
 
 Portiere's accuracy on the canonical OMOP concept-mapping task: given an ICD-10-CM source code, predict the standard SNOMED CT concept it should map to. Evaluated against the OHDSI Athena `CONCEPT_RELATIONSHIP` gold standard.
 
-## Headline numbers (v0.3.0 — 3-backend ablation)
+## Headline numbers (v0.3.1 — 4-backend ablation)
 
 | Backend                                       | top-1 | top-5 | top-10 |   MRR | N |
 |-----------------------------------------------|------:|------:|-------:|------:|---:|
 | **BM25 (sparse only)**                        | **0.288** | **0.528** | **0.588** | **0.390** | 1,000 |
 | SapBERT + FAISS (dense only)                  | 0.278 | 0.473 |  0.551 | 0.361 | 1,000 |
 | SapBERT + BM25 + FAISS via RRF (hybrid)       | 0.251 | 0.473 |  0.558 | 0.343 | 1,000 |
+| USAGI 1.4.4 (OHDSI baseline)                  |  TBD  |  TBD  |   TBD  |  TBD  | 1,000 |
+
+The USAGI row is populated by a manual one-time run against the user's Athena export (see "Reproducing → USAGI baseline" below). v0.3.1 wires the `--backend usagi` plumbing and the dedicated `.github/workflows/usagi-baseline.yml` workflow; the published numbers will land alongside the v0.3.1 release in a follow-up commit.
 
 Athena release: `2026-04-30`. Numbers are the source-of-truth values from `src/portiere/benchmarks/athena_icd_snomed/expected_results.json`.
 
@@ -24,9 +27,28 @@ Reproduce any row:
 portiere benchmark athena-icd-snomed --backend bm25s  --athena-dir /path/to/athena
 portiere benchmark athena-icd-snomed --backend faiss  --athena-dir /path/to/athena
 portiere benchmark athena-icd-snomed --backend hybrid --athena-dir /path/to/athena
+
+# USAGI baseline (Java 17 + USAGI_JAR env var required)
+USAGI_JAR=./vendor/usagi.jar portiere benchmark athena-icd-snomed \
+    --backend usagi --athena-dir /path/to/athena
 ```
 
 Differences within ±1% are expected (LLM sampling, BM25 ties, FAISS index re-build).
+
+### USAGI baseline (v0.3.1)
+
+USAGI is OHDSI's official Java mapping tool — TF-IDF over Athena concept names + manual review UI. It is the canonical baseline any ML-driven mapper must clear.
+
+Setup:
+
+```bash
+# Pin a JAR SHA-256 from https://github.com/OHDSI/Usagi/releases
+export USAGI_JAR_SHA256=<sha256-of-the-jar>
+bash scripts/download_usagi.sh   # writes ./vendor/usagi.jar
+export USAGI_JAR=$PWD/vendor/usagi.jar
+```
+
+Then run the baseline backend just like the others — it slots into the same `expected_results.json` `runs[]` array via `append_run_to_expected_results(run, backend="usagi", ...)`.
 
 ## Methodology
 
