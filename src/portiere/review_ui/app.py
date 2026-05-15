@@ -35,7 +35,7 @@ def main() -> None:
 
     page = st.sidebar.radio(
         "Mapping type",
-        options=["Schema Mapping"],
+        options=["Schema Mapping", "Concept Mapping"],
         index=0,
     )
 
@@ -43,6 +43,10 @@ def main() -> None:
         from portiere.review_ui.pages.schema_review import render_schema_review
 
         render_schema_review(project_dir)
+    elif page == "Concept Mapping":
+        from portiere.review_ui.pages.concept_review import render_concept_review
+
+        render_concept_review(project_dir)
 
 
 if __name__ == "__main__":
