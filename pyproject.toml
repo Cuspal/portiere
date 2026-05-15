@@ -205,6 +205,14 @@ omit = [
     "src/portiere/client.py",
     "src/portiere/storage/cloud_backend.py",
     "src/portiere/sync/sync_manager.py",
+    # Streamlit UI modules — exercised by manual smoke test only.
+    # The `st.*` API is not mockable, so unit-testing the rendering
+    # functions would only exercise the imports. The testable surface
+    # (load/save/decision helpers) lives in review_ui/state.py and
+    # is covered by tests/test_review_ui_state.py at ~99%.
+    "src/portiere/review_ui/app.py",
+    "src/portiere/review_ui/pages/schema_review.py",
+    "src/portiere/review_ui/pages/concept_review.py",
 ]
 
 [tool.coverage.report]
