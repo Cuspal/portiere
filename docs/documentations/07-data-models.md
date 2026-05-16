@@ -694,6 +694,8 @@ fhir_data = project.cross_map(
 
 ## Approval Workflows
 
+> **v0.3.1+ shortcut:** the workflows below show the Python API for review. The same operations are also available through a Streamlit UI: `pip install "portiere-health[review]"` then `portiere review <project-dir>`. See [docs/mapping-review-ui.md](../mapping-review-ui.md). The Python API remains the authoritative testable surface; the UI is a convenience layer that calls into it.
+
 ### Schema Mapping Review Workflow
 
 ```python

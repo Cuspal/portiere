@@ -113,14 +113,14 @@ llm:
 
 ## Hybrid Sync: push() and pull()
 
-In the open-source SDK, `push()` and `pull()` raise `NotImplementedError`. These methods require Portiere Cloud for team-based synchronization and collaborative review.
+In the open-source SDK, `push()` and `pull()` raise `NotImplementedError`. These methods require Portiere Cloud for team-based synchronization and multi-reviewer collaboration.
 
 ```python
 project.push()   # raises NotImplementedError
 project.pull()   # raises NotImplementedError
 ```
 
-For cloud sync, team collaboration, and the web review UI, visit [Portiere Cloud](https://portiere.io).
+> **Single-user review is available locally** *(v0.3.1+)*: `pip install "portiere-health[review]"` then `portiere review <project-dir>` launches a Streamlit-based Mapping Review UI at `http://127.0.0.1:8501`. See [docs/mapping-review-ui.md](../mapping-review-ui.md). For multi-user team collaboration with auth, visit [Portiere Cloud](https://portiere.io).
 
 ---
 
@@ -132,7 +132,8 @@ For cloud sync, team collaboration, and the web review UI, visit [Portiere Cloud
 | Single user, full local control | `knowledge_layer` + `llm` |
 | PHI/PII data, even column names are sensitive | `llm=LLMConfig(provider="ollama")` |
 | CI/CD pipeline, automated mapping in Docker | `knowledge_layer` + `llm` |
-| Team collaboration, web-based review UI | Use [Portiere Cloud](https://portiere.io) |
+| Single-user local mapping review (v0.3.1+) | `pip install "portiere-health[review]"` → `portiere review <project-dir>` |
+| Team collaboration with multi-reviewer auth | Use [Portiere Cloud](https://portiere.io) |
 
 ---
 
