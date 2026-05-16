@@ -2,7 +2,10 @@
 
 The Portiere Cloud API provides REST endpoints for approving, rejecting, and overriding individual schema and concept mappings. These endpoints power the cloud dashboard's review interface and can be called directly from scripts or custom integrations.
 
-> **Note:** These cloud API endpoints are part of the **Portiere Cloud** platform, which is currently on the development roadmap. In the open-source SDK, mapping review is performed locally via the Python API (e.g., `schema_map.approve(index)`, `concept_map.reject(index)`). See the [Mapping Review Workflow](18-mapping-review-workflow.md) for the local review guide.
+> **Note:** These cloud API endpoints are part of the **Portiere Cloud** platform, which is currently on the development roadmap. In the open-source SDK, mapping review is performed locally — either via:
+>
+> - **Python API** — `schema_map.approve(index)`, `concept_map.reject(index)`, etc. See the [Mapping Review Workflow](18-mapping-review-workflow.md).
+> - **Streamlit UI** *(v0.3.1+)* — `pip install "portiere-health[review]"` then `portiere review <project-dir>`. See [docs/mapping-review-ui.md](../mapping-review-ui.md).
 
 ---
 

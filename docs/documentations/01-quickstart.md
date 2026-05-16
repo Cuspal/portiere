@@ -36,9 +36,11 @@ Install additional capabilities as needed:
 
 | Extra | Command | What It Adds |
 |-------|---------|--------------|
-| **quality** | `pip install portiere-health[quality]` | Great Expectations integration for data profiling and validation |
-| **faiss** | `pip install portiere-health[faiss]` | FAISS vector search backend for the knowledge layer |
-| **all** | `pip install portiere-health[all]` | Everything above, plus Spark and DuckDB engine support |
+| **quality** | `pip install "portiere-health[quality]"` | Great Expectations integration for data profiling and validation |
+| **faiss** | `pip install "portiere-health[faiss]"` | FAISS vector search backend for the knowledge layer |
+| **fhir** *(v0.3.0+)* | `pip install "portiere-health[fhir]"` | US Core 6.1.0 + mCODE 2.0.0 profile validation; FHIR Bundle / NDJSON export |
+| **review** *(v0.3.1+)* | `pip install "portiere-health[review]"` | Streamlit-based Mapping Review UI (`portiere review <project-dir>`) |
+| **all** | `pip install "portiere-health[all]"` | Everything above, plus Spark and DuckDB engine support |
 
 ### Verify Installation
 

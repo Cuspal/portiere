@@ -23,6 +23,7 @@ Complete reference for the Portiere SDK public API. All signatures, parameters, 
   - [export\_concept\_mapping()](#export_concept_mapping)
 - [SchemaMapping](#schemamapping)
 - [ConceptMapping](#conceptmapping)
+- [CLI Reference](#cli-reference)
 - [Related Configuration](#related-configuration)
 
 ---
@@ -1112,6 +1113,88 @@ class KnowledgeLayerConfig(BaseModel):
 ```
 
 See [03-configuration.md](./03-configuration.md) for the full field reference table.
+
+---
+
+## CLI Reference
+
+The `portiere` console script is the recommended surface for batch-mode operations. Every CLI command is a thin wrapper around the SDK; the Python API is always available for programmatic use.
+
+### `portiere quickstart`
+
+Run the full 5-stage pipeline against bundled synthetic data. Useful for smoke-testing an install. See [01-quickstart.md](./01-quickstart.md).
+
+### `portiere benchmark athena-icd-snomed` *(v0.2.0+, multi-backend v0.3.0+, USAGI v0.3.1+)*
+
+Run the published ICD-10-CM → SNOMED concept-mapping benchmark.
+
+```bash
+portiere benchmark athena-icd-snomed \
+  --athena-dir /path/to/athena \
+  --backend bm25s|faiss|hybrid|usagi \
+  [--stratify-by domain] \
+  [--out my_run.json]
+```
+
+| Flag | Default | Notes |
+|---|---|---|
+| `--backend` | `hybrid` | Retrieval backend. `usagi` requires Java 17 + `USAGI_JAR` env var. |
+| `--stratify-by` | none | `domain` enables proportional per-domain sampling. |
+| `--athena-release-date` | inferred | Tags the run's `expected_results.json` row. |
+
+Each invocation upserts to `expected_results.json` by `backend` key. See [docs/benchmarks/athena-icd-snomed.md](../benchmarks/athena-icd-snomed.md).
+
+### `portiere validate --fhir-profile` *(v0.3.0+, mCODE v0.3.1+)*
+
+Validate a list of FHIR resources against a profile.
+
+```bash
+portiere validate \
+  --fhir-profile us-core-6.1.0|mcode-2.0.0 \
+  --input resources.json
+```
+
+Exits non-zero on any error-severity failure. See [docs/fhir-profile-validation.md](../fhir-profile-validation.md).
+
+### `portiere export --format bundle|ndjson` *(v0.3.0+)*
+
+Wrap a list of FHIR resources as a transaction Bundle JSON or as one-NDJSON-file-per-resourceType.
+
+```bash
+portiere export \
+  --input resources.json \
+  --format bundle|ndjson \
+  --out out.json | out_dir/ \
+  [--fhir-profile us-core-6.1.0|mcode-2.0.0]
+```
+
+Optional `--fhir-profile` validates before writing; on failure, exits non-zero and writes nothing. See [docs/fhir-bundle-export.md](../fhir-bundle-export.md).
+
+### `portiere replay [--auto-replay]` *(v0.2.0+, auto-replay v0.3.1+)*
+
+Replay a pipeline from its `manifest.lock.json`.
+
+```bash
+portiere replay manifest.lock.json                # verify artifacts + reconstruct project
+portiere replay --auto-replay manifest.lock.json  # additionally re-run each recorded stage
+```
+
+`--auto-replay` exit codes: `0` (all stages PASS or UNAVAILABLE), `1` (at least one FAIL), `2` (artifact-verification failed). See [docs/reproducibility.md](../reproducibility.md).
+
+### `portiere review <project-dir>` *(v0.3.1+)*
+
+Launch the Streamlit Mapping Review UI.
+
+```bash
+portiere review /path/to/project                          # default http://127.0.0.1:8501
+portiere review /path/to/project --host 0.0.0.0 --port 8502
+```
+
+Requires the `review` extra: `pip install "portiere-health[review]"`. Local-only by default; `--host 0.0.0.0` exposes on the LAN (no auth). See [docs/mapping-review-ui.md](../mapping-review-ui.md).
+
+### `portiere models`
+
+Manage the embedding/reranker model cache. Run `portiere models --help` for subcommands.
 
 ---
 
