@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-07-24
+
+Metadata-only patch. The v0.4.0 wheel was published to PyPI from a pre-measurement commit, so its bundled `expected_results.json` and package description predate the benchmark results. v0.4.1 ships identical code with the measured benchmark data (ablation ×6 + USAGI baseline) and the corrected README/CITATION. If you installed 0.4.0, `pip install -U portiere-health` — no code changes.
+
 ## [0.4.0] - 2026-07-24
 
 The **"Trustworthy"** release. Turns "PHI never leaves your machine" into an executable, tested guarantee; ships value-level PHI scrubbing; finds and fixes a score-scale defect that invalidated the v0.3.x benchmark comparison; and adds the ablation harness, compliance documentation, Docker image, and published docs site.
