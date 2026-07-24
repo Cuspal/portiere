@@ -245,3 +245,13 @@ data_profile.html
 profile_sources.py
 release_notes.md
 benchmark_usagi_ui/
+
+# USAGI UI working artifacts (Lucene index dumped into CWD when the UI runs here)
+mainIndex/
+derivedIndex/
+sleepyCat/
+ConceptClassIds.txt
+DomainIds.txt
+VocabularyIds.txt
+vocabularyVersion.txt
+authorName.txt

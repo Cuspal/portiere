@@ -79,28 +79,36 @@ Reproduce any row:
 portiere benchmark athena-icd-snomed --backend bm25s  --athena-dir /path/to/athena
 portiere benchmark athena-icd-snomed --backend faiss  --athena-dir /path/to/athena
 portiere benchmark athena-icd-snomed --backend hybrid --athena-dir /path/to/athena
+# add --no-reranker to any of the above for the ablation rows
 
-# USAGI baseline (Java 17 + USAGI_JAR env var required)
-USAGI_JAR=./vendor/usagi.jar portiere benchmark athena-icd-snomed \
-    --backend usagi --athena-dir /path/to/athena
+# USAGI baseline: no published JAR supports headless batch mode — use the
+# UI-export bridge (next section).
 ```
 
 Differences within ±1% are expected (LLM sampling, BM25 ties, FAISS index re-build).
 
-### USAGI baseline (v0.3.1)
+### USAGI baseline (UI-export bridge)
 
 USAGI is OHDSI's official Java mapping tool — TF-IDF over Athena concept names + manual review UI. It is the canonical baseline any ML-driven mapper must clear.
 
-Setup:
+**No published USAGI release (≤ v1.4.3) has a headless batch mode** — the JAR launches the review UI (`--backend usagi` therefore reports the backend as unavailable). The published USAGI row was produced with the reproducible **UI-export bridge**:
 
 ```bash
-# Pin a JAR SHA-256 from https://github.com/OHDSI/Usagi/releases
-export USAGI_JAR_SHA256=<sha256-of-the-jar>
-bash scripts/download_usagi.sh   # writes ./vendor/usagi.jar
-export USAGI_JAR=$PWD/vendor/usagi.jar
+# 1. Deterministic gold-set input for USAGI's "Import codes" (seed=42, n=1,000)
+python3 scripts/usagi_ui_bridge.py gen-input --athena-dir /path/to/athena --out usagi_input.csv
+
+# 2. In the USAGI UI (java -jar Usagi_v1.4.3.jar):
+#    build index from the same Athena dir → File > Import codes (source_code /
+#    source_name; filter standard concepts + SNOMED) → auto-map, NO hand
+#    corrections → File > Export source_to_concept_map → usagi_export.csv
+
+# 3. Score + append the row
+python3 scripts/usagi_ui_bridge.py score --athena-dir /path/to/athena \
+    --export usagi_export.csv \
+    --out src/portiere/benchmarks/athena_icd_snomed/expected_results.json
 ```
 
-Then run the baseline backend just like the others — it slots into the same `expected_results.json` `runs[]` array via `append_run_to_expected_results(run, backend="usagi", ...)`.
+The SHA-pinned JAR download (`scripts/download_usagi.sh`, asset `Usagi_v1.4.3.jar`, sha256 `dbcfe9e2…`) remains in CI as a supply-chain check.
 
 ## Methodology
 

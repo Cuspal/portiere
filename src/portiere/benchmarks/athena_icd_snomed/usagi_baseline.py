@@ -154,7 +154,19 @@ def run_usagi(
         "--output",
         str(output_csv),
     ]
-    subprocess.run(cmd, check=True, capture_output=True)
+    try:
+        subprocess.run(cmd, check=True, capture_output=True)
+    except subprocess.CalledProcessError as exc:
+        # No published USAGI release (<= v1.4.3) supports headless batch mode —
+        # the JAR launches the review UI instead and exits non-zero headless.
+        # This is the designed unavailability signal, not a crash: score USAGI
+        # through the UI-export bridge (scripts/usagi_ui_bridge.py; see
+        # docs/benchmarks/athena-icd-snomed.md "USAGI baseline").
+        raise UsagiUnavailableError(
+            "USAGI JAR does not support headless batch mode (no published "
+            "release does; the JAR opens the UI). Use the UI-export bridge: "
+            "scripts/usagi_ui_bridge.py"
+        ) from exc
 
     code_to_concept: dict[str, int] = {
         str(row["concept_code"]): int(row["concept_id"]) for row in input_rows

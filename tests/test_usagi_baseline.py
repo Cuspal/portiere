@@ -108,31 +108,65 @@ class TestUsagiSubprocess:
                 usagi_jar=Path("/nonexistent/usagi.jar"),
             )
 
-    def test_run_usagi_produces_predictions_when_available(self, tmp_path):
-        if shutil.which("java") is None:
-            pytest.skip("Java 17 not on PATH")
-        usagi_jar = os.environ.get("USAGI_JAR")
-        if usagi_jar is None or not Path(usagi_jar).exists():
-            pytest.skip("USAGI_JAR env var not set or JAR missing")
+    def test_run_usagi_batch_unsupported_raises_unavailable(self, tmp_path, monkeypatch):
+        """No published USAGI JAR (<= v1.4.3) supports headless batch mode —
+        the JAR opens the review UI and exits non-zero when headless. The
+        wrapper must surface that as the designed UsagiUnavailableError (with
+        a pointer to the UI-export bridge), never as a raw
+        CalledProcessError. The JAR is deliberately NOT spawned here: on a
+        machine with a display it would open a UI window."""
+        import subprocess as _subprocess
 
-        from portiere.benchmarks.athena_icd_snomed.usagi_baseline import run_usagi
+        from portiere.benchmarks.athena_icd_snomed import usagi_baseline as ub
 
-        # Materialize a tiny synthetic Athena CONCEPT.csv for USAGI.
-        concept_csv = tmp_path / "CONCEPT.csv"
-        concept_csv.write_text(
-            "concept_id\tconcept_name\tdomain_id\tvocabulary_id\tconcept_class_id\t"
-            "standard_concept\tconcept_code\n"
-            "200\tType 2 diabetes mellitus\tCondition\tSNOMED\tClinical Finding\tS\t44054006\n"
+        jar = tmp_path / "usagi.jar"
+        jar.write_bytes(b"not a real jar")
+
+        def _fail(cmd, check, capture_output):
+            raise _subprocess.CalledProcessError(1, cmd)
+
+        monkeypatch.setattr(ub.subprocess, "run", _fail)
+        monkeypatch.setattr(ub.shutil, "which", lambda _name: "/usr/bin/java")
+
+        with pytest.raises(ub.UsagiUnavailableError, match="usagi_ui_bridge"):
+            ub.run_usagi(
+                input_rows=[
+                    {"concept_id": 100, "concept_code": "E11.9", "concept_name": "Type 2 diabetes"},
+                ],
+                athena_concept_csv=tmp_path / "CONCEPT.csv",
+                usagi_jar=jar,
+                work_dir=tmp_path / "work",
+            )
+
+    def test_ui_bridge_fixture_roundtrip(self, tmp_path):
+        """The UI-export bridge is the supported USAGI scoring path. Verify
+        its plumbing against the committed gold input fixture (the exact
+        seed=42 set the published USAGI row was scored on): the fixture is
+        well-formed, and a synthetic UI export scores through
+        parse_usagi_output correctly."""
+        import csv
+
+        from portiere.benchmarks.athena_icd_snomed.usagi_baseline import (
+            parse_usagi_output,
         )
-        predictions = run_usagi(
-            input_rows=[
-                {"concept_id": 100, "concept_code": "E11.9", "concept_name": "Type 2 diabetes"},
-            ],
-            athena_concept_csv=concept_csv,
-            usagi_jar=Path(usagi_jar),
+
+        fixture = Path(__file__).parent / "fixtures" / "usagi_input_gold1000.csv"
+        with fixture.open() as f:
+            rows = list(csv.DictReader(f, delimiter="\t"))
+        assert len(rows) == 1000
+        assert {"source_code", "source_name", "source_concept_id"} <= set(rows[0])
+
+        # Simulate a UI export for the first two codes and score it.
+        code_to_concept = {r["source_code"]: int(r["source_concept_id"]) for r in rows[:2]}
+        export = tmp_path / "usagi_export.csv"
+        export.write_text(
+            "source_code\ttarget_concept_id\tmatch_score\n"
+            f"{rows[0]['source_code']}\t44054006\t0.91\n"
+            f"{rows[1]['source_code']}\t123456\t0.42\n"
         )
-        assert isinstance(predictions, dict)
-        assert all(isinstance(v, list) for v in predictions.values())
+        predictions = parse_usagi_output(export, code_to_concept)
+        assert predictions[int(rows[0]["source_concept_id"])] == [44054006]
+        assert predictions[int(rows[1]["source_concept_id"])] == [123456]
 
 
 # ── Runner + CLI dispatch ─────────────────────────────────────────
