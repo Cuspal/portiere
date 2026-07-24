@@ -1,0 +1,92 @@
+{
+  "athena_release_date": "2026-04-30",
+  "runs": [
+    {
+      "backend": "bm25s",
+      "mrr": 0.401578571428571,
+      "n": 1000,
+      "routing": {
+        "auto": 518,
+        "manual": 165,
+        "review": 317,
+        "unmapped": 0
+      },
+      "top_1": 0.303,
+      "top_10": 0.588,
+      "top_5": 0.533
+    },
+    {
+      "backend": "bm25s",
+      "mrr": 0.3895686507936505,
+      "n": 1000,
+      "reranker": false,
+      "routing": {
+        "auto": 1000,
+        "manual": 0,
+        "review": 0,
+        "unmapped": 0
+      },
+      "top_1": 0.288,
+      "top_10": 0.588,
+      "top_5": 0.528
+    },
+    {
+      "backend": "faiss",
+      "mrr": 0.3626166666666665,
+      "n": 1000,
+      "routing": {
+        "auto": 533,
+        "manual": 185,
+        "review": 282,
+        "unmapped": 0
+      },
+      "top_1": 0.285,
+      "top_10": 0.546,
+      "top_5": 0.462
+    },
+    {
+      "backend": "faiss",
+      "mrr": 0.3353468253968255,
+      "n": 1000,
+      "reranker": false,
+      "routing": {
+        "auto": 110,
+        "manual": 396,
+        "review": 494,
+        "unmapped": 0
+      },
+      "top_1": 0.261,
+      "top_10": 0.503,
+      "top_5": 0.425
+    },
+    {
+      "backend": "hybrid",
+      "mrr": 0.3774126984126982,
+      "n": 1000,
+      "routing": {
+        "auto": 597,
+        "manual": 136,
+        "review": 267,
+        "unmapped": 0
+      },
+      "top_1": 0.286,
+      "top_10": 0.587,
+      "top_5": 0.505
+    },
+    {
+      "backend": "hybrid",
+      "mrr": 0.37447261904761875,
+      "n": 1000,
+      "reranker": false,
+      "routing": {
+        "auto": 0,
+        "manual": 1000,
+        "review": 0,
+        "unmapped": 0
+      },
+      "top_1": 0.287,
+      "top_10": 0.585,
+      "top_5": 0.504
+    }
+  ]
+}
