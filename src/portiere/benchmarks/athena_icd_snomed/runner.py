@@ -169,9 +169,14 @@ def run_benchmark(
     else:
         test_ids = _generate_test_ids(concept, cr, n=test_set_size, stratify_by=stratify_by)
 
-    # Gold mappings: ICD source → set of SNOMED standard concepts
+    # Gold mappings: ICD source → set of SNOMED standard concepts.
+    # (pandas-stubs types to_dict() as dict[Hashable, Any]; keys are int
+    # concept ids and values are sets by construction.)
     maps_to = cr[(cr["relationship_id"] == "Maps to") & cr["concept_id_1"].isin(test_ids)]
-    gold: dict[int, set[int]] = maps_to.groupby("concept_id_1")["concept_id_2"].apply(set).to_dict()
+    gold = cast(
+        "dict[int, set[int]]",
+        maps_to.groupby("concept_id_1")["concept_id_2"].apply(set).to_dict(),
+    )
 
     # For each test concept, ask Portiere to predict the top-k SNOMED
     # standard concepts. We submit each ICD code's source string and

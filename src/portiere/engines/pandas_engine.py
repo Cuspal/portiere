@@ -136,12 +136,16 @@ class PandasEngine(AbstractEngine):
             profile["present_top_count"] = present_top_count
             profile["present_n_distinct"] = present_n_distinct
 
-            # Numeric distribution stats (report enrichment; None for non-numeric)
+            # Numeric distribution stats (report enrichment; None for non-numeric).
+            # Recompute from col_data rather than reusing `present`: mypy joins
+            # `present` across the string/non-string branches into a union that
+            # pandas-stubs rejects for numeric reductions.
             if pd.api.types.is_numeric_dtype(col_data) and present_count:
-                profile["num_min"] = float(present.min())
-                profile["num_max"] = float(present.max())
-                profile["num_mean"] = float(present.mean())
-                std = present.std()
+                num_series = col_data.dropna()
+                profile["num_min"] = float(num_series.min())
+                profile["num_max"] = float(num_series.max())
+                profile["num_mean"] = float(num_series.mean())
+                std = num_series.std()
                 profile["num_std"] = float(std) if pd.notna(std) else None
             else:
                 profile["num_min"] = None
