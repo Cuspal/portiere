@@ -7,7 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.1] - 2026-XX-XX
+## [0.4.0] - «RUN-AND-FILL: release date after benchmark measurement»
+
+The **"Trustworthy"** release. Turns "PHI never leaves your machine" into an executable, tested guarantee; ships value-level PHI scrubbing; finds and fixes a score-scale defect that invalidated the v0.3.x benchmark comparison; and adds the ablation harness, compliance documentation, Docker image, and published docs site.
+
+> **Measurement gate:** benchmark rows are pending re-measurement under the blending fix — see `docs/benchmarks/v0.4.0-measurement-runbook.md`. Do not tag this release while `grep -rn "RUN-AND-FILL" docs/ README.md CHANGELOG.md` returns matches.
+
+### Added
+
+- **Executable no-egress guarantee**:
+  - `PortiereConfig(offline=True)` (env: `PORTIERE_OFFLINE=true`) hard-fails construction if any provider could send data off-machine (remote LLM providers `openai`/`azure_openai`/`anthropic`/`bedrock`, remote embedding providers, non-local endpoints), listing every violation. Runtime re-checks (`assert_no_egress()`) in `Project` and the concept-mapper LLM factory close the post-construction-mutation gap.
+  - `portiere doctor` — environment + per-component egress posture (`LOCAL`/`REMOTE`); `--assert-no-egress` exits 1 on any egress-capable configuration. Runnable by a security reviewer or CI gate.
+- **Value-level PHI scrubbing** (`portiere.deid.PHIScrubber`, [docs/phi-scrubbing.md](docs/phi-scrubbing.md)): built-in regex backend (EMAIL/PHONE/MRN/NATIONAL_ID/DATE — zero new deps) + optional Presidio NER backend (`pip install "portiere-health[phi]"`) for person names; `redact`/`hash`/`surrogate` strategies; Stage-1 wiring via `ingest_source(..., scrub_phi=True)` (opt-in in v0.4.0, planned default-on in v1.0). Measured on bundled synthetic data: 100% recall on true PHI columns, 0 false positives on code/value columns.
+- **Reranker ablation harness**: `portiere benchmark athena-icd-snomed --reranker/--no-reranker` measures the cross-encoder's contribution per backend; `--reranker-model <hf-id>` evaluates alternative (biomedical) cross-encoders for the domain-reranker spike. Run rows now carry a `routing` field (auto/review/manual/unmapped counts) — the human-throughput proxy.
+- **Compliance documentation**: [COMPLIANCE.md](COMPLIANCE.md) (HIPAA/GDPR/PDPA posture, operator responsibilities, what Portiere does NOT do) and [docs/compliance-threat-model.md](docs/compliance-threat-model.md) (data-flow diagram, exact BYO-LLM egress payloads, STRIDE table).
+- **Docker**: `Dockerfile` + `docker-compose.yml` (compose sets `PORTIERE_OFFLINE=true`); CI `docker-smoke` job asserts the image builds and `doctor --assert-no-egress` passes in the default image.
+- **Excel deliverable workbooks** (`portiere workbook`, [docs/workbooks.md](docs/workbooks.md), `xlsx` extra): generated replacements for the three artifacts conversion teams hand-build — `profile` (White-Rabbit-parity scan: TOC, Table/Field Overview with numeric min/max/mean/std, per-source value-frequency sheets, optional `--scrub-phi`), `schema` (per-target-table working document with spec/type/vocabulary/description generated from the standard YAML, confidence + color-coded status, explicit `UNMAPPED` work queue, required-coverage Summary), `concepts` (OMOP `source_to_concept_map` + vocabulary + generated status counts + provenance readme). Engine profiles gain additive numeric stats (`num_min`/`num_max`/`num_mean`/`num_std`).
+- **Docs site**: mkdocs-material over the full `docs/` tree with GitHub Pages deploy workflow; new [comparison page](docs/comparison.md) (vs USAGI / White Rabbit / ETL frameworks, ICP statement, honest coverage framing).
+
+### Fixed
+
+- **Score-scale defect in cross-encoder blending** (`rerank_with_blending`): the 60/40 CE/retrieval blend used raw retrieval scores whose scales differ per backend (BM25 unbounded, cosine 0–1, RRF ≈ ≤0.033), so the v0.3.x published rows were effectively measured under three different regimes — retrieval-only (bm25s), ~60/40 (faiss), CE-only (hybrid). This explains hybrid scoring below both of its own inputs. The retrieval component is now min-max normalized per candidate list (`retrieval_score_norm`), making the blend scale-invariant. **All benchmark rows must be re-measured**; regression tests in `tests/test_reranker_blending.py`.
+- **Missing `click` base dependency** — the CLI was broken on a fresh `pip install portiere-health` (it worked only when another package happened to install click). Caught by the new Docker smoke test.
+- **Egress-check hardening** (adversarial-review findings, all regression-tested):
+  - endpoint locality is now decided by URL parsing with exact hostname comparison — the previous substring check called `https://localhost.evil.example.com` local;
+  - knowledge-layer service URLs (Elasticsearch / pgvector / MongoDB / Qdrant / Milvus) are now inspected — previously a remote vector DB passed `offline=True` silently; `mongodb+srv://` is always remote;
+  - the runtime offline gate now runs before ANY egress-capable client is constructed (previously only guarded the LLM verifier, after the knowledge/embedding clients were built);
+  - `embedding.provider="openai"` with a loopback `endpoint` (vLLM/LM Studio) is correctly treated as local; the LLM `openai` provider ignores `endpoint`, so it stays remote regardless.
+- **PHI scrubber hardening** (adversarial-review findings, all regression-tested): `surrogate` was a fixed rot-3 (trivially reversible) — now keyed off a per-instance salt; `hash` was unsalted (DOBs/SSNs recoverable by enumeration) — now salted (`salt=` for cross-run stability); the `entities` allow-list no longer lets a disallowed higher-priority recogniser swallow a span an allowed one would have scrubbed; PHONE now covers E.164 (`+15551234567`); DATE covers unpadded `M/D/YYYY`, dashed US, and `YYYY/MM/DD`; Presidio identifier types (passport/licence/NHS/Aadhaar/…) map into the compact vocabulary instead of being dropped by narrowing; Stage-1 scrubbing no longer coerces clean numeric `top_values` to strings.
+- **Local schema mapping ignored `target_model`** — `stage2_schema` constructed the mapper without the requested standard, so `fhir_r4` / `custom:` projects silently mapped against OMOP. Fixed + regression-tested (found while building the pipeline tutorials).
+- Benchmark bookkeeping: `--reranker-model` runs get their own row identity (no longer clobber the default row); `--no-reranker` is ignored for the usagi backend instead of writing a bogus duplicate row; `rerank_with_blending([])` returns `[]` instead of raising.
+
+### Security-honesty note
+
+Value-level scrubbing in v0.4.0 covers **profile-derived** payloads. Stage-2 schema mapping reads sample values from the raw dataframe and is not yet routed through the scrubber (planned v0.4.x); the structural control for that path is `offline=True`. Documented in `docs/phi-scrubbing.md` ("Scope in v0.4.0") and the threat model.
+
+### Changed
+
+- README/PyPI headline repositioned: **"Local-first clinical data mapping with human-in-the-loop review — PHI never leaves your machine."** AI is a feature, not the identity.
+- Benchmark doc restructured: v0.4.0 finding + ablation table pre-registered with «RUN-AND-FILL» markers; USAGI row instructions consolidated.
+
+## [0.3.2] - 2026-07-24
+
+The "profile report export" release. The profiling modules can now export an aggregated data-profile report — a self-contained HTML page plus long/summary CSVs — over one or more source profiles.
+
+### Added
+
+- **Profile report export** (`portiere.quality`):
+  - `build_source_profile(profile, *, source, system="")` maps an engine profile dict to a `SourceProfile` (with per-column `ColumnProfile` display rows).
+  - `export_profile_report(profiles, out_dir, *, title=..., formats=("html","csv","summary"))` writes `data_profile.html` (summary table with completeness bars + per-source column tables), `data_profile.csv` (per-column long form), and `data_profile_summary.csv` (per-source). Returns the written paths; all dynamic HTML is escaped.
+  - New `portiere profile-report SOURCES... -o OUT` CLI command: profiles each source with the default engine and writes the report. Options: `--format {csv,parquet,json}`, `--sample-n`, `--title`, `--system`, `--no-empty-as-missing`.
+- **Engine profile enrichment** (additive keys on `engine.profile()`, existing keys unchanged): `present_count`, `min_len`/`max_len`, `example`, `present_top_value`/`present_top_count`, `present_n_distinct`. `profile(..., empty_as_missing=True)` counts empty/whitespace strings as missing (default on); top value and distinct are computed over present values so the reported share never exceeds 100%. Implemented for the polars, pandas, and spark engines.
+
+## [0.3.1] - 2026-05-16
 
 The "review UI + reproducibility" release. Adds the Streamlit Mapping Review UI (schema-mapping page), `portiere replay --auto-replay`, mCODE STU3 2.0.0 profile validation, and a USAGI baseline row in the ICD→SNOMED benchmark.
 

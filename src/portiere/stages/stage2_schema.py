@@ -146,7 +146,12 @@ def _map_schema_local(
             "Either 'columns' or 'source_profile' must be provided for local schema mapping."
         )
 
-    mapper = LocalSchemaMapper(config)
+    # Resolve the requested target standard explicitly — LocalSchemaMapper's
+    # config fallback is the OMOP default, which silently ignored fhir_r4 /
+    # custom: targets (fixed in v0.4.0).
+    from portiere.models.target_model import get_target_model
+
+    mapper = LocalSchemaMapper(config, target_model=get_target_model(target_model))
     mappings = mapper.suggest(columns)
 
     return _build_result(mappings, config=config)

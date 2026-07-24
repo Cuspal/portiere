@@ -1,0 +1,21 @@
+# Portiere demo environment.
+#
+#   docker compose run --rm portiere doctor          # egress posture
+#   docker compose run --rm portiere quickstart      # offline end-to-end demo
+#   docker compose run --rm portiere profile-report /data/your.csv -o /data/report
+#
+# Put source files in ./data — it is mounted at /data inside the container.
+
+services:
+  portiere:
+    build: .
+    image: portiere:latest
+    environment:
+      # Structural no-egress guarantee: any remote provider config hard-fails.
+      PORTIERE_OFFLINE: "true"
+    volumes:
+      - ./data:/data
+      - portiere-cache:/home/portiere/.portiere
+
+volumes:
+  portiere-cache:

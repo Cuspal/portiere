@@ -61,3 +61,14 @@ jobs:
       - run: python -m build
       - run: pip install dist/*.whl
       - run: python -c "import portiere; print(f'portiere {portiere.__version__}')"
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t portiere:ci .
+      - name: CLI runs
+        run: docker run --rm portiere:ci --help
+      - name: No-egress guarantee holds in the default image
+        run: docker run --rm portiere:ci doctor --assert-no-egress

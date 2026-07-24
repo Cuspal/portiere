@@ -6,7 +6,6 @@ __pycache__/
 *.so
 # ignore Athena
 docs/notebooks_examples/example_assets/vocabulary_download_v5
-
 # Benchmark working artifacts — should never be in the repo
 **/_bench_index/
 bench_run.json
@@ -228,3 +227,19 @@ docs/notebooks_examples/source_to_concept_map.csv
 docs/notebooks_examples/concept_mapping_*.csv
 docs/notebooks_examples/schema_mapping_*.csv
 docs/notebooks_examples/data/
+
+# mkdocs build output
+site/
+
+# vendored third-party jars (USAGI baseline)
+vendor/
+
+# Licensed vocabulary exports (UMLS/AMA — never commit)
+docs/notebooks_examples/example_assets/vocabulary_download_v5/
+
+# Real-world example deliverables (may contain operational hospital data — never commit)
+examples/
+# private analysis + prototypes (never publish)
+gaps_analysis/
+data_profile.html
+profile_sources.py

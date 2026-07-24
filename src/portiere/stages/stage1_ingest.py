@@ -23,6 +23,8 @@ def ingest_source(
     format: str = "csv",
     options: dict | None = None,
     sample_n: int | None = None,
+    scrub_phi: bool = False,
+    phi_strategy: str = "redact",
 ) -> dict[str, Any]:
     """
     Ingest and profile source data.
@@ -34,6 +36,15 @@ def ingest_source(
         options: Format-specific options
         sample_n: If set, use a sample of n rows for column-level
             exploration. Row count is always exact from full data.
+        scrub_phi: If True, run the value-level PHI scrubber over the
+            value-bearing profile fields (examples, sample values, top values)
+            before returning — so profile artifacts and payloads built from
+            the profile dict never carry raw PHI. NOTE: Stage-2 schema mapping
+            reads sample values from the raw dataframe, not this profile —
+            that path is not covered by this flag in v0.4.0 (use offline mode
+            to prevent egress). Default off in v0.4.0 (opt-in); planned
+            default-on in v1.0.
+        phi_strategy: Scrub strategy — "redact", "hash", or "surrogate".
 
     Returns:
         Profile dict with schema, stats, detected columns
@@ -62,6 +73,10 @@ def ingest_source(
     # Detect PHI columns
     phi_columns = _detect_phi_columns(profile)
 
+    # Optional value-level PHI scrub of the profile's value-bearing fields
+    if scrub_phi:
+        _scrub_profile_values(profile, strategy=phi_strategy)
+
     result = {
         "row_count": profile["row_count"],
         "column_count": profile["column_count"],
@@ -81,6 +96,40 @@ def ingest_source(
     )
 
     return result
+
+
+def _scrub_profile_values(profile: dict, strategy: str = "redact") -> None:
+    """Scrub PHI from the value-bearing fields of a profile dict, in place.
+
+    Targets ``example``, ``present_top_value``, ``sample_values`` and the
+    values inside ``top_values`` — the fields that surface raw data in reports
+    and LLM-bound payloads.
+    """
+    from portiere.deid import PHIScrubber
+
+    scrubber = PHIScrubber(backend="auto", strategy=strategy)  # type: ignore[arg-type]
+
+    def _one(value: Any) -> Any:
+        if value is None:
+            return None
+        text = str(value)
+        # Only replace when something was detected — clean values keep their
+        # original type (an int top_value must not silently become "3").
+        if not scrubber.detect([text]):
+            return value
+        return scrubber.scrub_column([text])[0]
+
+    for col in profile.get("columns", []):
+        if col.get("example"):
+            col["example"] = _one(col["example"])
+        if col.get("present_top_value"):
+            col["present_top_value"] = _one(col["present_top_value"])
+        if col.get("sample_values"):
+            col["sample_values"] = [_one(v) for v in col["sample_values"]]
+        name = col.get("name")
+        for tv in col.get("top_values", []) or []:
+            if name in tv and tv[name] is not None:
+                tv[name] = _one(tv[name])
 
 
 def _detect_code_columns(profile: dict) -> list[str]:

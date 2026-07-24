@@ -26,19 +26,34 @@ from portiere.benchmarks.athena_icd_snomed.sampling import (
 from portiere.benchmarks.athena_icd_snomed.usagi_baseline import (
     run_usagi as _run_usagi_or_raise,
 )
-from portiere.config import EmbeddingConfig, KnowledgeLayerConfig, PortiereConfig
+from portiere.config import (
+    EmbeddingConfig,
+    KnowledgeLayerConfig,
+    PortiereConfig,
+    RerankerConfig,
+)
 from portiere.knowledge import build_knowledge_layer
 
 
 @dataclass
 class BenchmarkResult:
-    """Aggregate metrics for one benchmark run."""
+    """Aggregate metrics for one benchmark run.
+
+    ``routing`` (optional) is the human-throughput proxy: how many of the
+    test codes the confidence router placed in each tier
+    (``{"auto": .., "review": .., "manual": .., "unmapped": ..}``) at the
+    configured thresholds. NOTE: routing counts every submitted code whose
+    source id resolves — including codes with no gold "Maps to" rows, which
+    ``compute_metrics`` excludes from ``n``. Report the auto share against
+    ``sum(routing.values())``, not against ``n``.
+    """
 
     n: int
     top_1: float
     top_5: float
     top_10: float
     mrr: float
+    routing: dict[str, int] | None = None
 
 
 def compute_metrics(
@@ -119,6 +134,8 @@ def run_benchmark(
     k: int = 10,
     backend: str = "hybrid",
     stratify_by: str | None = None,
+    use_reranker: bool = True,
+    reranker_model: str | None = None,
 ) -> BenchmarkResult:
     """Run the ICD-10-CM → SNOMED benchmark against a real Athena export.
 
@@ -132,6 +149,13 @@ def run_benchmark(
         test_set_size: Size of in-memory test set (only used when
             ``test_set_path`` is None). Default 1000.
         k: Top-k cutoff for retrieval (default 10).
+        use_reranker: When False, disable the cross-encoder reranker
+            (``RerankerConfig(provider="none")``) so the run measures raw
+            retrieval. The on/off pair is the reranker-contribution ablation.
+            Ignored for the usagi backend.
+        reranker_model: Optional cross-encoder model id to evaluate instead of
+            the default (domain-reranker spike). Ignored when
+            ``use_reranker=False`` or for the usagi backend.
 
     Returns:
         :class:`BenchmarkResult` with n, top_1, top_5, top_10, mrr.
@@ -194,10 +218,17 @@ def run_benchmark(
     )
 
     embedding_cfg = EmbeddingConfig(provider="none") if backend == "bm25s" else EmbeddingConfig()
+    if not use_reranker:
+        reranker_cfg = RerankerConfig(provider="none", model="")
+    elif reranker_model:
+        reranker_cfg = RerankerConfig(provider="huggingface", model=reranker_model)
+    else:
+        reranker_cfg = RerankerConfig()
     config = PortiereConfig(
         local_project_dir=work_dir,
         knowledge_layer=KnowledgeLayerConfig(backend=cast(Any, backend), **knowledge_paths),
         embedding=embedding_cfg,
+        reranker=reranker_cfg,
     )
     project = portiere.init(
         name="bench-icd-snomed",
@@ -229,6 +260,7 @@ def run_benchmark(
     )
 
     predictions: dict[int, list[int]] = {}
+    routing = {"auto": 0, "review": 0, "manual": 0, "unmapped": 0}
     for item in concept_map.items:
         src_id = code_to_id.get(str(item.source_code))
         if src_id is None:
@@ -238,8 +270,17 @@ def run_benchmark(
         if item.target_concept_id and item.target_concept_id not in ranked:
             ranked.insert(0, item.target_concept_id)
         predictions[src_id] = ranked
+        # Human-throughput proxy: which confidence tier the router chose.
+        # ConceptMappingMethod is a str-enum; getattr(..., "value", ...) also
+        # tolerates a plain string.
+        method = getattr(item, "method", None)
+        method_str = getattr(method, "value", method)
+        if method_str in routing:
+            routing[method_str] += 1
 
-    return compute_metrics(predictions, gold)
+    result = compute_metrics(predictions, gold)
+    result.routing = routing
+    return result
 
 
 def append_run_to_expected_results(
@@ -248,15 +289,20 @@ def append_run_to_expected_results(
     backend: str,
     athena_release_date: str,
     out: str | Path,
+    use_reranker: bool = True,
+    reranker_model: str | None = None,
 ) -> None:
-    """Append (or replace) a single backend's run row in the multi-run JSON.
+    """Append (or replace) a single run row in the multi-run JSON.
 
     The top-level shape is::
 
         {"athena_release_date": "...", "runs": [{"backend": "...", ...}, ...]}
 
-    Re-running with the same ``backend`` overwrites that row so that
-    per-backend CLI invocations accumulate into one file.
+    Row identity is the ``(backend, reranker on/off, reranker_model)`` triple,
+    so reranker-ablation and domain-reranker-spike rows accumulate alongside
+    the default rows instead of replacing them. Default rows keep the legacy
+    shape (no ``reranker``/``reranker_model`` keys); reranker-off rows carry
+    ``"reranker": false``; alternative-model rows carry ``"reranker_model"``.
     """
     out = Path(out)
     if out.exists():
@@ -265,17 +311,30 @@ def append_run_to_expected_results(
         payload = {"athena_release_date": athena_release_date, "runs": []}
 
     payload["athena_release_date"] = athena_release_date
-    runs = [r for r in payload.get("runs", []) if r.get("backend") != backend]
-    runs.append(
-        {
-            "backend": backend,
-            "n": result.n,
-            "top_1": result.top_1,
-            "top_5": result.top_5,
-            "top_10": result.top_10,
-            "mrr": result.mrr,
-        }
-    )
+
+    def _same_row(r: dict) -> bool:
+        return (
+            r.get("backend") == backend
+            and r.get("reranker", True) is use_reranker
+            and r.get("reranker_model") == reranker_model
+        )
+
+    runs = [r for r in payload.get("runs", []) if not _same_row(r)]
+    row = {
+        "backend": backend,
+        "n": result.n,
+        "top_1": result.top_1,
+        "top_5": result.top_5,
+        "top_10": result.top_10,
+        "mrr": result.mrr,
+    }
+    if not use_reranker:
+        row["reranker"] = False
+    if reranker_model:
+        row["reranker_model"] = reranker_model
+    if result.routing is not None:
+        row["routing"] = result.routing
+    runs.append(row)
     payload["runs"] = runs
     out.write_text(json.dumps(payload, indent=2, sort_keys=True))
 

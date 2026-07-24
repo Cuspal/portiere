@@ -168,5 +168,5 @@ for r in report["plausibility_rule_results"]:
 ## See also
 
 - [`GXValidator` reference](documentations/02-unified-api-reference.md)
-- [Spec §4.1](../specs/2026-04-29-v0.2.0-release-design.md) — design rationale + alternatives considered
+- Spec §4.1 (v0.2.0 release design, maintainer archive) — design rationale + alternatives considered
 - Kahn et al., *A Harmonized Data Quality Assessment Terminology and Framework for the Secondary Use of Electronic Health Record Data*, eGEMs 2016 — the conceptual basis for the three-category model

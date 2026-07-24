@@ -205,3 +205,29 @@ class TestExtractCodeValues:
         extract_code_values(mock_engine, "/data/test.csv", "code_column", limit=100)
 
         mock_engine.get_distinct_values.assert_called_once_with("mock_df", "code_column", limit=100)
+
+
+class TestStage2TargetModelHonored:
+    """Regression: local schema mapping ignored the target_model argument and
+    always mapped against OMOP (stage2 constructed LocalSchemaMapper without
+    passing the target model)."""
+
+    def test_fhir_target_produces_fhir_entities(self):
+        from portiere.config import EmbeddingConfig, PortiereConfig, RerankerConfig
+        from portiere.stages.stage2_schema import map_schema
+
+        cfg = PortiereConfig(
+            embedding=EmbeddingConfig(provider="none"),
+            reranker=RerankerConfig(provider="none", model=""),
+        )
+        result = map_schema(
+            client=None,
+            target_model="fhir_r4",
+            config=cfg,
+            columns=[{"name": "admission_date", "type": "str"}],
+        )
+        m = result["mappings"][0]
+        # 'admission_date' is a FHIR Encounter.period source pattern; under the
+        # bug it landed on an OMOP table instead.
+        assert m["target_table"] == "Encounter", m
+        assert m["target_column"] == "period"

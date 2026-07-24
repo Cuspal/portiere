@@ -677,3 +677,171 @@ class TestStratifiedRunBenchmark:
         )
         assert result.exit_code != 0
         assert "claim-frequency" in result.output or "Invalid value" in result.output
+
+
+# ── reranker ablation (v0.4.0) ───────────────────────────────────
+
+
+class TestRerankerAblationRows:
+    def test_no_reranker_row_is_distinct_from_reranker_row(self, tmp_path):
+        import json
+
+        from portiere.benchmarks.athena_icd_snomed.runner import (
+            BenchmarkResult,
+            append_run_to_expected_results,
+        )
+
+        out = tmp_path / "expected_results.json"
+        append_run_to_expected_results(
+            BenchmarkResult(n=1000, top_1=0.288, top_5=0.528, top_10=0.553, mrr=0.382),
+            backend="bm25s",
+            athena_release_date="2026-04-30",
+            out=out,
+        )
+        append_run_to_expected_results(
+            BenchmarkResult(n=1000, top_1=0.301, top_5=0.540, top_10=0.560, mrr=0.395),
+            backend="bm25s",
+            use_reranker=False,
+            athena_release_date="2026-04-30",
+            out=out,
+        )
+
+        loaded = json.loads(out.read_text())
+        assert len(loaded["runs"]) == 2  # ablation row does NOT replace the on-row
+        off_rows = [r for r in loaded["runs"] if r.get("reranker") is False]
+        assert len(off_rows) == 1
+        assert off_rows[0]["top_1"] == 0.301
+        # reranker-on rows keep the legacy shape (no reranker key)
+        on_rows = [r for r in loaded["runs"] if "reranker" not in r]
+        assert len(on_rows) == 1
+
+    def test_rerunning_same_ablation_row_replaces_it(self, tmp_path):
+        import json
+
+        from portiere.benchmarks.athena_icd_snomed.runner import (
+            BenchmarkResult,
+            append_run_to_expected_results,
+        )
+
+        out = tmp_path / "expected_results.json"
+        for top1 in (0.301, 0.305):
+            append_run_to_expected_results(
+                BenchmarkResult(n=1000, top_1=top1, top_5=0.5, top_10=0.6, mrr=0.4),
+                backend="hybrid",
+                use_reranker=False,
+                athena_release_date="2026-04-30",
+                out=out,
+            )
+        loaded = json.loads(out.read_text())
+        assert len(loaded["runs"]) == 1
+        assert loaded["runs"][0]["top_1"] == 0.305
+
+
+class TestRerankerAblationCLI:
+    def test_no_reranker_flag_accepted(self):
+        from click.testing import CliRunner
+
+        from portiere.cli import cli
+
+        res = CliRunner().invoke(cli, ["benchmark", "athena-icd-snomed", "--help"])
+        assert res.exit_code == 0
+        assert "--no-reranker" in res.output
+
+    def test_run_benchmark_accepts_use_reranker_kwarg(self):
+        import inspect
+
+        from portiere.benchmarks.athena_icd_snomed.runner import run_benchmark
+
+        assert "use_reranker" in inspect.signature(run_benchmark).parameters
+
+
+class TestThroughputProxy:
+    def test_result_carries_optional_routing_counts(self):
+        from portiere.benchmarks.athena_icd_snomed.runner import BenchmarkResult
+
+        r = BenchmarkResult(
+            n=100,
+            top_1=0.3,
+            top_5=0.5,
+            top_10=0.6,
+            mrr=0.4,
+            routing={"auto": 20, "review": 50, "manual": 30},
+        )
+        assert r.routing["auto"] == 20
+        # default stays None so legacy construction is unchanged
+        r2 = BenchmarkResult(n=1, top_1=0, top_5=0, top_10=0, mrr=0)
+        assert r2.routing is None
+
+    def test_append_includes_routing_when_present(self, tmp_path):
+        import json
+
+        from portiere.benchmarks.athena_icd_snomed.runner import (
+            BenchmarkResult,
+            append_run_to_expected_results,
+        )
+
+        out = tmp_path / "expected_results.json"
+        append_run_to_expected_results(
+            BenchmarkResult(
+                n=100,
+                top_1=0.3,
+                top_5=0.5,
+                top_10=0.6,
+                mrr=0.4,
+                routing={"auto": 20, "review": 50, "manual": 30},
+            ),
+            backend="bm25s",
+            athena_release_date="2026-04-30",
+            out=out,
+        )
+        row = json.loads(out.read_text())["runs"][0]
+        assert row["routing"] == {"auto": 20, "review": 50, "manual": 30}
+
+
+class TestRerankerModelOverride:
+    def test_run_benchmark_accepts_reranker_model(self):
+        import inspect
+
+        from portiere.benchmarks.athena_icd_snomed.runner import run_benchmark
+
+        assert "reranker_model" in inspect.signature(run_benchmark).parameters
+
+    def test_cli_exposes_reranker_model(self):
+        from click.testing import CliRunner
+
+        from portiere.cli import cli
+
+        res = CliRunner().invoke(cli, ["benchmark", "athena-icd-snomed", "--help"])
+        assert res.exit_code == 0
+        assert "--reranker-model" in res.output
+
+
+class TestRerankerModelRowIdentity:
+    """Regression: a --reranker-model run must not clobber the default row."""
+
+    def test_alt_model_row_is_distinct(self, tmp_path):
+        import json
+
+        from portiere.benchmarks.athena_icd_snomed.runner import (
+            BenchmarkResult,
+            append_run_to_expected_results,
+        )
+
+        out = tmp_path / "expected_results.json"
+        append_run_to_expected_results(
+            BenchmarkResult(n=10, top_1=0.3, top_5=0.5, top_10=0.6, mrr=0.4),
+            backend="bm25s",
+            athena_release_date="2026-04-30",
+            out=out,
+        )
+        append_run_to_expected_results(
+            BenchmarkResult(n=10, top_1=0.35, top_5=0.55, top_10=0.65, mrr=0.45),
+            backend="bm25s",
+            reranker_model="ncbi/MedCPT-Cross-Encoder",
+            athena_release_date="2026-04-30",
+            out=out,
+        )
+        runs = json.loads(out.read_text())["runs"]
+        assert len(runs) == 2  # spike row did NOT replace the default row
+        alt = [r for r in runs if r.get("reranker_model")]
+        assert len(alt) == 1 and alt[0]["top_1"] == 0.35

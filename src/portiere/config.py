@@ -278,7 +278,53 @@ class PortiereConfig(BaseSettings):
     # Data quality (Great Expectations)
     quality: QualityConfig = Field(default_factory=QualityConfig)
 
+    # Offline / airgap mode — when True, any provider that would send data
+    # off-machine (remote LLM, remote embedding endpoint, ...) is rejected at
+    # construction AND at runtime (see assert_no_egress). This is the
+    # executable form of the "PHI never leaves your machine" guarantee.
+    offline: bool = False
+
     model_config = SettingsConfigDict(env_prefix="PORTIERE_", extra="allow")
+
+    @model_validator(mode="after")
+    def _enforce_offline(self) -> PortiereConfig:
+        """Reject remote providers when offline mode is asserted."""
+        if self.offline:
+            from portiere.egress import egress_violations
+            from portiere.exceptions import ConfigurationError
+
+            violations = egress_violations(self)
+            if violations:
+                raise ConfigurationError(
+                    "offline=True but the configuration would send data "
+                    "off-machine: " + "; ".join(violations) + ". "
+                    "Use local providers (huggingface, ollama, none) or "
+                    "unset offline."
+                )
+        return self
+
+    def assert_no_egress(self) -> None:
+        """Runtime re-check of the offline guarantee.
+
+        Construction-time validation can be bypassed by mutating the config
+        afterwards; call this at client-factory time to close that gap. No-op
+        when ``offline`` is False.
+
+        Raises:
+            ConfigurationError: offline is asserted and a remote provider is
+                configured.
+        """
+        if not self.offline:
+            return
+        from portiere.egress import egress_violations
+        from portiere.exceptions import ConfigurationError
+
+        violations = egress_violations(self)
+        if violations:
+            raise ConfigurationError(
+                "offline mode violation — configuration would send data "
+                "off-machine: " + "; ".join(violations)
+            )
 
     @model_validator(mode="after")
     def _resolve_embedding_reranker(self) -> PortiereConfig:

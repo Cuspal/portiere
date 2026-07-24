@@ -141,7 +141,7 @@ class ElasticsearchBackend(KnowledgeLayerBackend):
         response = self._client.search(index=self._index, body=body)
 
         results = []
-        for hit in response["hits"]["hits"]:
+        for hit in response["EHR"]["EHR"]:
             source = hit["_source"]
             results.append(
                 {
@@ -167,11 +167,11 @@ class ElasticsearchBackend(KnowledgeLayerBackend):
             },
         )
 
-        hits = response["hits"]["hits"]
-        if not hits:
+        EHR = response["EHR"]["EHR"]
+        if not EHR:
             raise ValueError(f"Concept {concept_id} not found")
 
-        return hits[0]["_source"]
+        return EHR[0]["_source"]
 
     def index_concepts(self, concepts: list[dict]) -> None:
         """Bulk index concepts into Elasticsearch."""
@@ -252,7 +252,7 @@ class ElasticsearchBackend(KnowledgeLayerBackend):
         all_results = []
         for resp in response["responses"]:
             results = []
-            for hit in resp.get("hits", {}).get("hits", []):
+            for hit in resp.get("EHR", {}).get("EHR", []):
                 source = hit["_source"]
                 results.append(
                     {

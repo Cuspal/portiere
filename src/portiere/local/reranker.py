@@ -148,15 +148,31 @@ class LocalReranker:
         Returns:
             Reranked candidates with blended 'score'
         """
+        if not candidates:
+            return []
+
         reranked = self.rerank(query, candidates, top_k=len(candidates), text_field=text_field)
 
-        for r in reranked:
+        # Min-max normalize retrieval scores across THIS candidate list so the
+        # blend is scale-invariant. Raw scales differ wildly per backend —
+        # BM25 is unbounded (5-30+), FAISS cosine is 0-1, hybrid RRF maxes out
+        # near 2/(k+1) ≈ 0.033 — and blending raw values made the advertised
+        # 60/40 weighting effectively retrieval-only for BM25 and CE-only for
+        # hybrid (the v0.3.x benchmark rows were measured under three different
+        # regimes because of this).
+        raw = [r.get("rrf_score", r.get("score", 0)) for r in reranked]
+        lo, hi = min(raw), max(raw)
+        span = hi - lo
+
+        for r, raw_score in zip(reranked, raw):
             ce_raw = r.get("cross_encoder_score", 0)
-            retrieval_score = r.get("rrf_score", r.get("score", 0))
             # Sigmoid normalize CE score (raw logits can be negative/unbounded)
             ce_norm = 1.0 / (1.0 + math.exp(-ce_raw))
+            # All-equal retrieval scores carry no ranking signal — neutral 0.5
+            retrieval_norm = (raw_score - lo) / span if span > 0 else 0.5
+            r["retrieval_score_norm"] = round(retrieval_norm, 4)
             # Blend
-            r["score"] = round(ce_weight * ce_norm + retrieval_weight * retrieval_score, 4)
+            r["score"] = round(ce_weight * ce_norm + retrieval_weight * retrieval_norm, 4)
 
         # Re-sort by blended score
         reranked.sort(key=lambda x: x["score"], reverse=True)
