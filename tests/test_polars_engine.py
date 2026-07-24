@@ -160,3 +160,57 @@ class TestPolarsEngineMisc:
         mapping = {"M": 8507, "F": 8532}
         result = engine.map_column(df, "gender", mapping, "gender_concept_id", default=0)
         assert "gender_concept_id" in result.columns
+
+
+class TestPolarsEngineEnrichment:
+    def test_profile_enrichment(self, engine):
+        import polars as pl
+
+        df = pl.DataFrame({"code": ["A", " ", "", None, "BB"], "n": [1, 2, 3, 4, 5]})
+        cols = {c["name"]: c for c in engine.profile(df)["columns"]}
+        # "A","BB" present; " ","" whitespace/empty and None are missing
+        assert cols["code"]["present_count"] == 2
+        assert cols["code"]["min_len"] == 1
+        assert cols["code"]["max_len"] == 2
+        assert cols["code"]["example"] == "A"
+        # numeric column: only nulls are missing
+        assert cols["n"]["present_count"] == 5
+        # existing keys unchanged
+        assert cols["n"]["null_pct"] == 0.0
+
+    def test_profile_empty_as_missing_off(self, engine):
+        import polars as pl
+
+        df = pl.DataFrame({"code": ["A", " ", "", None]})
+        cols = {c["name"]: c for c in engine.profile(df, empty_as_missing=False)["columns"]}
+        # only None missing when empty_as_missing is off
+        assert cols["code"]["present_count"] == 3
+
+
+class TestPolarsEnginePresentTop:
+    def test_top_value_over_present_excludes_empty(self, engine):
+        import polars as pl
+
+        # "" is the single most common raw value, but the present top must be a
+        # real value with share <= 100%.
+        df = pl.DataFrame({"race": ["", "", "", "", "White", "White", "Asian"]})
+        col = engine.profile(df)["columns"][0]
+        assert col["present_top_value"] == "White"
+        assert col["present_top_count"] == 2
+        assert col["present_n_distinct"] == 2  # White, Asian (empty excluded)
+        # share stays within bounds: 2 present-top / 3 present = 66.7%
+        assert col["present_top_count"] <= col["present_count"]
+
+
+class TestPolarsEngineNumericStats:
+    def test_numeric_stats_present(self, engine):
+        import polars as pl
+
+        df = pl.DataFrame({"age": [10, 20, 30, 40], "name": ["a", "b", "c", "d"]})
+        cols = {c["name"]: c for c in engine.profile(df)["columns"]}
+        assert cols["age"]["num_min"] == 10.0
+        assert cols["age"]["num_max"] == 40.0
+        assert cols["age"]["num_mean"] == 25.0
+        assert cols["age"]["num_std"] is not None
+        # string columns carry no numeric stats
+        assert cols["name"]["num_mean"] is None

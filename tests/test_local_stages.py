@@ -80,7 +80,13 @@ class TestStage2MapSchemaLocal:
 
         result = map_schema(config=config, columns=columns)
 
-        mock_mapper_cls.assert_called_once_with(config)
+        # Since v0.4.0 the requested target standard is resolved explicitly and
+        # passed to the mapper (previously the config OMOP default silently won
+        # for fhir_r4/custom targets).
+        assert mock_mapper_cls.call_count == 1
+        call_args, call_kwargs = mock_mapper_cls.call_args
+        assert call_args[0] is config
+        assert call_kwargs["target_model"].name == "omop_cdm_v5.4"
         mock_mapper.suggest.assert_called_once_with(columns)
         assert "mappings" in result
         assert "stats" in result

@@ -127,6 +127,6 @@ It does **not** answer "what were the per-row mapping decisions" — those live 
 
 ## See also
 
-- [Spec §4.2](../specs/2026-04-29-v0.2.0-release-design.md) — full design rationale
+- Spec §4.2 (v0.2.0 release design, maintainer archive) — full design rationale
 - [`portiere replay` CLI](documentations/02-unified-api-reference.md) — invocation reference
 - [Quickstart manifest example](notebooks_examples/17_reproducibility_manifest.ipynb) — interactive walkthrough

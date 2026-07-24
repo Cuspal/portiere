@@ -15,11 +15,55 @@ The USAGI row is populated by a manual one-time run against the user's Athena ex
 
 Athena release: `2026-04-30`. Numbers are the source-of-truth values from `src/portiere/benchmarks/athena_icd_snomed/expected_results.json`.
 
-**Honest result:** BM25 wins. On ICD-10-CM → SNOMED, the gold mapping shares vocabulary with the source — there's strong lexical overlap between an ICD description and its target SNOMED description — so a tuned sparse retriever beats both SapBERT-FAISS and the hybrid RRF combiner. The hybrid is dragged below BM25 by the weaker FAISS component when RRF averages ranks across retrievers.
+**Honest result:** BM25 wins. On ICD-10-CM → SNOMED, the gold mapping shares vocabulary with the source — there's strong lexical overlap between an ICD description and its target SNOMED description — so a tuned sparse retriever beats both SapBERT-FAISS and the hybrid RRF combiner.
+
+> **⚠️ v0.4.0 finding — the v0.3.x rows above were measured under a score-scale defect and must be re-measured.**
+>
+> The published pipeline blends cross-encoder scores with retrieval scores
+> (60/40). Pre-v0.4.0, the blend used **raw** retrieval scores, whose scales
+> differ wildly per backend: BM25 is unbounded (5–30+), FAISS cosine is 0–1,
+> and hybrid RRF maxes out near 2/(k+1) ≈ 0.033. In effect the three rows were
+> measured under **three different blending regimes**:
+>
+> | Backend | Effective regime |
+> |---|---|
+> | bm25s | retrieval-only (raw BM25 dwarfs the ≤0.6 CE term) |
+> | faiss | roughly the advertised 60/40 blend |
+> | hybrid | CE-only (RRF term numerically negligible) |
+>
+> This mechanism explains the anomaly of hybrid (0.251) scoring below **both**
+> of its own inputs — its ranking was fully controlled by
+> `cross-encoder/ms-marco-MiniLM-L-6-v2`, a general-purpose *web-search*
+> reranker applied to clinical terminology. It also means BM25's win was
+> partly an accident of scale: it was *protected* from the mismatched
+> reranker rather than blended with it.
+>
+> v0.4.0 fixes the blend (per-list min-max normalization of the retrieval
+> component; regression-tested in `tests/test_reranker_blending.py`) and adds
+> `--reranker/--no-reranker` so the reranker's contribution is measurable in
+> isolation. All rows below the fix are «RUN-AND-FILL» pending re-measurement —
+> see the v0.4.0 measurement runbook (`docs/benchmarks/v0.4.0-measurement-runbook.md`).
+
+### Reranker ablation (v0.4.0 — «RUN-AND-FILL»)
+
+| Backend | Reranker | top-1 | top-5 | top-10 | MRR | N |
+|---|---|------:|------:|-------:|----:|---:|
+| bm25s  | on  | «RUN-AND-FILL» | | | | 1,000 |
+| bm25s  | off | «RUN-AND-FILL» | | | | 1,000 |
+| faiss  | on  | «RUN-AND-FILL» | | | | 1,000 |
+| faiss  | off | «RUN-AND-FILL» | | | | 1,000 |
+| hybrid | on  | «RUN-AND-FILL» | | | | 1,000 |
+| hybrid | off | «RUN-AND-FILL» | | | | 1,000 |
+
+The on/off delta per backend attributes the cross-encoder's contribution. The
+interpretation branches are pre-registered in
+`specs/2026-07-24-v0.4.0-trustworthy-release-design.md` §4 (A2): reranker hurts →
+swap to a biomedical cross-encoder; neutral → consider `provider="none"` default;
+helps → retrieval is the ceiling and the human-throughput framing leads.
 
 This shape is consistent with the published medical-IR literature: dense retrieval shines on noisy free-text queries (clinical notes, patient-described symptoms) where lexical overlap is low. On structured code-to-code tasks like this one, lexical retrieval is the right default.
 
-We publish all three rows so users can pick the right backend for their actual data, not just the one that wins this specific benchmark.
+We publish all rows so users can pick the right backend for their actual data, not just the one that wins this specific benchmark.
 
 Reproduce any row:
 
@@ -56,8 +100,8 @@ Then run the baseline backend just like the others — it slots into the same `e
 
 - **Source pool:** ICD-10-CM concepts in `CONCEPT.csv` that have at least one `Maps to` row in `CONCEPT_RELATIONSHIP.csv`. (Some ICD-10-CM codes have no Maps-to in Athena and are excluded — there's nothing to score against.)
 - **Sampling:** random sample of N=1,000 with `seed=42`. v0.3.0 adds opt-in proportional stratification by Athena domain — pass `--stratify-by domain` to the CLI. Default behavior (uniform random) is unchanged from v0.2.1 so the published rows above remain reproducible.
-- **Persistence:** the held-out concept_ids are committed at [`benchmarks/athena_icd_snomed/gold_test_set.csv`](../../benchmarks/athena_icd_snomed/gold_test_set.csv) — **integer IDs only, no Athena content**, so the file is license-clean to ship.
-- **Generation:** [`scripts/build_benchmark_test_set.py`](../../scripts/build_benchmark_test_set.py) regenerates the test set deterministically from any Athena export. Run once at release-prep time and commit the output.
+- **Persistence:** the held-out concept_ids are committed at [`benchmarks/athena_icd_snomed/gold_test_set.csv`](https://github.com/Cuspal/portiere/blob/main/src/portiere/benchmarks/athena_icd_snomed/gold_test_set.csv) — **integer IDs only, no Athena content**, so the file is license-clean to ship.
+- **Generation:** [`scripts/build_benchmark_test_set.py`](https://github.com/Cuspal/portiere/blob/main/scripts/build_benchmark_test_set.py) regenerates the test set deterministically from any Athena export. Run once at release-prep time and commit the output.
 
 ### Knowledge layer
 
@@ -130,6 +174,6 @@ Synthea round-trip and BC5CDR (the alternatives we considered) are appealing for
 
 ## See also
 
-- [Spec §4.4](../../specs/2026-04-29-v0.2.0-release-design.md) — full benchmark design rationale + alternatives considered
+- Spec §4.4 (v0.2.0 release design, maintainer archive) — full benchmark design rationale + alternatives considered
 - [`portiere benchmark` CLI reference](../documentations/02-unified-api-reference.md)
-- [`benchmarks/athena_icd_snomed/runner.py`](../../benchmarks/athena_icd_snomed/runner.py) — the harness implementation
+- [`benchmarks/athena_icd_snomed/runner.py`](https://github.com/Cuspal/portiere/blob/main/src/portiere/benchmarks/athena_icd_snomed/runner.py) — the harness implementation

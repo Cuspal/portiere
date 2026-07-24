@@ -57,6 +57,12 @@ class LocalConceptMapper:
         if self._initialized:
             return
 
+        # Runtime offline gate: refuse to build ANY egress-capable client
+        # (knowledge backend, embedding gateway, LLM verifier) when offline
+        # mode is asserted — closes the post-construction config-mutation gap
+        # before the first component is constructed.
+        self._config.assert_no_egress()
+
         # 1. Knowledge layer backend
         if self._config.knowledge_layer is not None:
             from portiere.knowledge.factory import create_knowledge_backend_from_config
@@ -79,7 +85,7 @@ class LocalConceptMapper:
 
         verifier = None
         if self._config.llm.provider != "none":
-            # User has configured a BYO-LLM — use it for verification
+            # User has configured a BYO-LLM — use it for verification.
             from portiere.local.llm_verifier import LocalLLMVerifier
 
             verifier = LocalLLMVerifier(self._config.llm)

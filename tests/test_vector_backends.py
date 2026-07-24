@@ -633,7 +633,7 @@ class TestMilvusBackend:
         backend._collection_name = "test"
 
         mock_client = MagicMock()
-        # Milvus search returns list of lists of hits
+        # Milvus search returns list of lists of EHR
         mock_client.search.return_value = [
             [
                 {

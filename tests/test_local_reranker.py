@@ -178,7 +178,12 @@ class TestLocalRerankerBlending:
         return reranker, mock_model
 
     def test_blending_formula(self, reranker_with_mock_model):
-        """Test 60% CE + 40% retrieval blending."""
+        """Test 60% CE + 40% retrieval blending (retrieval min-max normalized).
+
+        Since v0.4.0 the retrieval component is normalized across the candidate
+        list so the blend is scale-invariant across backends (raw BM25 vs
+        cosine vs RRF scales — see test_reranker_blending.py).
+        """
         reranker, mock_model = reranker_with_mock_model
 
         candidates = [
@@ -190,28 +195,28 @@ class TestLocalRerankerBlending:
 
         result = reranker.rerank_with_blending("query", candidates, top_k=2)
 
-        # Verify blending formula for first result
+        # min-max over [0.8, 0.6] -> A: 1.0, B: 0.0
         for r in result:
             ce_raw = r["cross_encoder_score"]
             ce_norm = 1.0 / (1.0 + math.exp(-ce_raw))
-            retrieval = candidates[0]["score"] if r["concept_id"] == 1 else candidates[1]["score"]
-            expected = round(0.6 * ce_norm + 0.4 * retrieval, 4)
+            retrieval_norm = 1.0 if r["concept_id"] == 1 else 0.0
+            expected = round(0.6 * ce_norm + 0.4 * retrieval_norm, 4)
             assert r["score"] == expected
 
     def test_blending_uses_rrf_score_if_present(self, reranker_with_mock_model):
+        """rrf_score (when present) drives the retrieval component, not score."""
         reranker, mock_model = reranker_with_mock_model
 
         candidates = [
             {"concept_name": "A", "concept_id": 1, "score": 0.5, "rrf_score": 0.9},
+            {"concept_name": "B", "concept_id": 2, "score": 0.9, "rrf_score": 0.1},
         ]
-        mock_model.predict.return_value = [0.0]
+        mock_model.predict.return_value = [0.0, 0.0]  # equal CE — retrieval decides
 
         result = reranker.rerank_with_blending("query", candidates)
 
-        # Should use rrf_score (0.9) not score (0.5) for retrieval component
-        ce_norm = 1.0 / (1.0 + math.exp(0))  # sigmoid(0) = 0.5
-        expected = round(0.6 * ce_norm + 0.4 * 0.9, 4)
-        assert result[0]["score"] == expected
+        # Ranking follows rrf_score (A first), not the raw score field (B higher)
+        assert [r["concept_id"] for r in result] == [1, 2]
 
     def test_blending_sorted_by_blended_score(self, reranker_with_mock_model):
         reranker, mock_model = reranker_with_mock_model

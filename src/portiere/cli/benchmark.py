@@ -74,6 +74,26 @@ def benchmark_group() -> None:
     default=1000,
     help="Held-out test-set size when generating in-memory (default 1000).",
 )
+@click.option(
+    "--reranker/--no-reranker",
+    "use_reranker",
+    default=True,
+    show_default=True,
+    help=(
+        "Enable/disable the cross-encoder reranker. Run each backend with "
+        "both settings to produce the reranker-contribution ablation. "
+        "Ignored for --backend usagi."
+    ),
+)
+@click.option(
+    "--reranker-model",
+    default=None,
+    help=(
+        "Evaluate an alternative cross-encoder model id (domain-reranker "
+        "spike), e.g. ncbi/MedCPT-Cross-Encoder. Default: the configured "
+        "RerankerConfig model."
+    ),
+)
 def athena_icd_snomed(
     athena_dir: str,
     test_set: str | None,
@@ -82,12 +102,15 @@ def athena_icd_snomed(
     out: str,
     athena_release_date: str | None,
     test_set_size: int,
+    use_reranker: bool,
+    reranker_model: str | None,
 ) -> None:
     """Run the ICD-10-CM → SNOMED concept mapping benchmark for one backend.
 
     Run with each of --backend bm25s, --backend faiss, --backend hybrid
-    to populate the 3-row ablation table. Each invocation appends (or
-    replaces) its row in the output JSON's "runs" array.
+    (optionally each with --no-reranker for the ablation) to populate the
+    results table. Each invocation appends (or replaces) its row in the
+    output JSON's "runs" array.
     """
     import datetime as _dt
 
@@ -134,12 +157,21 @@ def athena_icd_snomed(
         test_set_size=test_set_size,
         backend=backend,
         stratify_by=stratify_by,
+        use_reranker=use_reranker,
+        reranker_model=reranker_model,
     )
+    # usagi bypasses Portiere's pipeline entirely — reranker flags are
+    # meaningless there and must not create a bogus duplicate ablation row.
+    if backend == "usagi":
+        use_reranker = True
+        reranker_model = None
     append_run_to_expected_results(
         result,
         backend=backend,
         athena_release_date=athena_release_date,
         out=out,
+        use_reranker=use_reranker,
+        reranker_model=reranker_model,
     )
 
     click.echo()

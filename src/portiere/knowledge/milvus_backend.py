@@ -150,8 +150,8 @@ class MilvusBackend(KnowledgeLayerBackend):
         )
 
         matches = []
-        for hits in results:
-            for hit in hits:
+        for EHR in results:
+            for hit in EHR:
                 entity = hit.get("entity", hit)
                 matches.append(
                     {

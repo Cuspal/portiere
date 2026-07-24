@@ -5,7 +5,7 @@
 <h1 align="center">Portiere</h1>
 
 <p align="center">
-  <strong>AI-Powered Clinical and Health Data Mapping Tool</strong>
+  <strong>Local-first clinical data mapping with human-in-the-loop review — PHI never leaves your machine.</strong>
 </p>
 
 <p align="center">
@@ -30,7 +30,15 @@
 
 Mapping clinical data to standard models like **OMOP CDM**, **FHIR R4**, **HL7 v2**, and **OpenEHR** is one of the most time-consuming and error-prone tasks in health informatics. It typically requires domain experts to manually map hundreds of source fields and thousands of clinical codes — a process that can take weeks or months.
 
-**Portiere** automates this with an AI-powered 5-stage pipeline that handles schema mapping, concept mapping, ETL generation, and data quality validation — all running locally on your machine with no cloud dependency required.
+**Portiere** puts that work on rails: a 5-stage pipeline (profiling, schema mapping, concept mapping, ETL generation, validation) that runs **entirely on your own infrastructure** and routes every mapping to the right tier — auto-accept, needs-review, or manual — so your terminologists spend their time only where judgment is required. AI (clinical embeddings, reranking, optional BYO-LLM verification) assists the process; it never replaces the reviewer, and it never requires a cloud.
+
+Since v0.4.0 the data-sovereignty claim is **executable, not aspirational**:
+
+```bash
+portiere doctor --assert-no-egress   # exit 0 ⇒ this configuration cannot send data anywhere
+```
+
+`PortiereConfig(offline=True)` structurally rejects any remote-provider configuration ([COMPLIANCE.md](COMPLIANCE.md) · [threat model](docs/compliance-threat-model.md)), and value-level [PHI scrubbing](docs/phi-scrubbing.md) cleans examples and samples before they reach any artifact or prompt.
 
 ```mermaid
 flowchart LR
@@ -165,6 +173,15 @@ Portiere implements a **5-stage AI pipeline** for clinical data transformation:
 ### Stage 1: Ingest & Profile
 
 Connects to your data source (CSV, Parquet, databases) and extracts schema metadata — column names, types, cardinality, detected code columns, and PHI indicators.
+
+Export an aggregated **data-profile report** (HTML + CSV) across one or more sources *(v0.3.2)*:
+
+```bash
+portiere profile-report data/*.parquet -o outputs/ --format parquet --system HIS
+# → outputs/data_profile.html, data_profile.csv, data_profile_summary.csv
+```
+
+The report shows per-source completeness bars and, per column, presence / missing / distinct / top value (share) / value-length / example. For the Excel deliverables teams actually exchange — a White-Rabbit-parity scan workbook, the per-table schema-mapping working document, and the OMOP source_to_concept_map workbook — see `portiere workbook` ([docs/workbooks.md](docs/workbooks.md), `xlsx` extra) *(v0.4.0)*. Empty and whitespace-only strings count as missing by default (`--no-empty-as-missing` to count only true nulls). Also available from Python via `portiere.quality.build_source_profile` + `export_profile_report`.
 
 ### Stage 2: Schema Mapping
 
@@ -352,7 +369,7 @@ Built-in OMOP patterns include common aliases:
 | `admit_date`, `admittime` | `visit_occurrence.visit_start_date` |
 | `drug_code`, `ndc`, `medication_code` | `drug_exposure.drug_source_value` |
 
-**To maximize pattern hits in your own standard**, add all known aliases to `source_patterns` in your YAML:
+**To maximize pattern EHR in your own standard**, add all known aliases to `source_patterns` in your YAML:
 
 ```yaml
 source_patterns:
@@ -620,19 +637,20 @@ For a programmatic listing: `python -c "from portiere.standards import YAMLTarge
 
 Portiere is in active development. Current limitations (will be addressed in upcoming releases):
 
-- **Standards coverage is partial.** OMOP CDM v5.4: 19 of ~37 tables. FHIR R4: 18 of 145 resources. PRs to extend coverage are welcome.
-- **FHIR profile coverage is US Core + mCODE only.** v0.3.0 validates against US Core 6.1.0 (10 resource types); v0.3.1 adds mCODE STU3 2.0.0 (5 oncology profiles). IPS, mCODE-extended (treatments, additional staging) **planned for v0.3.2.**
-- **Mapping Review UI covers schema mappings.** v0.3.1 ships the Streamlit-based UI for schema-mapping review (approve / override / reject); concept-mapping review **planned for v0.3.2.**
-- **No PHI scrubbing.** PHI detection is column-name-pattern only — not a redactor. Free-text PHI scrubbing (Microsoft Presidio integration, HIPAA Safe Harbor) **planned for v0.4.0.**
+- **Standards coverage is partial.** OMOP CDM v5.4: 19 of ~37 tables — but the covered set includes the core clinical-event tables that carry most rows in a typical conversion (`person`, `visit_occurrence`, `condition_occurrence`, `drug_exposure`, `measurement`, `observation`, `procedure_occurrence`). FHIR R4: 18 of 145 resources. Check the [support matrix](docs/documentations/20-multi-standard-support.md) against your protocol; PRs to extend coverage are welcome. See [how Portiere compares](docs/comparison.md).
+- **FHIR profile coverage is US Core + mCODE only.** v0.3.0 validates against US Core 6.1.0 (10 resource types); v0.3.1 adds mCODE STU3 2.0.0 (5 oncology profiles). IPS, mCODE-extended (treatments, additional staging) **planned for v0.5.0.**
+- **Mapping Review UI covers schema mappings.** v0.3.1 ships the Streamlit-based UI for schema-mapping review (approve / override / reject); concept-mapping review **planned for v0.4.x.**
+- **PHI scrubbing is opt-in and structural-first.** v0.4.0 ships value-level detection/scrubbing ([docs/phi-scrubbing.md](docs/phi-scrubbing.md)): a built-in regex backend (email/phone/MRN/national-ID/date) plus optional Presidio NER (`[phi]` extra) for person names. Off by default in v0.4.0 (`scrub_phi=True` to enable); planned default-on in v1.0. Unlabeled free-text names require the NER extra.
 - **SNOMED CT and CPT-4 not bundled.** Both have licensing constraints. `portiere quickstart` operates on bundled ICD-10-CM/LOINC/RxNorm only; for SNOMED, see [vocabulary setup](docs/documentations/15-vocabulary-setup.md).
 - **Replay reproduces stages best-effort.** `portiere replay --auto-replay` re-runs deterministic stages (ingest, validate) and records LLM-bound stages (schema, concept, ETL) as `UNAVAILABLE`. Full BYO-LLM rehydration **planned for v0.3.x.** Within-tolerance outputs may still differ ±1% due to LLM sampling. See [reproducibility guide](docs/reproducibility.md).
 - **Benchmark coverage.** v0.3.1 publishes the ICD-10-CM → SNOMED 4-row ablation (BM25 / FAISS / hybrid / USAGI baseline). LOINC / RxNorm pairs **planned for v0.3.x.**
 
 ## Roadmap
 
-- **v0.3.2 (next):** Concept-mapping page in the Review UI (with bulk actions); mCODE-extended (treatments, surgical procedures, additional staging systems); IPS profile; strict ValueSet binding mode (`--strict-bindings`).
+- **v0.3.2 (shipped):** aggregated data-profile report export (`portiere profile-report`, HTML + CSV) with additive engine profile enrichment.
 - **v0.3.x:** Full BYO-LLM rehydration for `replay --auto-replay` LLM-bound stages; additional benchmark pairs (LOINC, RxNorm); active-learning loop on review-UI override decisions.
-- **v0.4.0:** PHI scrubber (Microsoft Presidio, HIPAA Safe Harbor); MCP / LangChain / dbt integration surface.
+- **v0.4.0 (this release):** executable no-egress guarantee (`offline` mode + `portiere doctor`); value-level PHI scrubber; compliance docs (COMPLIANCE.md + threat model); reranker-ablation harness + score-blending fix; Docker; published docs site.
+- **v0.4.x:** MCP / LangChain / dbt integration surface; benchmark re-measurement + domain-reranker decision.
 - **v0.5.0+:** PCORnet / Sentinel / i2b2 / CDISC SDTM CDMs; clinical NLP path (scispaCy / GLiNER-clinical); OHDSI DataQualityDashboard parity.
 
 Each release tracks via GitHub Milestones; please open issues or PRs against the relevant milestone. See [specs/](specs/) for the design docs behind each release.
@@ -675,7 +693,7 @@ portiere review <project-dir>        # opens http://127.0.0.1:8501
 
 Reviewer actions: **approve** (accept AI suggestion), **reject** (mark unmappable), **override** (replace with `table.column`). Decisions persist to `<project_dir>/schema_mappings/schema_mapping_reviewed.json` next to the original — originals never modified. Local-only by default (no auth); `--host 0.0.0.0` opt-in for LAN demos.
 
-See: [docs/mapping-review-ui.md](docs/mapping-review-ui.md). Concept-mapping review **coming in v0.3.2.**
+See: [docs/mapping-review-ui.md](docs/mapping-review-ui.md). Concept-mapping review **planned for v0.4.x.**
 
 ## Reproducibility (v0.3.1)
 

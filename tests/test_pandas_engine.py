@@ -651,3 +651,38 @@ class TestEdgeCases:
 
         assert columns["all_null"]["null_count"] == 3
         assert columns["all_null"]["null_pct"] == 100.0
+
+
+class TestPandasEngineEnrichment:
+    def test_profile_enrichment(self):
+        import pandas as pd
+
+        engine = PandasEngine()
+        df = pd.DataFrame({"code": ["A", " ", "", None, "BB"], "n": [1, 2, 3, 4, 5]})
+        cols = {c["name"]: c for c in engine.profile(df)["columns"]}
+        assert cols["code"]["present_count"] == 2
+        assert cols["code"]["min_len"] == 1
+        assert cols["code"]["max_len"] == 2
+        assert cols["code"]["example"] == "A"
+        assert cols["n"]["present_count"] == 5
+
+    def test_profile_empty_as_missing_off(self):
+        import pandas as pd
+
+        engine = PandasEngine()
+        df = pd.DataFrame({"code": ["A", " ", "", None]})
+        cols = {c["name"]: c for c in engine.profile(df, empty_as_missing=False)["columns"]}
+        assert cols["code"]["present_count"] == 3
+
+
+class TestPandasEngineNumericStats:
+    def test_numeric_stats_present(self):
+        import pandas as pd
+
+        engine = PandasEngine()
+        df = pd.DataFrame({"age": [10, 20, 30, 40], "name": ["a", "b", "c", "d"]})
+        cols = {c["name"]: c for c in engine.profile(df)["columns"]}
+        assert cols["age"]["num_min"] == 10.0
+        assert cols["age"]["num_max"] == 40.0
+        assert cols["age"]["num_mean"] == 25.0
+        assert cols["name"]["num_mean"] is None

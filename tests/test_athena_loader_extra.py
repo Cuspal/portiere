@@ -114,18 +114,30 @@ class TestBuildWithOptionalBackends:
         """If the optional dep is installed, the build either raises a
         config-related error (e.g., missing connection string) or
         succeeds. If the dep is NOT installed, ImportError is fine.
-        Either way the import-guard line gets exercised."""
+        Either way the import-guard line gets exercised.
+
+        Both outcomes are legitimate: dev machines may have faiss (and a
+        cached embedding model) installed, in which case the build genuinely
+        succeeds — the previous version of this test asserted raise-only and
+        failed on any machine where the optional stack was present.
+        """
         from portiere.knowledge import build_knowledge_layer
 
         athena = _make_tiny_athena(tmp_path)
         out = tmp_path / f"index_{backend}"
-        with pytest.raises((ImportError, ValueError, ModuleNotFoundError, RuntimeError)):
-            build_knowledge_layer(
+        try:
+            paths = build_knowledge_layer(
                 athena_path=str(athena),
                 output_path=str(out),
                 backend=backend,
                 vocabularies=["ICD10CM"],
             )
+        except (ImportError, ValueError, ModuleNotFoundError, RuntimeError):
+            return  # dep missing or service not configured — expected path
+        # Dep installed and no service needed: the build must have produced
+        # real artifacts, not silently returned nothing.
+        assert isinstance(paths, dict) and paths, paths
+        assert any(str(out) in str(v) for v in paths.values()), paths
 
     def test_unknown_backend_raises(self, tmp_path):
         from portiere.knowledge import build_knowledge_layer

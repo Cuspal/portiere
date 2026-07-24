@@ -1,0 +1,95 @@
+site_name: Portiere
+site_description: Local-first clinical data mapping with human-in-the-loop review
+site_url: https://cuspal.github.io/portiere/
+repo_url: https://github.com/Cuspal/portiere
+repo_name: Cuspal/portiere
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  logo: assets/portiere-logo.png
+  favicon: assets/portiere-logo.png
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - content.code.copy
+
+# Never ship heavy/licensed payloads into the site build (6.8 GB vocabulary
+# exports live under example_assets; GitHub Pages caps deploys at ~1 GB).
+exclude_docs: |
+  notebooks_examples/
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Quickstart: documentations/01-quickstart.md
+      - Configuration: documentations/03-configuration.md
+      - Operating modes: documentations/04-operating-modes.md
+      - Vocabulary setup (SNOMED/CPT licensing): documentations/15-vocabulary-setup.md
+      - Deployment: documentations/12-deployment.md
+  - Pipeline tutorials:
+      - Custom EHR → OMOP CDM: documentations/23-pipeline-custom-ehr-to-omop.md
+      - Custom EHR → FHIR R4: documentations/24-pipeline-custom-ehr-to-fhir.md
+      - HL7 v2 → FHIR R4: documentations/25-pipeline-hl7v2-to-fhir.md
+      - HL7 v2 → OMOP CDM: documentations/26-pipeline-hl7v2-to-omop.md
+      - OMOP → Custom analytics CDM: documentations/27-pipeline-omop-to-custom-cdm.md
+  - Trust & compliance:
+      - Threat model & data flow: compliance-threat-model.md
+      - PHI scrubbing: phi-scrubbing.md
+      - Reproducibility: reproducibility.md
+  - Deliverable workbooks: workbooks.md
+  - Benchmarks:
+      - ICD-10-CM → SNOMED: benchmarks/athena-icd-snomed.md
+      - Measurement runbook (v0.4.0): benchmarks/v0.4.0-measurement-runbook.md
+  - Comparison: comparison.md
+  - Guides:
+      - API reference: documentations/02-unified-api-reference.md
+      - Knowledge layer: documentations/05-knowledge-layer.md
+      - Build knowledge layer: documentations/22-build-knowledge-layer.md
+      - LLM integration (BYO-LLM): documentations/06-llm-integration.md
+      - Data models: documentations/07-data-models.md
+      - Pipeline architecture: documentations/08-pipeline-architecture.md
+      - Exceptions: documentations/09-exceptions.md
+      - Database connections: documentations/14-database-connections.md
+      - Elasticsearch backend: documentations/16-elasticsearch-backend.md
+      - Hybrid mode: documentations/17-hybrid-mode.md
+      - Multi-standard support: documentations/20-multi-standard-support.md
+      - Cross-standard mapping: documentations/21-cross-standard-mapping.md
+      - Migration from legacy: documentations/13-migration-from-legacy.md
+  - Review workflow:
+      - Mapping Review UI: mapping-review-ui.md
+      - Review workflow: documentations/18-mapping-review-workflow.md
+      - Review API endpoints: documentations/19-review-api-endpoints.md
+  - Validation & export:
+      - FHIR profile validation: fhir-profile-validation.md
+      - FHIR bundle export: fhir-bundle-export.md
+      - Plausibility rules: plausibility.md
+  - Cloud & mapper:
+      - Portiere Cloud guide: documentations/10-portiere-cloud-guide.md
+      - Portiere Mapper guide: documentations/11-portiere-mapper-guide.md

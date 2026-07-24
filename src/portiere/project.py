@@ -65,6 +65,9 @@ class Project:
         self.task = task
         self.source_standard = source_standard
         self.config = config
+        # Runtime re-check of the offline guarantee: construction-time
+        # validation can be bypassed by mutating the config afterwards.
+        config.assert_no_egress()
         self._storage = storage
         self.id = project_id
         self._engine = engine
