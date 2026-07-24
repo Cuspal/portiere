@@ -1,6 +1,9 @@
 site_name: Portiere
 site_description: Local-first clinical data mapping with human-in-the-loop review
-site_url: https://cuspal.github.io/portiere/
+# Served via GitHub Pages custom domain (CNAME docs -> cuspal.github.io at
+# GoDaddy). With a custom domain, Pages serves at the domain ROOT — no
+# /portiere prefix.
+site_url: https://docs.cuspal.co/
 repo_url: https://github.com/Cuspal/portiere
 repo_name: Cuspal/portiere
 edit_uri: edit/main/docs/
