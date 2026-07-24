@@ -165,8 +165,10 @@ class PolarsEngine(AbstractEngine):
                 profile["num_min"] = float(cast("float", present.min()))
                 profile["num_max"] = float(cast("float", present.max()))
                 profile["num_mean"] = float(cast("float", present.mean()))
+                # std() is typed float | timedelta; the dtype guard above makes
+                # it numeric here.
                 std = present.std()
-                profile["num_std"] = float(std) if std is not None else None
+                profile["num_std"] = float(cast("float", std)) if std is not None else None
             else:
                 profile["num_min"] = None
                 profile["num_max"] = None
