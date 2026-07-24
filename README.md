@@ -657,15 +657,16 @@ Each release tracks via GitHub Milestones; please open issues or PRs against the
 
 ## Benchmarks
 
-ICD-10-CM → SNOMED concept mapping, n=1,000 held-out, Athena 2026-04-30, against the OHDSI `CONCEPT_RELATIONSHIP` gold standard. Three retrieval backends compared:
+ICD-10-CM → SNOMED concept mapping, n=1,000 held-out, Athena 2026-04-30, against the OHDSI `CONCEPT_RELATIONSHIP` gold standard — including the head-to-head against OHDSI's own USAGI tool (v0.4.0, measured after the score-blending fix):
 
-| Backend                                       | top-1 | top-5 | top-10 |   MRR |
-|-----------------------------------------------|------:|------:|-------:|------:|
-| **BM25 (sparse only)**                        | **0.288** | **0.528** | **0.588** | **0.390** |
-| SapBERT + FAISS (dense only)                  | 0.278 | 0.473 |  0.551 | 0.361 |
-| SapBERT + BM25 + FAISS via RRF (hybrid)       | 0.251 | 0.473 |  0.558 | 0.343 |
+| Backend                                        | top-1 | top-5 | top-10 |   MRR |
+|------------------------------------------------|------:|------:|-------:|------:|
+| **BM25 + cross-encoder reranker**              | **0.303** | **0.533** | **0.588** | **0.402** |
+| Hybrid (BM25+FAISS via RRF) + reranker         | 0.286 | 0.505 |  0.587 | 0.377 |
+| SapBERT + FAISS + reranker                     | 0.285 | 0.462 |  0.546 | 0.363 |
+| USAGI 1.4.3 (OHDSI baseline; top-1-only export)| 0.262 |   —   |    —   |   —   |
 
-**Honest result:** on this lexical-overlap-heavy task (ICD descriptions → SNOMED descriptions), BM25 wins. Dense retrieval and the hybrid RRF combiner under-perform here — semantic similarity does not help when the gold mapping shares vocabulary with the source. We publish all three rows so users can pick the right backend for their data; hybrid pays off on noisier free-text inputs (not measured in v0.3.0).
+**Every Portiere configuration beats the USAGI baseline** (best top-1 0.303 vs 0.262, +16% relative). At default thresholds, **51.8%** of codes route to auto-accept — half the workload never needs a reviewer. Honest history: v0.3.x published rows where "the AI lost to plain BM25"; v0.4.0 found and fixed the score-scale defect behind that result (the full ablation, including where each configuration is weak, is in the benchmark doc).
 
 Reproduce any row: `portiere benchmark athena-icd-snomed --backend bm25s|faiss|hybrid --athena-dir <path>`.
 Stratified sampling (opt-in): add `--stratify-by domain` to sample proportionally across Athena domains.

@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.0] - «RUN-AND-FILL: release date after benchmark measurement»
+## [0.4.0] - 2026-07-24
 
 The **"Trustworthy"** release. Turns "PHI never leaves your machine" into an executable, tested guarantee; ships value-level PHI scrubbing; finds and fixes a score-scale defect that invalidated the v0.3.x benchmark comparison; and adds the ablation harness, compliance documentation, Docker image, and published docs site.
 
-> **Measurement gate:** benchmark rows are pending re-measurement under the blending fix — see `docs/benchmarks/v0.4.0-measurement-runbook.md`. Do not tag this release while `grep -rn "RUN-AND-FILL" docs/ README.md CHANGELOG.md` returns matches.
+> **Measured (2026-07-24, n=1,000, Athena 2026-04-30):** every Portiere configuration beats the USAGI baseline — best top-1 **0.303** (BM25+reranker) vs USAGI 0.262. The reranker-off ablation reproduces the pre-fix 0.288 exactly, confirming the blending-defect diagnosis; post-fix the reranker **helps** (+1.5pt bm25s, +2.4pt faiss) and the hybrid anomaly is gone. Auto-accept share at default thresholds: 51.8%.
 
 ### Added
 
@@ -45,7 +45,7 @@ Value-level scrubbing in v0.4.0 covers **profile-derived** payloads. Stage-2 sch
 ### Changed
 
 - README/PyPI headline repositioned: **"Local-first clinical data mapping with human-in-the-loop review — PHI never leaves your machine."** AI is a feature, not the identity.
-- Benchmark doc restructured: v0.4.0 finding + ablation table pre-registered with «RUN-AND-FILL» markers; USAGI row instructions consolidated.
+- Benchmark doc restructured: blending-fix finding with measured 6-row reranker ablation and the USAGI head-to-head published; USAGI row instructions consolidated.
 
 ## [0.3.2] - 2026-07-24
 

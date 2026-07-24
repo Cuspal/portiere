@@ -27,7 +27,7 @@ are an enterprise wanting a managed service, that is what
 | Data egress | none by default; **provably none** with `offline=True` + `portiere doctor` | none (local Java app) | none (local) | none (library) |
 | Validation | Great Expectations + Kahn-aligned scores + FHIR profile validation (US Core, mCODE) | — | — | varies |
 | Maturity / community | **young (pre-1.0, small community)** | **the community standard, years of use** | mature, widely used | varies |
-| Head-to-head accuracy | «RUN-AND-FILL after v0.4.0 measurement — see [benchmark](benchmarks/athena-icd-snomed.md)» | «RUN-AND-FILL» | n/a | n/a |
+| Head-to-head accuracy (ICD-10-CM→SNOMED top-1, n=1,000) | **0.303** (BM25+reranker; every config ≥0.285 — [benchmark](benchmarks/athena-icd-snomed.md)) | 0.262 (UI export, top-1 only) | n/a | n/a |
 
 **Where the others win, honestly:** USAGI has years of community trust and a
 review UI refined by thousands of terminologists; OHDSI tooling has an
@@ -47,10 +47,11 @@ question is **how much of the workload never needs a human**. Portiere's
 benchmark reports the confidence-routing split (auto / review / manual) on the
 public gold set as a throughput proxy:
 
-> «RUN-AND-FILL: auto-accept share at default thresholds (0.95/0.70), from the
-> `routing` field of the v0.4.0 benchmark run. Interpretation: auto-share × N
-> codes = mappings a reviewer never touches; review-tier items arrive with
-> ranked candidates rather than a blank search box.»
+> **51.8% auto-accept share** at default thresholds (0.95/0.70) on the public
+> gold set (BM25+reranker: 518 auto / 317 review / 165 manual / 0 unmapped of
+> 1,000 codes — the `routing` field of the v0.4.0 benchmark run). In other
+> words: half the workload never touches a reviewer, and the review tier
+> arrives with ranked candidates rather than a blank search box.
 
 This is a *proxy measured on the gold set*, not a claim about your reviewers'
 minutes; no real-world timing study exists yet (planned for v1.0 with a case

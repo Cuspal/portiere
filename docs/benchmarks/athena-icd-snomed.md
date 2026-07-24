@@ -2,22 +2,29 @@
 
 Portiere's accuracy on the canonical OMOP concept-mapping task: given an ICD-10-CM source code, predict the standard SNOMED CT concept it should map to. Evaluated against the OHDSI Athena `CONCEPT_RELATIONSHIP` gold standard.
 
-## Headline numbers (v0.3.1 — 4-backend ablation)
+## Headline numbers (v0.4.0 — measured after the blending fix)
 
-| Backend                                       | top-1 | top-5 | top-10 |   MRR | N |
-|-----------------------------------------------|------:|------:|-------:|------:|---:|
-| **BM25 (sparse only)**                        | **0.288** | **0.528** | **0.588** | **0.390** | 1,000 |
-| SapBERT + FAISS (dense only)                  | 0.278 | 0.473 |  0.551 | 0.361 | 1,000 |
-| SapBERT + BM25 + FAISS via RRF (hybrid)       | 0.251 | 0.473 |  0.558 | 0.343 | 1,000 |
-| USAGI 1.4.4 (OHDSI baseline)                  |  TBD  |  TBD  |   TBD  |  TBD  | 1,000 |
+| Backend                                        | top-1 | top-5 | top-10 |   MRR | N |
+|------------------------------------------------|------:|------:|-------:|------:|---:|
+| **BM25 + cross-encoder reranker**              | **0.303** | **0.533** | **0.588** | **0.402** | 1,000 |
+| Hybrid (BM25+FAISS via RRF) + reranker         | 0.286 | 0.505 |  0.587 | 0.377 | 1,000 |
+| SapBERT + FAISS + reranker                     | 0.285 | 0.462 |  0.546 | 0.363 | 1,000 |
+| USAGI 1.4.3 (OHDSI baseline) †                 | 0.262 | 0.262 |  0.262 | 0.262 | 1,000 |
 
-The USAGI row is populated by a manual one-time run against the user's Athena export (see "Reproducing → USAGI baseline" below). v0.3.1 wires the `--backend usagi` plumbing and the dedicated `.github/workflows/usagi-baseline.yml` workflow; the published numbers will land alongside the v0.3.1 release in a follow-up commit.
+**Every Portiere configuration beats the OHDSI USAGI baseline** — best top-1
+0.303 vs 0.262 (+16% relative). † USAGI was scored via its UI
+`source_to_concept_map` export, which carries a single best match per code, so
+its top-5/top-10 equal its top-1; batch mode (with ranked candidates) could
+only raise those two cells, not top-1.
 
-Athena release: `2026-04-30`. Numbers are the source-of-truth values from `src/portiere/benchmarks/athena_icd_snomed/expected_results.json`.
+Auto-accept share (BM25+reranker, default thresholds): **51.8%** of codes
+routed `auto` (518 auto / 317 review / 165 manual / 0 unmapped) — the
+human-throughput proxy: half the workload never needs a reviewer, and the
+review tier arrives with ranked candidates.
 
-**Honest result:** BM25 wins. On ICD-10-CM → SNOMED, the gold mapping shares vocabulary with the source — there's strong lexical overlap between an ICD description and its target SNOMED description — so a tuned sparse retriever beats both SapBERT-FAISS and the hybrid RRF combiner.
+Athena release: `2026-04-30`. Source of truth: `src/portiere/benchmarks/athena_icd_snomed/expected_results.json`. The pre-fix v0.3.x rows are archived in `expected_results_v03x.json`.
 
-> **⚠️ v0.4.0 finding — the v0.3.x rows above were measured under a score-scale defect and must be re-measured.**
+> **The v0.4.0 blending fix — how these rows changed and why.**
 >
 > The published pipeline blends cross-encoder scores with retrieval scores
 > (60/40). Pre-v0.4.0, the blend used **raw** retrieval scores, whose scales
@@ -31,35 +38,36 @@ Athena release: `2026-04-30`. Numbers are the source-of-truth values from `src/p
 > | faiss | roughly the advertised 60/40 blend |
 > | hybrid | CE-only (RRF term numerically negligible) |
 >
-> This mechanism explains the anomaly of hybrid (0.251) scoring below **both**
-> of its own inputs — its ranking was fully controlled by
-> `cross-encoder/ms-marco-MiniLM-L-6-v2`, a general-purpose *web-search*
-> reranker applied to clinical terminology. It also means BM25's win was
-> partly an accident of scale: it was *protected* from the mismatched
-> reranker rather than blended with it.
+> This mechanism explained the v0.3.x anomaly of hybrid (0.251) scoring below
+> **both** of its own inputs — its ranking was fully controlled by
+> `cross-encoder/ms-marco-MiniLM-L-6-v2`. It also meant BM25's win was partly
+> an accident of scale: it was *protected* from the misapplied reranker rather
+> than blended with it.
 >
 > v0.4.0 fixes the blend (per-list min-max normalization of the retrieval
 > component; regression-tested in `tests/test_reranker_blending.py`) and adds
 > `--reranker/--no-reranker` so the reranker's contribution is measurable in
-> isolation. All rows below the fix are «RUN-AND-FILL» pending re-measurement —
-> see the v0.4.0 measurement runbook (`docs/benchmarks/v0.4.0-measurement-runbook.md`).
+> isolation. The ablation below **confirms the diagnosis with data**: the
+> reranker-off bm25s row reproduces the old published 0.288 exactly (the old
+> "BM25" row really was retrieval-only), and the old hybrid anomaly is gone.
 
-### Reranker ablation (v0.4.0 — «RUN-AND-FILL»)
+### Reranker ablation (v0.4.0 — measured)
 
 | Backend | Reranker | top-1 | top-5 | top-10 | MRR | N |
 |---|---|------:|------:|-------:|----:|---:|
-| bm25s  | on  | «RUN-AND-FILL» | | | | 1,000 |
-| bm25s  | off | «RUN-AND-FILL» | | | | 1,000 |
-| faiss  | on  | «RUN-AND-FILL» | | | | 1,000 |
-| faiss  | off | «RUN-AND-FILL» | | | | 1,000 |
-| hybrid | on  | «RUN-AND-FILL» | | | | 1,000 |
-| hybrid | off | «RUN-AND-FILL» | | | | 1,000 |
+| bm25s  | on  | **0.303** | 0.533 | 0.588 | 0.402 | 1,000 |
+| bm25s  | off | 0.288 | 0.528 | 0.588 | 0.390 | 1,000 |
+| faiss  | on  | 0.285 | 0.462 | 0.546 | 0.363 | 1,000 |
+| faiss  | off | 0.261 | 0.425 | 0.503 | 0.335 | 1,000 |
+| hybrid | on  | 0.286 | 0.505 | 0.587 | 0.377 | 1,000 |
+| hybrid | off | 0.287 | 0.504 | 0.585 | 0.374 | 1,000 |
 
-The on/off delta per backend attributes the cross-encoder's contribution. The
-interpretation branches are pre-registered in
-`specs/2026-07-24-v0.4.0-trustworthy-release-design.md` §4 (A2): reranker hurts →
-swap to a biomedical cross-encoder; neutral → consider `provider="none"` default;
-helps → retrieval is the ceiling and the human-throughput framing leads.
+**Interpretation (per the pre-registered branches in the v0.4.0 design):** with
+the scale bug fixed, the cross-encoder **helps** — +1.5pt top-1 on bm25s, +2.4pt
+on faiss, neutral on hybrid. The v0.3.x conclusion "the reranker hurts" was an
+artifact of the blending defect, not a property of the model. Retrieval quality
+is now the ceiling; the domain-reranker swap (MedCPT/BioLORD) remains a
+worthwhile v0.4.x experiment (`--reranker-model`) but is no longer a blocker.
 
 This shape is consistent with the published medical-IR literature: dense retrieval shines on noisy free-text queries (clinical notes, patient-described symptoms) where lexical overlap is low. On structured code-to-code tasks like this one, lexical retrieval is the right default.
 
