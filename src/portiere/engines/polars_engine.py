@@ -10,7 +10,7 @@ Polars is the default engine for Portiere, suitable for:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import structlog
 
@@ -84,8 +84,16 @@ class PolarsEngine(AbstractEngine):
 
         raise ValueError(f"Unsupported format: {format}")
 
-    def profile(self, df: pl.DataFrame) -> dict[str, Any]:
-        """Profile a DataFrame."""
+    def profile(self, df: pl.DataFrame, *, empty_as_missing: bool = True) -> dict[str, Any]:
+        """Profile a DataFrame.
+
+        In addition to the base column stats, each column carries report
+        enrichment keys used by the profile-report exporter: ``present_count``
+        (non-null and, for string columns when ``empty_as_missing`` is set,
+        non-empty-after-strip), ``min_len``/``max_len`` (char length over
+        present string values), and ``example`` (first present value).
+        """
+        pl = self._pl
         columns = []
         for col in df.columns:
             col_data = df[col]
@@ -107,6 +115,63 @@ class PolarsEngine(AbstractEngine):
             if n_unique <= 100 or dtype in ("Utf8", "Categorical"):
                 top_values = df.group_by(col).len().sort("len", descending=True).head(10).to_dicts()
                 profile["top_values"] = top_values
+
+            # Report enrichment: present count, value length range, example
+            if col_data.dtype in (pl.Utf8, pl.Categorical):
+                s_str = col_data.cast(pl.Utf8)
+                non_null = s_str.filter(s_str.is_not_null())
+                present = (
+                    non_null.filter(non_null.str.strip_chars() != "")
+                    if empty_as_missing
+                    else non_null
+                )
+                present_count = present.len()
+                if present_count:
+                    lengths = present.str.len_chars()
+                    # len_chars() yields unsigned ints; min/max are non-None
+                    # here because present_count > 0.
+                    min_len = int(cast("int", lengths.min()))
+                    max_len = int(cast("int", lengths.max()))
+                    example = str(present[0])
+                else:
+                    min_len = max_len = 0
+                    example = ""
+            else:
+                present = col_data.filter(col_data.is_not_null())
+                present_count = present.len()
+                min_len = max_len = 0
+                example = str(present[0]) if present_count else ""
+            # Top value + distinct over *present* values (excludes empty/null),
+            # so the reported share never exceeds 100%.
+            if present_count:
+                vc = present.value_counts(sort=True)
+                present_top_value = str(vc.row(0)[0])
+                present_top_count = int(vc.row(0)[1])
+                present_n_distinct = int(present.n_unique())
+            else:
+                present_top_value = ""
+                present_top_count = 0
+                present_n_distinct = 0
+            profile["present_count"] = present_count
+            profile["min_len"] = min_len
+            profile["max_len"] = max_len
+            profile["example"] = example
+            profile["present_top_value"] = present_top_value
+            profile["present_top_count"] = present_top_count
+            profile["present_n_distinct"] = present_n_distinct
+
+            # Numeric distribution stats (report enrichment; None for non-numeric)
+            if col_data.dtype.is_numeric() and present_count:
+                profile["num_min"] = float(cast("float", present.min()))
+                profile["num_max"] = float(cast("float", present.max()))
+                profile["num_mean"] = float(cast("float", present.mean()))
+                std = present.std()
+                profile["num_std"] = float(std) if std is not None else None
+            else:
+                profile["num_min"] = None
+                profile["num_max"] = None
+                profile["num_mean"] = None
+                profile["num_std"] = None
 
             columns.append(profile)
 

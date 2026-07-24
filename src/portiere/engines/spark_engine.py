@@ -103,9 +103,17 @@ class SparkEngine(AbstractEngine):
         else:
             raise ValueError(f"Unsupported format: {format}")
 
-    def profile(self, df: DataFrame) -> dict[str, Any]:
-        """Profile a DataFrame."""
+    def profile(self, df: DataFrame, *, empty_as_missing: bool = True) -> dict[str, Any]:
+        """Profile a DataFrame.
+
+        In addition to the base column stats, each column carries report
+        enrichment keys used by the profile-report exporter: ``present_count``
+        (non-null and, for string columns when ``empty_as_missing`` is set,
+        non-empty-after-strip), ``min_len``/``max_len`` (char length over
+        present string values), and ``example`` (first present value).
+        """
         from pyspark.sql import functions as F
+        from pyspark.sql.types import StringType
 
         # Get basic stats
         row_count = df.count()
@@ -139,6 +147,53 @@ class SparkEngine(AbstractEngine):
                 profile["top_values"] = [
                     {col_name: row[col_name], "count": row["count"]} for row in top_values
                 ]
+
+            # Report enrichment: present count, value length range, example
+            if isinstance(field.dataType, StringType):
+                present_pred = F.col(col_name).isNotNull()
+                if empty_as_missing:
+                    present_pred = present_pred & (F.trim(F.col(col_name)) != "")
+                present_df = df.filter(present_pred)
+                present_count = present_df.count()
+                if present_count:
+                    len_agg = present_df.agg(
+                        F.min(F.length(F.col(col_name))).alias("mn"),
+                        F.max(F.length(F.col(col_name))).alias("mx"),
+                    ).collect()[0]
+                    min_len, max_len = int(len_agg["mn"]), int(len_agg["mx"])
+                    ex = present_df.select(col_name).limit(1).collect()
+                    example = str(ex[0][0]) if ex else ""
+                else:
+                    min_len = max_len = 0
+                    example = ""
+            else:
+                present_df = df.filter(F.col(col_name).isNotNull())
+                present_count = int(stats["count"])
+                min_len = max_len = 0
+                ex = present_df.select(col_name).limit(1).collect()
+                example = str(ex[0][0]) if ex else ""
+            # Top value + distinct over *present* values (excludes empty/null),
+            # so the reported share never exceeds 100%.
+            if present_count:
+                top = (
+                    present_df.groupBy(col_name).count().orderBy(F.desc("count")).limit(1).collect()
+                )
+                present_top_value = str(top[0][0]) if top else ""
+                present_top_count = int(top[0][1]) if top else 0
+                present_n_distinct = present_df.select(F.countDistinct(F.col(col_name))).collect()[
+                    0
+                ][0]
+            else:
+                present_top_value = ""
+                present_top_count = 0
+                present_n_distinct = 0
+            profile["present_count"] = present_count
+            profile["min_len"] = min_len
+            profile["max_len"] = max_len
+            profile["example"] = example
+            profile["present_top_value"] = present_top_value
+            profile["present_top_count"] = present_top_count
+            profile["present_n_distinct"] = int(present_n_distinct)
 
             columns.append(profile)
 

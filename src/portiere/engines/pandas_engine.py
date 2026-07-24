@@ -71,8 +71,16 @@ class PandasEngine(AbstractEngine):
         else:
             raise ValueError(f"Unsupported format: {format}")
 
-    def profile(self, df: pd.DataFrame) -> dict[str, Any]:
-        """Profile a DataFrame."""
+    def profile(self, df: pd.DataFrame, *, empty_as_missing: bool = True) -> dict[str, Any]:
+        """Profile a DataFrame.
+
+        In addition to the base column stats, each column carries report
+        enrichment keys used by the profile-report exporter: ``present_count``
+        (non-null and, for string columns when ``empty_as_missing`` is set,
+        non-empty-after-strip), ``min_len``/``max_len`` (char length over
+        present string values), and ``example`` (first present value).
+        """
+        pd = self._pd
         columns = []
         for col in df.columns:
             col_data = df[col]
@@ -91,6 +99,55 @@ class PandasEngine(AbstractEngine):
             if col_data.nunique() <= 100:
                 top_values = col_data.value_counts().head(10).to_dict()
                 profile["top_values"] = [{col: k, "count": v} for k, v in top_values.items()]
+
+            # Report enrichment: present count, value length range, example
+            if col_data.dtype == object or pd.api.types.is_string_dtype(col_data):
+                s_str = col_data.dropna().astype(str)
+                present = s_str[s_str.str.strip() != ""] if empty_as_missing else s_str
+                present_count = int(present.shape[0])
+                if present_count:
+                    lengths = present.str.len()
+                    min_len, max_len = int(lengths.min()), int(lengths.max())
+                    example = str(present.iloc[0])
+                else:
+                    min_len = max_len = 0
+                    example = ""
+            else:
+                present = col_data.dropna()
+                present_count = int(present.shape[0])
+                min_len = max_len = 0
+                example = str(present.iloc[0]) if present_count else ""
+            # Top value + distinct over *present* values (excludes empty/null),
+            # so the reported share never exceeds 100%.
+            if present_count:
+                vc = present.value_counts()
+                present_top_value = str(vc.index[0])
+                present_top_count = int(vc.iloc[0])
+                present_n_distinct = int(present.nunique())
+            else:
+                present_top_value = ""
+                present_top_count = 0
+                present_n_distinct = 0
+            profile["present_count"] = present_count
+            profile["min_len"] = min_len
+            profile["max_len"] = max_len
+            profile["example"] = example
+            profile["present_top_value"] = present_top_value
+            profile["present_top_count"] = present_top_count
+            profile["present_n_distinct"] = present_n_distinct
+
+            # Numeric distribution stats (report enrichment; None for non-numeric)
+            if pd.api.types.is_numeric_dtype(col_data) and present_count:
+                profile["num_min"] = float(present.min())
+                profile["num_max"] = float(present.max())
+                profile["num_mean"] = float(present.mean())
+                std = present.std()
+                profile["num_std"] = float(std) if pd.notna(std) else None
+            else:
+                profile["num_min"] = None
+                profile["num_max"] = None
+                profile["num_mean"] = None
+                profile["num_std"] = None
 
             columns.append(profile)
 

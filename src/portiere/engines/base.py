@@ -57,7 +57,7 @@ class AbstractEngine(ABC):
         ...
 
     @abstractmethod
-    def profile(self, df: Any) -> dict[str, Any]:
+    def profile(self, df: Any, *, empty_as_missing: bool = True) -> dict[str, Any]:
         """
         Profile a DataFrame.
 
@@ -68,8 +68,19 @@ class AbstractEngine(ABC):
         - Null percentages
         - Top values for categorical columns
 
+        Each column also carries report-enrichment keys consumed by the
+        profile-report exporter:
+        - ``present_count``: values that are non-null and (for string columns,
+          when ``empty_as_missing`` is set) non-empty after stripping whitespace
+        - ``min_len`` / ``max_len``: char-length range over present string values
+          (0 for non-string columns or when there are no present values)
+        - ``example``: first present value rendered as a string
+
         Args:
             df: DataFrame to profile
+            empty_as_missing: When True (default), empty/whitespace string values
+                are treated as missing for ``present_count``. When False, only
+                true nulls are missing.
 
         Returns:
             Profile dictionary
