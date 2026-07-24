@@ -39,7 +39,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: vendor/usagi.jar
-          key: usagi-1.4.4-jar
+          key: usagi-1.4.3-jar
 
       - name: Download USAGI JAR
         if: steps.cache-usagi.outputs.cache-hit != 'true'

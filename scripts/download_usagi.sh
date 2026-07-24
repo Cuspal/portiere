@@ -4,15 +4,17 @@
 # Used by .github/workflows/usagi-baseline.yml (tag-push only).
 # Not used by default CI — USAGI tests are marked @pytest.mark.slow.
 #
-# USAGI v1.4.4 is the latest stable JAR with batch CLI support
-# (https://github.com/OHDSI/Usagi/releases). If you bump the version,
-# bump USAGI_JAR_SHA256 too — without that, this script does NOT verify
-# the download and will exit 2.
+# USAGI v1.4.3 is the latest published release JAR
+# (https://github.com/OHDSI/Usagi/releases — note the asset naming:
+# Usagi_v<version>.jar). If you bump the version, bump USAGI_JAR_SHA256
+# too — without that, this script does NOT verify the download and will
+# exit 2. sha256 for v1.4.3:
+#   dbcfe9e2b2ed913a13ee91acbc47a8f491046ee9664984d03e6477c0a73c9f7d
 
 set -euo pipefail
 
-USAGI_VERSION="${USAGI_VERSION:-1.4.4}"
-USAGI_JAR_URL="${USAGI_JAR_URL:-https://github.com/OHDSI/Usagi/releases/download/v${USAGI_VERSION}/Usagi-${USAGI_VERSION}.jar}"
+USAGI_VERSION="${USAGI_VERSION:-1.4.3}"
+USAGI_JAR_URL="${USAGI_JAR_URL:-https://github.com/OHDSI/Usagi/releases/download/v${USAGI_VERSION}/Usagi_v${USAGI_VERSION}.jar}"
 USAGI_JAR_SHA256="${USAGI_JAR_SHA256:-}"
 
 VENDOR_DIR="${VENDOR_DIR:-./vendor}"
