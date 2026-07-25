@@ -142,9 +142,7 @@ def _map_concepts(
         vocabularies=vocabularies,
         config=config,
     )
-    normalized: list[dict | str] = [
-        c if isinstance(c, dict) else {"code": str(c)} for c in codes
-    ]
+    normalized: list[dict | str] = [c if isinstance(c, dict) else {"code": str(c)} for c in codes]
     concept_map = project.map_concepts(codes=normalized)
     items = [
         {

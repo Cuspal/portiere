@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.5.0] - «release date»
+## [0.5.0] - 2026-07-25
 
 The **"Integration Surface"** release. Portiere's pipeline is now drivable from the ecosystems clinical-data teams already use — agentic tools (MCP), agent frameworks (LangChain), and analytics engineering (dbt) — plus the domain-reranker decision harness that closes out the v0.4.0 benchmark work.
 
