@@ -67,6 +67,10 @@ nav:
       - PHI scrubbing: phi-scrubbing.md
       - Reproducibility: reproducibility.md
   - Deliverable workbooks: workbooks.md
+  - Integrations:
+      - MCP server: integrations/mcp.md
+      - LangChain tools: integrations/langchain.md
+      - dbt project generation: integrations/dbt.md
   - Benchmarks:
       - ICD-10-CM → SNOMED: benchmarks/athena-icd-snomed.md
       - Measurement runbook (v0.4.0): benchmarks/v0.4.0-measurement-runbook.md

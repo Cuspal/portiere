@@ -62,6 +62,7 @@ Portiere combines **clinical-domain embeddings** (SapBERT as default model), **l
 - **BYO-LLM** — Bring your own LLM: OpenAI, Anthropic Claude, AWS Bedrock, Ollama (local).
 - **Pluggable Engines** — Polars (default), PySpark / Databricks, Pandas, DuckDB.
 - **Standalone ETL Artifacts** — Generated ETL scripts run without the SDK.
+- **Agent & analytics integrations** *(v0.5.0)* — MCP server (`portiere mcp`), LangChain tools (`get_langchain_tools()`), and dbt project generation (`portiere dbt`). All offline. [MCP](docs/integrations/mcp.md) · [LangChain](docs/integrations/langchain.md) · [dbt](docs/integrations/dbt.md).
 - **Confidence Routing** — Auto-accept, needs-review, and manual tiers with human-in-the-loop. Streamlit-based **Mapping Review UI** ships in v0.3.1: `pip install "portiere-health[review]"` then `portiere review <project-dir>`.
 - **Cross-Standard Mapping** — Transform between standards (OMOP ↔ FHIR, HL7v2 → FHIR, OMOP → OpenEHR).
 - **Local-First** — All processing runs on your machine; no cloud dependency.
@@ -650,7 +651,8 @@ Portiere is in active development. Current limitations (will be addressed in upc
 - **v0.3.2 (shipped):** aggregated data-profile report export (`portiere profile-report`, HTML + CSV) with additive engine profile enrichment.
 - **v0.3.x:** Full BYO-LLM rehydration for `replay --auto-replay` LLM-bound stages; additional benchmark pairs (LOINC, RxNorm); active-learning loop on review-UI override decisions.
 - **v0.4.0 (this release):** executable no-egress guarantee (`offline` mode + `portiere doctor`); value-level PHI scrubber; compliance docs (COMPLIANCE.md + threat model); reranker-ablation harness + score-blending fix; Docker; published docs site.
-- **v0.4.x:** MCP / LangChain / dbt integration surface; benchmark re-measurement + domain-reranker decision.
+- **v0.5.0 (shipped):** MCP / LangChain / dbt integration surface; domain-reranker decision harness (`scripts/reranker_spike.py`).
+- **v0.5.x:** concept-mapping review UI page; second benchmark vocabulary pair (RxNorm→ATC); auto-tier precision metric.
 - **v0.5.0+:** PCORnet / Sentinel / i2b2 / CDISC SDTM CDMs; clinical NLP path (scispaCy / GLiNER-clinical); OHDSI DataQualityDashboard parity.
 
 Each release tracks via GitHub Milestones; please open issues or PRs against the relevant milestone. See [specs/](specs/) for the design docs behind each release.
