@@ -1,5 +1,7 @@
 # LangChain Tools
 
+> **Runnable example:** [`27_integrations_mcp_langchain_dbt.ipynb`](https://github.com/Cuspal/portiere/blob/main/docs/notebooks_examples/27_integrations_mcp_langchain_dbt.ipynb) — all three integrations end-to-end, offline, executed with outputs.
+
 Expose Portiere's operations as LangChain tools for use in agents and chains.
 Works with `langchain-core` alone. All tools run **offline**.
 

@@ -1,5 +1,7 @@
 # MCP Server
 
+> **Runnable example:** [`27_integrations_mcp_langchain_dbt.ipynb`](https://github.com/Cuspal/portiere/blob/main/docs/notebooks_examples/27_integrations_mcp_langchain_dbt.ipynb) — all three integrations end-to-end, offline, executed with outputs.
+
 Drive Portiere from any [Model Context Protocol](https://modelcontextprotocol.io)
 client (Claude Desktop, MCP-aware agents). Every tool runs **offline** — the
 server cannot send data off-machine.

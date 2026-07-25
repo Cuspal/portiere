@@ -1,5 +1,7 @@
 # dbt Project Generation
 
+> **Runnable example:** [`27_integrations_mcp_langchain_dbt.ipynb`](https://github.com/Cuspal/portiere/blob/main/docs/notebooks_examples/27_integrations_mcp_langchain_dbt.ipynb) — all three integrations end-to-end, offline, executed with outputs.
+
 Turn a Portiere mapping into a runnable **dbt project** — one SQL model per
 target table (select → rename → concept-lookup join), a `schema.yml` with
 tests, and a `source_to_concept_map` seed. Like Portiere's standalone ETL
