@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "portiere-health"
-version = "0.4.1"
+version = "0.5.0"
 description = "Local-first clinical data mapping SDK with human-in-the-loop review"
 readme = "README.md"
 license = "Apache-2.0"
@@ -97,6 +97,10 @@ xlsx = [
     "openpyxl>=3.1",
 ]
 
+# Agentic / framework integrations
+mcp = ["mcp>=1.0.0"]
+langchain = ["langchain-core>=0.3.0"]
+
 # All engines
 all-engines = [
     "pyspark>=3.4.0",
@@ -133,6 +137,8 @@ dev = [
     "pyarrow>=12.0.0",
     "types-PyYAML>=6.0.0",
     "pandas-stubs>=2.0.0",
+    "openpyxl>=3.1",
+    "langchain-core>=0.3.0",
 ]
 
 # Documentation

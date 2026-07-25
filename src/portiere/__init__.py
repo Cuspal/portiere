@@ -51,7 +51,7 @@ from portiere.sync import SyncManager
 if TYPE_CHECKING:
     from portiere.engines.base import AbstractEngine
 
-__version__ = "0.4.1"
+__version__ = "0.5.0"
 
 
 def init(

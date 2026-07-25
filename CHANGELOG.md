@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-25
+
+The **"Integration Surface"** release. Portiere's pipeline is now drivable from the ecosystems clinical-data teams already use — agentic tools (MCP), agent frameworks (LangChain), and analytics engineering (dbt) — plus the domain-reranker decision harness that closes out the v0.4.0 benchmark work.
+
+### Added
+
+- **`portiere.integrations` package** — one dependency-free tool core (`integrations.tools`, heavily tested) wrapped by thin per-framework adapters, so operation logic is written once:
+  - **MCP server** (`integrations.mcp`, extra `[mcp]`, [docs](docs/integrations/mcp.md)): `portiere mcp` runs a stdio Model Context Protocol server exposing `list_standards`, `profile_source`, `suggest_schema_mapping`, `map_concepts`, and `egress_posture` — one-line wire-up into Claude Desktop / any MCP client.
+  - **LangChain tools** (`integrations.langchain`, extra `[langchain]`, [docs](docs/integrations/langchain.md)): `get_langchain_tools()` returns the same five operations as `StructuredTool`s for agents/chains.
+  - **dbt project generator** (`integrations.dbt`, no extra, [docs](docs/integrations/dbt.md)): `portiere dbt` / `build_dbt_project()` emits a runnable dbt project (one SQL model per target table with select→rename→concept-join, `schema.yml` with `not_null` tests on required standard fields, and a `source_to_concept_map` seed) — runs on any dbt adapter, no Portiere runtime.
+  - **Safety by construction**: every integration tool runs Portiere with `offline=True`; the `portiere_egress_posture` tool lets an agent self-verify no-egress before acting.
+- **Domain-reranker decision harness** (`scripts/reranker_spike.py`, [decision spec](specs/2026-07-25-domain-reranker-decision.md)): evaluates biomedical cross-encoders (MedCPT, BioLORD) vs the incumbent via the existing `--reranker-model` flag and applies a pre-registered adoption rule (adopt iff top-1 gain > 0.01 and MRR not worse). The incumbent `ms-marco-MiniLM-L-6-v2` stays the default until a measured win.
+- New extras: `mcp`, `langchain`.
+
+
 ## [0.4.1] - 2026-07-24
 
 Metadata-only patch. The v0.4.0 wheel was published to PyPI from a pre-measurement commit, so its bundled `expected_results.json` and package description predate the benchmark results. v0.4.1 ships identical code with the measured benchmark data (ablation ×6 + USAGI baseline) and the corrected README/CITATION. If you installed 0.4.0, `pip install -U portiere-health` — no code changes.
