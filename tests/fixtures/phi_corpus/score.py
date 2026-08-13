@@ -50,9 +50,15 @@ def score(backend: str) -> dict:
     recall = tp / (tp + fn) if (tp + fn) else 1.0
     precision = tp / (tp + fp) if (tp + fp) else 1.0
     return {
-        "backend": backend, "tp": tp, "fn": fn, "fp": fp, "tn": tn,
-        "recall": round(recall, 4), "precision": round(precision, 4),
-        "misses": misses, "false_positives": false_pos,
+        "backend": backend,
+        "tp": tp,
+        "fn": fn,
+        "fp": fp,
+        "tn": tn,
+        "recall": round(recall, 4),
+        "precision": round(precision, 4),
+        "misses": misses,
+        "false_positives": false_pos,
     }
 
 
