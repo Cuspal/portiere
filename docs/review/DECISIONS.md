@@ -39,6 +39,16 @@ slugify-to-valid-identifier step with collision handling, applied across all
 three generators — a larger codegen change than F-008's path/CSV escaping, and
 rarer in practice (column names are more controlled than paths and values).
 
+## F-011 — offline=True does not prevent HuggingFace model downloads (MP-05/L7, S3)
+`offline=True` rejects configured remote *providers*, but loading a local
+cross-encoder/embedder whose weights are not cached still calls `huggingface.co`
+on first use (no `HF_HUB_OFFLINE`/`local_files_only` anywhere). **Parked because:**
+the fix is a maintainer call between two intrusive options — set process-global
+`HF_HUB_OFFLINE=1`/`TRANSFORMERS_OFFLINE=1` when offline (affects the whole
+process, not just Portiere), or thread `local_files_only=True` into every HF
+loader (reranker + all embedding providers). Gated by "model not pre-cached";
+a correctly provisioned offline deployment pre-downloads weights.
+
 ---
 
 ## Applied this run (NOT parked): F-004, F-005, F-007, F-008, F-010

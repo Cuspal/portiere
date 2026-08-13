@@ -1,17 +1,26 @@
 # Review Handoff — Portiere
 
-Run `review-2026-08-13`. Branch `main` @ `beabb7e`. **HEAD unchanged during the
-run** — every patch applies to the base it was built on.
+Run `review-2026-08-13`. Started at branch `main` @ `beabb7e`.
+
+**Update:** the maintainer has since run the commit plan below — the **5 fixes
+(F-004/5/7/8/10) + review artifacts are now committed** as `aef3103…a9cddf1` on
+top of `beabb7e`. Verified: the cumulative `beabb7e..a9cddf1` src/tests diff is
+exactly those five fixes + the PHI corpus, with no foreign edits. The ongoing
+review's baseline is now **`a9cddf1`**; only this session's **Mapping-pass doc
+updates** (findings/DECISIONS/HANDOFF/state) remain uncommitted. §1 and §3 below
+describe the original pre-commit state and are kept for the record.
 
 Partial run by design, extended across sessions. Complete so far: Phase 0
 (baseline) + **Privacy** (PV-01…04) + **Core** (CO-01…04) + **Pipeline**
-(PL-01…06). **14 of 47 subsystems** are terminal; the other 33 (MAPPING,
-KNOWLEDGE, STANDARDS, QUALITY, SURFACE, CROSS-CUTTING) are `PENDING` and
-resumable — `docs/review/state.json` carries the registry forward; re-invoke
-`/review` (clean tree first) to continue at **MP-01** without re-auditing what
+(PL-01…06) + **Mapping** (MP-01…06). **20 of 47 subsystems** are terminal; the
+other 27 (KNOWLEDGE, STANDARDS, QUALITY, SURFACE, CROSS-CUTTING) are `PENDING`
+and resumable — `docs/review/state.json` carries the registry forward; re-invoke
+`/review` (clean tree first) to continue at **KN-01** without re-auditing what
 is done.
 
-**Five safe fixes applied and verified; five findings parked for your call.**
+**Five safe fixes applied and verified; six findings parked for your call.**
+The Mapping pass added no code changes — its layer is largely sound; the gaps
+found there are design/egress decisions (parked), not clean bugs.
 
 **No git writes were made. Nothing was committed, tagged, or released.**
 
@@ -114,6 +123,11 @@ Isolated patches: `docs/review/patches/F-004.patch`, `F-005`, `F-007`, `F-008`,
   invalid identifier → `SyntaxError` in the generated script. Needs identifier
   slugification across all three generators (larger codegen change). Rarer than
   F-008 (paths/values are more variable than column names).
+- **F-011 (S3)** — `offline=True` does not set `HF_HUB_OFFLINE`/`local_files_only`,
+  so loading an uncached cross-encoder/embedder still downloads from
+  `huggingface.co` — contradicting the L7 "no non-loopback socket under offline"
+  claim on a cold cache. Fix is a maintainer call: process-global HF offline env
+  vs threading `local_files_only` through every loader.
 
 ## 6. Blocked
 
@@ -139,8 +153,12 @@ The version bump, changelog, tag, and publish are yours.
 
 ## Notable leads for the resume pass (surfaced incidentally, not findings)
 
-- **MP-01 / MP-04** — `local/schema_mapper.py` and `local/llm_verifier.py` are
-  the remote-egress payload builders behind parked F-001/F-002. Start MAPPING here.
+- **KN-06 embedding providers** — same offline gap as F-011 (HF download under
+  `offline=True`); confirm the scope there when auditing KNOWLEDGE next.
+- **KN-05 Athena / vocabulary_bridge** — the `vocabulary_lookup` transform and
+  `_code_index` both depend on it; check its network/egress behaviour under offline.
+- **MP-03 cross_mapper** — `_set_nested` cannot build FHIR arrays (`coding[0]`);
+  fine for shipped crossmaps, latent for custom ones (see findings NOTE).
 - **CO-02 (`project.py`)** — focused-scan only; two swallow-without-log spots
   (`project.py:588` drops a concept candidate; `project.py:1049` `except: pass`).
 - **CO-04 (`storage`)** — writes are non-atomic (`open(w)`+write, no temp+rename);
@@ -155,5 +173,5 @@ The version bump, changelog, tag, and publish are yours.
 
 ## What was NOT audited (resume scope)
 
-33 subsystems remain `PENDING`: MP-01…06, KN-01…06, ST-01…04, QR-01…04,
-SF-01…07, XC-01…06. Re-invoke `/review` (clean tree first) to continue at MP-01.
+27 subsystems remain `PENDING`: KN-01…06, ST-01…04, QR-01…04, SF-01…07,
+XC-01…06. Re-invoke `/review` (clean tree first) to continue at KN-01.
