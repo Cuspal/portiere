@@ -10,25 +10,33 @@ Pre-registered decision rule (see specs/2026-07-25-domain-reranker-decision.md):
     adopt a candidate as the default iff its top-1 beats the incumbent by
     > 0.01 AND its MRR is no worse; otherwise keep the incumbent.
 
-Usage (downloads models; run where you have the Athena export):
+Usage (downloads models; needs a FULL Athena export with ICD10CM + 'Maps to'
+relationships — the bundled demo vocab is SNOMED-only and yields 0 gold cases):
 
     python3 scripts/reranker_spike.py \\
-        --athena-dir /path/to/athena \\
-        --candidates ncbi/MedCPT-Cross-Encoder FremyCompany/BioLORD-2023
+        --athena-dir /path/to/full/athena \\
+        --candidates ncbi/MedCPT-Cross-Encoder
 
 Numbers are NOT fabricated here — this runs the real benchmark. Without
 --candidates it only prints the decision rule and the shortlist.
+
+Adoption caveat (measured 2026-08-13): a candidate that ships a PyTorch
+``.bin`` checkpoint (MedCPT does; it has no safetensors) cannot be loaded by
+``transformers`` on torch < 2.6 (CVE-2025-32434 guard). Adopting such a model
+as the DEFAULT would break base installs on older torch. Weigh this before
+changing ``RerankerConfig.model``.
 """
 
 from __future__ import annotations
 
 import argparse
 
-# Licence-checked shortlist (redistributable / recommendable in an Apache-2.0
-# project). Confirm each model card before publishing a default change.
+# Licence-checked shortlist of genuine CROSS-ENCODERS (a reranker scores
+# (query, candidate) pairs — a bi-encoder like BioLORD-2023 is an *embedding*
+# model and cannot serve here). Confirm each model card + safetensors
+# availability before publishing a default change.
 DEFAULT_CANDIDATES = [
-    "ncbi/MedCPT-Cross-Encoder",  # MedCPT — biomedical query/document CE
-    "FremyCompany/BioLORD-2023",  # BioLORD — clinical concept embeddings
+    "ncbi/MedCPT-Cross-Encoder",  # MedCPT — biomedical query/document cross-encoder
 ]
 
 INCUMBENT = "cross-encoder/ms-marco-MiniLM-L-6-v2"
