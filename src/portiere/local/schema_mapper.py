@@ -117,6 +117,13 @@ class LocalSchemaMapper:
         if self._initialized:
             return
 
+        # Runtime offline gate: re-assert before building the embedding gateway,
+        # which may be a remote provider. Construction-time validation can be
+        # bypassed by mutating the config afterwards; concept_mapper and
+        # Project already close this gap — schema mapping must too, since it
+        # sends column sample values (potential PHI) to the embedder.
+        self._config.assert_no_egress()
+
         try:
             from portiere.embedding import EmbeddingGateway
 
