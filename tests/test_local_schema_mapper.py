@@ -383,3 +383,44 @@ class TestSuggestIntegration:
         assert len(results) == 1
         assert results[0]["target_table"] == "observation"
         assert results[0]["confidence"] == 0.30
+
+
+class TestReviewF012:
+    """F-012: schema_mapper must re-assert the offline gate at runtime, closing
+    the post-construction config-mutation gap that concept_mapper and Project
+    already close. Schema mapping sends column sample values (potential PHI) to
+    the embedder, so a mutated remote provider must be caught before egress."""
+
+    def test_offline_mutation_to_remote_embedder_is_blocked(self, omop_model):
+        from portiere.config import EmbeddingConfig, PortiereConfig
+        from portiere.exceptions import ConfigurationError
+        from portiere.local.schema_mapper import LocalSchemaMapper
+
+        # offline=True with a LOCAL embedder passes construction-time validation.
+        config = PortiereConfig(
+            offline=True,
+            embedding=EmbeddingConfig(provider="huggingface", model="local-x"),
+        )
+        # Mutate to a REMOTE embedder after construction — pydantic models are
+        # mutable and this bypasses the construction-time gate.
+        config.embedding = EmbeddingConfig(provider="openai", model="text-embedding-3-small")
+
+        mapper = LocalSchemaMapper(config, target_model=omop_model)
+        # Must raise at the runtime gate, BEFORE building the remote gateway.
+        with pytest.raises(ConfigurationError, match="offline"):
+            mapper._initialize()
+
+    def test_offline_with_local_embedder_still_initializes(self, omop_model, monkeypatch):
+        """The gate is a no-op for a genuinely local offline config."""
+        from portiere.config import EmbeddingConfig, PortiereConfig
+        from portiere.local.schema_mapper import LocalSchemaMapper
+
+        config = PortiereConfig(
+            offline=True,
+            embedding=EmbeddingConfig(provider="huggingface", model="local-x"),
+        )
+        mapper = LocalSchemaMapper(config, target_model=omop_model)
+        # assert_no_egress must NOT raise here; stop before the real model load
+        # by asserting the gate passes (no ConfigurationError from _initialize's
+        # first line). We call assert_no_egress directly to isolate the gate.
+        config.assert_no_egress()  # no exception == gate is a correct no-op

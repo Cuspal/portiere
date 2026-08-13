@@ -218,3 +218,51 @@ class TestCloudStorageBackend:
         mock_client = MagicMock()
         with pytest.raises(NotImplementedError, match="Cloud storage"):
             CloudStorageBackend(client=mock_client, local_cache_dir=tmp_path / "cloud_cache")
+
+
+class TestReviewF007:
+    """F-007 (CO-04/L1): project names must not escape the storage root.
+
+    A name is joined onto base_dir to locate artifacts. Before this guard,
+    ``create_project("../x")`` created a project outside base_dir and
+    ``delete_project("../x")`` did ``shutil.rmtree`` on a directory outside it.
+    """
+
+    def test_create_project_traversal_rejected(self, tmp_path):
+        from portiere.storage.local_backend import LocalStorageBackend
+
+        base = tmp_path / "store" / "projects"
+        storage = LocalStorageBackend(base_dir=base)
+        with pytest.raises(ValueError, match="single path component"):
+            storage.create_project("../ESCAPED", "omop_cdm_v5.4", ["SNOMED"])
+        # nothing was created outside the storage root
+        assert not (base / ".." / "ESCAPED").exists()
+
+    def test_delete_project_traversal_does_not_rmtree_outside_root(self, tmp_path):
+        from portiere.storage.local_backend import LocalStorageBackend
+
+        base = tmp_path / "store" / "projects"
+        victim = tmp_path / "store" / "IMPORTANT_other_data"
+        victim.mkdir(parents=True)
+        (victim / "keepme.txt").write_text("do not delete")
+
+        storage = LocalStorageBackend(base_dir=base)
+        with pytest.raises(ValueError, match="single path component"):
+            storage.delete_project("../IMPORTANT_other_data")
+        assert victim.exists() and (victim / "keepme.txt").exists()
+
+    def test_absolute_and_nested_names_rejected(self, tmp_path):
+        from portiere.storage.local_backend import LocalStorageBackend
+
+        storage = LocalStorageBackend(base_dir=tmp_path)
+        for bad in ["/etc/passwd", "a/b", "..", ".", "", "   "]:
+            with pytest.raises(ValueError):
+                storage.create_project(bad, "omop_cdm_v5.4", ["SNOMED"])
+
+    def test_ordinary_names_with_spaces_still_work(self, tmp_path):
+        from portiere.storage.local_backend import LocalStorageBackend
+
+        storage = LocalStorageBackend(base_dir=tmp_path)
+        md = storage.create_project("Hospital Migration", "omop_cdm_v5.4", ["SNOMED"])
+        assert md["name"] == "Hospital Migration"
+        assert storage.project_exists("Hospital Migration")

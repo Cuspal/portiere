@@ -42,7 +42,7 @@ def apply_concept_mapping(df, source_col, target_col="concept_id"):
     )
 
 
-def main(source_path="{{ source_path }}", output_path="{{ output_path }}"):
+def main(source_path={{ source_path | tojson }}, output_path={{ output_path | tojson }}):
     spark = SparkSession.builder.appName("medmap_etl_{{ project_name }}").getOrCreate()
 
     # Read source
@@ -67,6 +67,6 @@ def main(source_path="{{ source_path }}", output_path="{{ output_path }}"):
 
 if __name__ == "__main__":
     import sys
-    source = sys.argv[1] if len(sys.argv) > 1 else "{{ source_path }}"
-    output = sys.argv[2] if len(sys.argv) > 2 else "{{ output_path }}"
+    source = sys.argv[1] if len(sys.argv) > 1 else {{ source_path | tojson }}
+    output = sys.argv[2] if len(sys.argv) > 2 else {{ output_path | tojson }}
     main(source, output)

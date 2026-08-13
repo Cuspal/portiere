@@ -1,0 +1,38 @@
+{"text": "contact john.doe@hospital.org for records", "must_flag": true, "category": "EMAIL", "backend": "regex"}
+{"text": "email: a.b-c@sub.example.co.th", "must_flag": true, "category": "EMAIL", "backend": "regex"}
+{"text": "nurse_email somchai@moph.go.th", "must_flag": true, "category": "EMAIL", "backend": "regex"}
+{"text": "SSN 123-45-6789 on file", "must_flag": true, "category": "NATIONAL_ID", "backend": "regex"}
+{"text": "ssn:987-65-4321", "must_flag": true, "category": "NATIONAL_ID", "backend": "regex"}
+{"text": "Thai ID 1101700203451", "must_flag": true, "category": "NATIONAL_ID", "backend": "regex"}
+{"text": "national id 3100600123456", "must_flag": true, "category": "NATIONAL_ID", "backend": "regex"}
+{"text": "MRN: 1234567", "must_flag": true, "category": "MRN", "backend": "regex"}
+{"text": "HN 987654321 admitted", "must_flag": true, "category": "MRN", "backend": "regex"}
+{"text": "PID#55501 ward 3", "must_flag": true, "category": "MRN", "backend": "regex"}
+{"text": "call 02-123-4567 reception", "must_flag": true, "category": "PHONE", "backend": "regex"}
+{"text": "mobile 081-234-5678", "must_flag": true, "category": "PHONE", "backend": "regex"}
+{"text": "intl +66812345678", "must_flag": true, "category": "PHONE", "backend": "regex"}
+{"text": "US +1 (555) 123-4567", "must_flag": true, "category": "PHONE", "backend": "regex"}
+{"text": "DOB: 1985-03-02", "must_flag": true, "category": "DATE", "backend": "regex"}
+{"text": "born 14/05/1990", "must_flag": true, "category": "DATE", "backend": "regex"}
+{"text": "d.o.b 1/2/1985", "must_flag": true, "category": "DATE", "backend": "regex"}
+{"text": "admitted 01-15-1985", "must_flag": true, "category": "DATE", "backend": "regex"}
+{"text": "Malaysian NRIC 900101-14-5678", "must_flag": true, "category": "NATIONAL_ID_MY", "backend": "regex_gap"}
+{"text": "IC No 850312-10-1234", "must_flag": true, "category": "NATIONAL_ID_MY", "backend": "regex_gap"}
+{"text": "patient Somchai Jaidee arrived", "must_flag": true, "category": "PERSON_TH", "backend": "presidio"}
+{"text": "seen by Dr. John Smith today", "must_flag": true, "category": "PERSON_EN", "backend": "presidio"}
+{"text": "Ms. Jane Doe was discharged", "must_flag": true, "category": "PERSON_EN", "backend": "presidio"}
+{"text": "resident at 12 Orchard Road, Klang", "must_flag": true, "category": "ADDRESS", "backend": "presidio"}
+{"text": "E11.9", "must_flag": false, "category": "ICD10", "backend": "negative"}
+{"text": "I10", "must_flag": false, "category": "ICD10", "backend": "negative"}
+{"text": "J06.9", "must_flag": false, "category": "ICD10", "backend": "negative"}
+{"text": "8480-6", "must_flag": false, "category": "LOINC", "backend": "negative"}
+{"text": "2160-0", "must_flag": false, "category": "LOINC", "backend": "negative"}
+{"text": "44054006", "must_flag": false, "category": "SNOMED", "backend": "negative"}
+{"text": "120/80 mmHg", "must_flag": false, "category": "MEASUREMENT", "backend": "negative"}
+{"text": "5.4 mmol/L", "must_flag": false, "category": "MEASUREMENT", "backend": "negative"}
+{"text": "250 mg", "must_flag": false, "category": "MEASUREMENT", "backend": "negative"}
+{"text": "mg/dL", "must_flag": false, "category": "UNIT", "backend": "negative"}
+{"text": "concept_id 320128", "must_flag": false, "category": "CONCEPT_ID", "backend": "negative"}
+{"text": "Type 2 diabetes mellitus", "must_flag": false, "category": "CLINICAL_TEXT", "backend": "negative"}
+{"text": "hemoglobin A1c result normal", "must_flag": false, "category": "CLINICAL_TEXT", "backend": "negative"}
+{"text": "RxNorm 1049221", "must_flag": false, "category": "RXNORM", "backend": "negative"}

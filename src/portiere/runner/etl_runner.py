@@ -384,7 +384,7 @@ class ETLRunner:
 
                 try:
                     table_result = self._process_table(
-                        df, table_name, items, output_path, output_format
+                        df, table_name, items, output_path, output_format, warnings=warnings
                     )
                     table_results.append(table_result)
                     for item in items:
@@ -451,8 +451,14 @@ class ETLRunner:
         items: list[dict],
         output_path: str,
         output_format: str,
+        warnings: list[str] | None = None,
     ) -> TableResult:
-        """Process a single target table: select, rename, concept lookup, write."""
+        """Process a single target table: select, rename, concept lookup, write.
+
+        ``warnings``, when provided, collects user-facing warnings (e.g. a
+        dropped duplicate-target column) so they surface in ``ETLResult.warnings``
+        rather than only in the logs.
+        """
         # Collect source columns needed for this table
         source_cols = []
         renames = {}
@@ -462,7 +468,10 @@ class ETLRunner:
             tgt = item.get("target_column", src)
             # Skip if another source already maps to this target column
             if tgt in seen_targets:
-                logger.warning(f"Skipping duplicate target '{tgt}' from '{src}' in {table_name}")
+                msg = f"Skipping duplicate target '{tgt}' from '{src}' in {table_name}"
+                logger.warning(msg)
+                if warnings is not None:
+                    warnings.append(msg)
                 continue
             seen_targets.add(tgt)
             if src not in source_cols:

@@ -430,6 +430,8 @@ class PortiereConfig(BaseSettings):
         import os
         import re
 
+        from portiere.exceptions import ConfigurationError
+
         path = Path(path)
         if not path.exists():
             raise FileNotFoundError(f"Config file not found: {path}")
@@ -445,6 +447,17 @@ class PortiereConfig(BaseSettings):
         content = re.sub(r"\$\{(\w+)\}", replace_env, content)
 
         data = yaml.safe_load(content)
+        # A public entry point cannot assume its caller is sane: an empty,
+        # comment-only, or non-mapping YAML makes safe_load return None / a list
+        # / a scalar, and cls(**data) then raises an opaque TypeError. Give a
+        # clear error naming the file instead.
+        if data is None:
+            raise ConfigurationError(f"Config file is empty or has no mappings: {path}")
+        if not isinstance(data, dict):
+            raise ConfigurationError(
+                f"Config file must contain a top-level mapping (key: value), "
+                f"got {type(data).__name__}: {path}"
+            )
         return cls(**data)
 
     @classmethod

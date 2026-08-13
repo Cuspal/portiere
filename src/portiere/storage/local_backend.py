@@ -63,7 +63,26 @@ class LocalStorageBackend(StorageBackend):
         logger.debug("local_storage.initialized", base_dir=str(self.base_dir))
 
     def _project_dir(self, name: str) -> Path:
-        return self.base_dir / name
+        return self.base_dir / self._safe_name(name)
+
+    @staticmethod
+    def _safe_name(name: str) -> str:
+        """Validate that a project name is a single, contained path component.
+
+        A project name is joined onto ``base_dir`` to locate every artifact,
+        so a path-like value would escape the storage root — ``"../x"`` would
+        create a project outside ``base_dir``, and ``delete_project("../x")``
+        would ``shutil.rmtree`` a directory outside it. Reject any name that is
+        empty, absolute, or contains a path separator or parent reference.
+        """
+        if not name or not name.strip():
+            raise ValueError("Project name must be a non-empty string.")
+        if name in (".", "..") or name != Path(name).name:
+            raise ValueError(
+                f"Invalid project name {name!r}: must be a single path component "
+                "with no '/', '\\', or '..' (it is joined onto the storage root)."
+            )
+        return name
 
     def _ensure_subdirs(self, project_dir: Path) -> None:
         """Ensure all expected subdirectories exist (handles legacy projects)."""

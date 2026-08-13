@@ -716,3 +716,45 @@ class TestArtifactManagerFromAPIResponse:
         mgr = ArtifactManager.from_api_response(response, engine)
         assert len(mgr._artifacts) == 2
         assert mgr._engine is engine
+
+
+class TestReviewF016:
+    """F-016 (SF-02/L1): generated ETL scripts must escape interpolated paths.
+
+    Same defect class as F-008 (stage4_transform), on the Jinja-template
+    CodeGenerator path. Autoescape only covers html/xml, so a Windows source
+    path (backslashes) or a path with a quote previously produced a broken
+    script. The templates now use the `tojson` filter for path literals.
+    """
+
+    def test_windows_path_produces_compilable_script(self):
+        import py_compile
+        import tempfile
+        from pathlib import Path
+
+        from portiere.artifacts.code_generator import CodeGenerator
+
+        gen = CodeGenerator()
+        sm = [{"source_column": "code", "target_table": "condition", "target_column": "cond_sv"}]
+        cm = [{"source_code": "E11.9", "target_concept_id": 201826, "source_column": "code"}]
+        win = r"C:\data\patients\raw.csv"
+        for engine in ("pandas", "polars", "spark"):
+            script = gen.generate_etl_script(
+                engine, sm, cm, source_path=win, output_path="out.parquet"
+            )
+            f = Path(tempfile.mktemp(suffix=".py"))
+            f.write_text(script)
+            py_compile.compile(str(f), doraise=True)  # no SyntaxError
+            # the path must appear as a correctly-escaped literal in the def main default
+            defline = next(ln for ln in script.splitlines() if "def main(" in ln)
+            assert win.replace("\\", "\\\\") in defline, defline
+
+    def test_normal_path_unchanged(self):
+        from portiere.artifacts.code_generator import CodeGenerator
+
+        gen = CodeGenerator()
+        script = gen.generate_etl_script(
+            "pandas", [], [], source_path="source_data.csv", output_path="out.parquet"
+        )
+        # tojson of a plain string == the same double-quoted literal
+        assert '"source_data.csv"' in script

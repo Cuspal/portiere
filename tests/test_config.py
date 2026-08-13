@@ -10,6 +10,8 @@ Tests the configuration loading and validation for:
 import os
 from unittest.mock import patch
 
+import pytest
+
 
 class TestLLMConfig:
     """Tests for LLMConfig."""
@@ -371,3 +373,43 @@ class TestIntegratedLocalConfig:
 
         assert config.mode == "cloud"
         assert config.knowledge_layer is None
+
+
+class TestReviewF005:
+    """F-005: from_yaml must give a clear error on empty/non-mapping YAML,
+    not an opaque TypeError from cls(**None)."""
+
+    def test_empty_yaml_raises_configuration_error(self, tmp_path):
+        from portiere.config import PortiereConfig
+        from portiere.exceptions import ConfigurationError
+
+        p = tmp_path / "empty.yaml"
+        p.write_text("")
+        with pytest.raises(ConfigurationError, match="empty or has no mappings"):
+            PortiereConfig.from_yaml(p)
+
+    def test_comment_only_yaml_raises(self, tmp_path):
+        from portiere.config import PortiereConfig
+        from portiere.exceptions import ConfigurationError
+
+        p = tmp_path / "c.yaml"
+        p.write_text("# only a comment\n")
+        with pytest.raises(ConfigurationError):
+            PortiereConfig.from_yaml(p)
+
+    def test_non_mapping_yaml_raises(self, tmp_path):
+        from portiere.config import PortiereConfig
+        from portiere.exceptions import ConfigurationError
+
+        p = tmp_path / "l.yaml"
+        p.write_text("- a\n- b\n")
+        with pytest.raises(ConfigurationError, match="top-level mapping"):
+            PortiereConfig.from_yaml(p)
+
+    def test_valid_yaml_still_loads(self, tmp_path):
+        from portiere.config import PortiereConfig
+
+        p = tmp_path / "ok.yaml"
+        p.write_text("target_model: fhir_r4\n")
+        cfg = PortiereConfig.from_yaml(p)
+        assert cfg.target_model == "fhir_r4"

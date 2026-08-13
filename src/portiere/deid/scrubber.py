@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import warnings
 from dataclasses import dataclass
 from typing import Literal
 
@@ -193,6 +194,17 @@ class PHIScrubber:
                 backend = "presidio"
             except ImportError:
                 backend = "regex"
+                # Silent under-scrubbing is the failure mode users least expect:
+                # the regex backend catches structural PHI (email, phone, MRN,
+                # national-id, dates) but NOT person names or addresses. Warn so
+                # a base-install caller knows the coverage they actually get.
+                warnings.warn(
+                    "PHIScrubber backend='auto' resolved to 'regex' "
+                    "(the 'phi' extra is not installed). The regex backend does "
+                    "NOT detect person names or addresses — install "
+                    "portiere-health[phi] for NER coverage.",
+                    stacklevel=2,
+                )
         if backend == "presidio":
             self._analyzer = self._build_presidio_analyzer()
         else:
