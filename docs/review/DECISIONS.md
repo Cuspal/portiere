@@ -51,7 +51,7 @@ a correctly provisioned offline deployment pre-downloads weights.
 
 ---
 
-## Applied this run (NOT parked): F-004, F-005, F-007, F-008, F-010
+## Applied this run (NOT parked): F-004, F-005, F-007, F-008, F-010, F-012
 - **F-004** — `deid/scrubber.py` warns when `backend="auto"` silently falls back
   to `regex` (no `phi` extra). Logging-only; detection unchanged; ratchet 1.0/1.0.
 - **F-005** — `config.from_yaml` raises `ConfigurationError` (naming the file) on
@@ -63,5 +63,11 @@ a correctly provisioned offline deployment pre-downloads weights.
   corrupt), lookup CSV via the `csv` module (newline/comma-safe).
 - **F-010** — `ETLRunner` now surfaces a dropped duplicate-target column in
   `ETLResult.warnings`, not only in the logs.
+- **F-012** — `schema_mapper._initialize` now re-asserts the offline gate
+  (`assert_no_egress()`) before building the embedding gateway, mirroring
+  `concept_mapper`/`Project` — closes a runtime hole where a post-construction
+  config mutation to a remote embedder could send schema sample values
+  (potential PHI) off-machine under `offline=True`.
 
-All five are in the tree; see HANDOFF for the commit plan and patches.
+F-004/5/7/8/10 are already committed (`aef3103…a9cddf1`); **F-012 is the one
+uncommitted code fix** in the tree. See HANDOFF for the commit line.

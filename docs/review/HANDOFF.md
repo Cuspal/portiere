@@ -12,15 +12,17 @@ describe the original pre-commit state and are kept for the record.
 
 Partial run by design, extended across sessions. Complete so far: Phase 0
 (baseline) + **Privacy** (PV-01…04) + **Core** (CO-01…04) + **Pipeline**
-(PL-01…06) + **Mapping** (MP-01…06). **20 of 47 subsystems** are terminal; the
-other 27 (KNOWLEDGE, STANDARDS, QUALITY, SURFACE, CROSS-CUTTING) are `PENDING`
-and resumable — `docs/review/state.json` carries the registry forward; re-invoke
-`/review` (clean tree first) to continue at **KN-01** without re-auditing what
-is done.
+(PL-01…06) + **Mapping** (MP-01…06) + **Knowledge** (KN-01…06). **26 of 47
+subsystems** are terminal; the other 21 (STANDARDS, QUALITY, SURFACE,
+CROSS-CUTTING) are `PENDING` and resumable — `docs/review/state.json` carries
+the registry forward; re-invoke `/review` (clean tree first) to continue at
+**ST-01** without re-auditing what is done.
 
-**Five safe fixes applied and verified; six findings parked for your call.**
-The Mapping pass added no code changes — its layer is largely sound; the gaps
-found there are design/egress decisions (parked), not clean bugs.
+**Six safe fixes applied and verified; six findings parked for your call.**
+F-004/5/7/8/10 are already committed (`aef3103…a9cddf1`). The Knowledge pass
+added **one fix, F-012** (offline-gate hole on the schema-mapping PHI path) —
+the only uncommitted code fix in the tree. Knowledge is otherwise a strong
+subsystem: its offline/egress posture holds comprehensively (see §Leads).
 
 **No git writes were made. Nothing was committed, tagged, or released.**
 
@@ -50,7 +52,7 @@ under `docs/review/` and `tests/fixtures/phi_corpus/` is new tooling.
 
 | Check | Baseline | Current | |
 |---|---|---|---|
-| Tests (default) | 1284 passed, 2 skip | **1297 passed, 2 skip** | +13 (F-004×2, F-005×4, F-007×4, F-008×2, F-010×1) |
+| Tests (default) | 1284 passed, 2 skip | **1299 passed, 2 skip** | +15 (F-004×2, F-005×4, F-007×4, F-008×2, F-010×1, F-012×2) |
 | Tests (`-m slow`) | 5 passed, 1 skip | 5 passed, 1 skip | unchanged |
 | ruff / format | clean | clean | — |
 | mypy (`src/portiere`) | 0 CI / 1 local-faiss | 0 CI / 1 local-faiss | unchanged (env-only) |
@@ -92,6 +94,19 @@ git commit -m "chore(review): core+privacy+pipeline-pass artifacts + PHI ratchet
 
 Isolated patches: `docs/review/patches/F-004.patch`, `F-005`, `F-007`, `F-008`,
 `F-010` (`git apply` if you prefer).
+
+**Current uncommitted state (after your `aef3103…a9cddf1` commits):** only the
+Knowledge-pass fix F-012 + review docs remain. To commit F-012:
+
+```bash
+git add src/portiere/local/schema_mapper.py tests/test_local_schema_mapper.py
+git commit -m "fix(schema_mapper/L3): re-assert offline gate before building embedding gateway [F-012]"
+git add docs/review/
+git commit -m "chore(review): knowledge-pass artifacts (F-012 fix + KN notes)"
+```
+Patch: `docs/review/patches/F-012.patch`. **Review-first**: F-012 is an
+egress/privacy path — it only ever *adds* a `ConfigurationError` under
+`offline=True` + a remote embedder, never weakens; confirm that matches intent.
 
 ## 4. Review-first (read before committing)
 
@@ -153,10 +168,13 @@ The version bump, changelog, tag, and publish are yours.
 
 ## Notable leads for the resume pass (surfaced incidentally, not findings)
 
-- **KN-06 embedding providers** — same offline gap as F-011 (HF download under
-  `offline=True`); confirm the scope there when auditing KNOWLEDGE next.
-- **KN-05 Athena / vocabulary_bridge** — the `vocabulary_lookup` transform and
-  `_code_index` both depend on it; check its network/egress behaviour under offline.
+- **Knowledge offline posture = PASS** — `egress_violations` covers all URL-based
+  remote backends; ChromaDB is local-only (no `HttpClient`); Athena and
+  vocabulary_bridge are local CSV parsers with no network client; rrfusion math
+  is correct. The only residual is F-011 (HF cold-cache model download).
+- **ST-04 FHIR export / ST-01 crossmaps** — start STANDARDS here; treat crosswalk
+  YAML as clinical content (semantic changes are Park List). Check unmapped
+  source elements are reported, not silently dropped (L8).
 - **MP-03 cross_mapper** — `_set_nested` cannot build FHIR arrays (`coding[0]`);
   fine for shipped crossmaps, latent for custom ones (see findings NOTE).
 - **CO-02 (`project.py`)** — focused-scan only; two swallow-without-log spots
@@ -173,5 +191,5 @@ The version bump, changelog, tag, and publish are yours.
 
 ## What was NOT audited (resume scope)
 
-27 subsystems remain `PENDING`: KN-01…06, ST-01…04, QR-01…04, SF-01…07,
-XC-01…06. Re-invoke `/review` (clean tree first) to continue at KN-01.
+21 subsystems remain `PENDING`: ST-01…04, QR-01…04, SF-01…07, XC-01…06.
+Re-invoke `/review` (clean tree first) to continue at ST-01.

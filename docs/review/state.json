@@ -1,8 +1,8 @@
 {
   "run_id": "review-2026-08-13",
   "started": "2026-08-13T20:32:00+07:00",
-  "last_updated": "2026-08-13T22:12:00+07:00",
-  "current_module": "(MAPPING done; KNOWLEDGE KN-01 next on resume)",
+  "last_updated": "2026-08-13T22:59:00+07:00",
+  "current_module": "(KNOWLEDGE done; STANDARDS ST-01 next on resume)",
   "current_phase": "5-handoff (partial run)",
   "git_at_start": {
     "branch": "main",
@@ -158,8 +158,8 @@
       "id": "MP-01",
       "name": "Schema mapper",
       "status": "AUDITED",
-      "findings": 1,
-      "fixed": 0,
+      "findings": 2,
+      "fixed": 1,
       "parked": 1,
       "blocked": 0
     },
@@ -211,7 +211,7 @@
     {
       "id": "KN-01",
       "name": "Backend interface + factory",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -220,7 +220,7 @@
     {
       "id": "KN-02",
       "name": "Local backends",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -229,7 +229,7 @@
     {
       "id": "KN-03",
       "name": "Remote backends",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -238,7 +238,7 @@
     {
       "id": "KN-04",
       "name": "Hybrid + fusion",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -247,7 +247,7 @@
     {
       "id": "KN-05",
       "name": "Vocabulary bridge + Athena",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -256,7 +256,7 @@
     {
       "id": "KN-06",
       "name": "Embedding providers",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -522,11 +522,25 @@
       "verified": true,
       "overlaps": [],
       "committed": true
+    },
+    {
+      "finding_id": "F-012",
+      "subsystem": "MP-01",
+      "lens": "L3",
+      "files": [
+        "src/portiere/local/schema_mapper.py",
+        "tests/test_local_schema_mapper.py"
+      ],
+      "patch": "docs/review/patches/F-012.patch",
+      "commit_message": "fix(schema_mapper/L3): re-assert offline gate before building embedding gateway [F-012]",
+      "verified": true,
+      "committed": false,
+      "overlaps": []
     }
   ],
   "totals": {
-    "findings": 11,
-    "fixed": 5,
+    "findings": 12,
+    "fixed": 6,
     "parked": 6,
     "blocked": 0
   },
