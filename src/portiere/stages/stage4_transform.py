@@ -138,8 +138,8 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
 # Configuration
-SOURCE_PATH = "{source_path}"
-OUTPUT_PATH = "{output_path}"
+SOURCE_PATH = {source_path!r}
+OUTPUT_PATH = {output_path!r}
 LOOKUP_PATH = "concept_lookup.csv"
 
 
@@ -225,8 +225,8 @@ Run: python etl_polars.py
 import polars as pl
 
 # Configuration
-SOURCE_PATH = "{source_path}"
-OUTPUT_PATH = "{output_path}"
+SOURCE_PATH = {source_path!r}
+OUTPUT_PATH = {output_path!r}
 LOOKUP_PATH = "concept_lookup.csv"
 
 
@@ -308,8 +308,8 @@ Run: python etl_pandas.py
 import pandas as pd
 
 # Configuration
-SOURCE_PATH = "{source_path}"
-OUTPUT_PATH = "{output_path}"
+SOURCE_PATH = {source_path!r}
+OUTPUT_PATH = {output_path!r}
 LOOKUP_PATH = "concept_lookup.csv"
 
 
@@ -338,32 +338,56 @@ if __name__ == "__main__":
 
 
 def _generate_lookup_table(concept_mapping: dict, path: Path) -> None:
-    """Generate concept lookup CSV for ETL."""
-    rows = ["source_code,source_column,target_concept_id,target_concept_name,confidence,method"]
+    """Generate concept lookup CSV for ETL.
+
+    Uses the ``csv`` module so that codes or names containing commas, quotes, or
+    newlines are quoted correctly rather than splitting or truncating a row —
+    a mis-split row would silently drop or mis-map concepts in the generated
+    join. ``lineterminator="\\n"`` keeps the output byte-stable across platforms.
+    """
+    import csv
+    import io
+
+    header = [
+        "source_code",
+        "source_column",
+        "target_concept_id",
+        "target_concept_name",
+        "confidence",
+        "method",
+    ]
+    buf = io.StringIO()
+    writer = csv.writer(buf, lineterminator="\n")
+    writer.writerow(header)
 
     # Handle nested dict format: {mappings: {column: {items: [...]}}}
     for column, data in concept_mapping.get("mappings", {}).items():
         for item in data.get("items", []):
-            source_code = str(item.get("source_code", "")).replace(",", ";")
-            target_id = item.get("target_concept_id", "")
-            target_name = str(item.get("target_concept_name", "")).replace(",", ";")
-            confidence = item.get("confidence", 0)
-            method = item.get("method", "")
-            rows.append(f"{source_code},{column},{target_id},{target_name},{confidence},{method}")
+            writer.writerow(
+                [
+                    item.get("source_code", ""),
+                    column,
+                    item.get("target_concept_id", ""),
+                    item.get("target_concept_name", ""),
+                    item.get("confidence", 0),
+                    item.get("method", ""),
+                ]
+            )
 
     # Handle flat list format: {items: [...]} from ConceptMapping.to_source_to_concept_map()
     for item in concept_mapping.get("items", []):
-        source_code = str(item.get("source_code", "")).replace(",", ";")
-        source_column = item.get("source_column", item.get("source_vocabulary_id", ""))
-        target_id = item.get("target_concept_id", "")
-        target_name = str(item.get("target_concept_name", "")).replace(",", ";")
-        confidence = item.get("confidence", 0)
-        method = item.get("method", "")
-        rows.append(
-            f"{source_code},{source_column},{target_id},{target_name},{confidence},{method}"
+        writer.writerow(
+            [
+                item.get("source_code", ""),
+                item.get("source_column", item.get("source_vocabulary_id", "")),
+                item.get("target_concept_id", ""),
+                item.get("target_concept_name", ""),
+                item.get("confidence", 0),
+                item.get("method", ""),
+            ]
         )
 
-    path.write_text("\n".join(rows))
+    path.write_text(buf.getvalue().rstrip("\n"))
 
 
 def _generate_config(

@@ -531,3 +531,61 @@ class TestProjectModel:
         assert "valid" in result
         assert "issues" in result
         assert "stats" in result
+
+
+class TestReviewF008:
+    """F-008 (PL-04/L1): generated ETL artifacts must escape interpolated values.
+
+    Before this fix, a Windows source path corrupted the ``SOURCE_PATH`` string
+    literal (``\\r`` -> carriage return) and a code value containing a newline
+    split the lookup CSV into an extra row, silently mis-mapping concepts.
+    """
+
+    def test_windows_source_path_roundtrips_in_generated_script(self, tmp_path):
+        import py_compile
+
+        from portiere.stages.stage4_transform import (
+            _generate_pandas_etl,
+            _generate_polars_etl,
+            _generate_spark_etl,
+        )
+
+        win = r"C:\data\patients\raw.csv"
+        for gen in (_generate_polars_etl, _generate_spark_etl, _generate_pandas_etl):
+            script = gen({"items": []}, {"items": []}, win, "out.parquet")
+            f = tmp_path / f"{gen.__name__}.py"
+            f.write_text(script)
+            py_compile.compile(str(f), doraise=True)  # no SyntaxError/warning-as-error
+            # The path constant must evaluate back to the exact original string.
+            ns: dict = {}
+            src_line = next(ln for ln in script.splitlines() if ln.startswith("SOURCE_PATH"))
+            exec(src_line, ns)
+            assert ns["SOURCE_PATH"] == win, (
+                f"{gen.__name__}: path corrupted -> {ns['SOURCE_PATH']!r}"
+            )
+
+    def test_lookup_csv_quotes_values_with_newlines_and_commas(self, tmp_path):
+        import csv
+
+        from portiere.stages.stage4_transform import _generate_lookup_table
+
+        cm = {
+            "items": [
+                {
+                    "source_code": "line1\nline2",
+                    "source_column": "dx",
+                    "target_concept_id": 1,
+                    "target_concept_name": "Name, with comma",
+                    "confidence": 0.9,
+                    "method": "auto",
+                }
+            ]
+        }
+        p = tmp_path / "lookup.csv"
+        _generate_lookup_table(cm, p)
+        with open(p, newline="") as f:
+            rows = list(csv.reader(f))
+        assert rows[0][0] == "source_code"
+        assert len(rows) == 2  # header + exactly one data row (newline did NOT split it)
+        assert rows[1][0] == "line1\nline2"
+        assert rows[1][3] == "Name, with comma"  # comma preserved, not turned into ';'
