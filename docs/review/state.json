@@ -1,8 +1,8 @@
 {
   "run_id": "review-2026-08-13",
   "started": "2026-08-13T20:32:00+07:00",
-  "last_updated": "2026-08-13T23:10:00+07:00",
-  "current_module": "(STANDARDS done; QUALITY QR-01 next on resume)",
+  "last_updated": "2026-08-13T23:18:00+07:00",
+  "current_module": "(QUALITY&REPRO done; SURFACE SF-01 next on resume)",
   "current_phase": "5-handoff (partial run)",
   "git_at_start": {
     "branch": "main",
@@ -301,7 +301,7 @@
     {
       "id": "QR-01",
       "name": "Profiler",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -310,7 +310,7 @@
     {
       "id": "QR-02",
       "name": "Validator",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -319,16 +319,16 @@
     {
       "id": "QR-03",
       "name": "Hashing + manifest",
-      "status": "PENDING",
-      "findings": 0,
+      "status": "AUDITED",
+      "findings": 1,
       "fixed": 0,
-      "parked": 0,
+      "parked": 1,
       "blocked": 0
     },
     {
       "id": "QR-04",
       "name": "Record + replay",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -539,9 +539,9 @@
     }
   ],
   "totals": {
-    "findings": 13,
+    "findings": 14,
     "fixed": 6,
-    "parked": 7,
+    "parked": 8,
     "blocked": 0
   },
   "halt_reason": null,

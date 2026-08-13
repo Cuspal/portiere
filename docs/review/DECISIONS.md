@@ -59,6 +59,16 @@ slugify-to-valid-identifier step with collision handling, applied across all
 three generators — a larger codegen change than F-008's path/CSV escaping, and
 rarer in practice (column names are more controlled than paths and values).
 
+## F-014 — reproducibility fingerprint keys on mtime for >1 GB files (QR-03/L5+L7, S3)
+`repro/hashing.py` fingerprints files >1 GB as `name|size|mtime_ns` instead of
+content. Verified: identical content + different mtime → different `meta:` hash.
+Since replay re-checks vocabulary/source `sha256`, a pipeline that used a large
+input (the 6.8 GB Athena vocab) fails replay with "sha256 mismatch" on identical
+content after re-extraction or on another machine — contradicting "reproducible
+across machines". **Parked because:** the fix (content-sample fingerprint: size +
+sha of first/last N bytes) changes the manifest format and needs a
+`manifest_version` bump — a reproducibility-contract change for the maintainer.
+
 ## F-011 — offline=True does not prevent HuggingFace model downloads (MP-05/L7, S3)
 `offline=True` rejects configured remote *providers*, but loading a local
 cross-encoder/embedder whose weights are not cached still calls `huggingface.co`
