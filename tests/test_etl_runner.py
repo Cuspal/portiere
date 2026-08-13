@@ -1095,3 +1095,52 @@ class TestGenerateRunnerConfig:
 
         filenames = [p.name for p in saved]
         assert "etl_config.yaml" in filenames
+
+
+class TestReviewF010:
+    """F-010 (PL-06/L1): a dropped duplicate-target column must surface in
+    ETLResult.warnings, not only in the logs."""
+
+    def test_duplicate_target_column_reported_in_result_warnings(self, tmp_path):
+        import pandas as pd
+
+        from portiere.engines.pandas_engine import PandasEngine
+        from portiere.runner.etl_runner import ETLRunner
+
+        source_path = str(tmp_path / "input.csv")
+        pd.DataFrame(
+            {
+                "code_a": ["E11.9", "I10"],
+                "code_b": ["X", "Y"],
+            }
+        ).to_csv(source_path, index=False)
+
+        # Two source columns route to the SAME target column in the same table.
+        runner = ETLRunner(
+            engine=PandasEngine(),
+            schema_items=[
+                {
+                    "source_column": "code_a",
+                    "target_table": "condition_occurrence",
+                    "target_column": "condition_source_value",
+                },
+                {
+                    "source_column": "code_b",
+                    "target_table": "condition_occurrence",
+                    "target_column": "condition_source_value",  # duplicate target
+                },
+            ],
+            concept_items=[],
+        )
+
+        result = runner.run(
+            source_path=source_path,
+            output_path=str(tmp_path / "out"),
+            source_format="csv",
+            output_format="csv",
+        )
+
+        assert result.success is True
+        assert any("duplicate target" in w.lower() for w in result.warnings), (
+            f"dropped column not surfaced in result.warnings: {result.warnings}"
+        )
