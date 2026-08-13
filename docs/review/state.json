@@ -1,8 +1,8 @@
 {
   "run_id": "review-2026-08-13",
   "started": "2026-08-13T20:32:00+07:00",
-  "last_updated": "2026-08-13T23:18:00+07:00",
-  "current_module": "(QUALITY&REPRO done; SURFACE SF-01 next on resume)",
+  "last_updated": "2026-08-13T23:35:00+07:00",
+  "current_module": "(SURFACE done; CROSS-CUTTING XC-01 next on resume)",
   "current_phase": "5-handoff (partial run)",
   "git_at_start": {
     "branch": "main",
@@ -337,7 +337,7 @@
     {
       "id": "SF-01",
       "name": "CLI",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -346,25 +346,25 @@
     {
       "id": "SF-02",
       "name": "Artifacts + codegen",
-      "status": "PENDING",
-      "findings": 0,
-      "fixed": 0,
+      "status": "AUDITED",
+      "findings": 1,
+      "fixed": 1,
       "parked": 0,
       "blocked": 0
     },
     {
       "id": "SF-03",
       "name": "dbt integration",
-      "status": "PENDING",
-      "findings": 0,
+      "status": "AUDITED",
+      "findings": 1,
       "fixed": 0,
-      "parked": 0,
+      "parked": 1,
       "blocked": 0
     },
     {
       "id": "SF-04",
       "name": "MCP server",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -373,7 +373,7 @@
     {
       "id": "SF-05",
       "name": "LangChain integration",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -382,7 +382,7 @@
     {
       "id": "SF-06",
       "name": "Review UI",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -391,7 +391,7 @@
     {
       "id": "SF-07",
       "name": "Engines",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -536,12 +536,28 @@
       "verified": true,
       "committed": false,
       "overlaps": []
+    },
+    {
+      "finding_id": "F-016",
+      "subsystem": "SF-02",
+      "lens": "L1",
+      "files": [
+        "src/portiere/artifacts/templates/pandas_etl.py.j2",
+        "src/portiere/artifacts/templates/polars_etl.py.j2",
+        "src/portiere/artifacts/templates/spark_etl.py.j2",
+        "tests/test_artifacts.py"
+      ],
+      "patch": "docs/review/patches/F-016.patch",
+      "commit_message": "fix(codegen/L1): escape path literals via tojson in ETL templates [F-016]",
+      "verified": true,
+      "committed": false,
+      "overlaps": []
     }
   ],
   "totals": {
-    "findings": 14,
-    "fixed": 6,
-    "parked": 8,
+    "findings": 16,
+    "fixed": 7,
+    "parked": 9,
     "blocked": 0
   },
   "halt_reason": null,

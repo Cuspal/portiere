@@ -13,12 +13,15 @@ describe the original pre-commit state and are kept for the record.
 Partial run by design, extended across sessions. Complete so far: Phase 0
 (baseline) + **Privacy** (PV-01…04) + **Core** (CO-01…04) + **Pipeline**
 (PL-01…06) + **Mapping** (MP-01…06) + **Knowledge** (KN-01…06) + **Standards**
-(ST-01…04) + **Quality & Repro** (QR-01…04). **34 of 47 subsystems** are
-terminal; the other 13 (SURFACE, CROSS-CUTTING) are `PENDING` and resumable —
-`docs/review/state.json` carries the registry forward; re-invoke `/review`
-(clean tree first) to continue at **SF-01** without re-auditing what is done.
+(ST-01…04) + **Quality & Repro** (QR-01…04) + **Surface** (SF-01…07). **41 of 47
+subsystems** are terminal; the last 6 (CROSS-CUTTING XC-01…06) are `PENDING` and
+resumable — `docs/review/state.json` carries the registry forward; re-invoke
+`/review` (clean tree first) to continue at **XC-01** without re-auditing what is
+done.
 
-**Six safe fixes applied and verified; eight findings parked for your call.**
+**Seven safe fixes applied and verified; nine findings parked for your call.**
+Uncommitted code fix this pass: **F-016** (ETL template path escaping, the
+Jinja-codegen twin of F-008).
 F-004/5/7/8/10 are committed (`aef3103…a9cddf1`); F-012 was committed this
 session too (`59469ea` area). No uncommitted code fixes remain — only this
 Standards-pass doc update.
@@ -202,5 +205,6 @@ The version bump, changelog, tag, and publish are yours.
 
 ## What was NOT audited (resume scope)
 
-13 subsystems remain `PENDING`: SF-01…07, XC-01…06.
-Re-invoke `/review` (clean tree first) to continue at SF-01.
+6 subsystems remain `PENDING`: XC-01…06 (public API surface, packaging/extras,
+supply chain, docs executability, cloud stubs, optional-dependency degradation).
+Re-invoke `/review` (clean tree first) to continue at XC-01 — the final group.

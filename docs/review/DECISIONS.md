@@ -59,6 +59,15 @@ slugify-to-valid-identifier step with collision handling, applied across all
 three generators — a larger codegen change than F-008's path/CSV escaping, and
 rarer in practice (column names are more controlled than paths and values).
 
+## F-015 — generated dbt SQL uses unquoted identifiers (SF-03/L1+L8, S2)
+`integrations/dbt.py` interpolates column names unquoted (`{src} as {tgt}`,
+`renamed.{col}`). Verified: a column named `Patient Name` (space) or `order`
+(reserved word) produces invalid SQL — the generated dbt project won't run.
+**Parked because:** the fix (`{{ adapter.quote() }}`) is adapter-aware but NOT
+mechanical — quoting changes case-folding on Snowflake/BigQuery (quoted
+`"person_id"` won't match unquoted `PERSON_ID`), so which identifiers to quote
+and how is a maintainer decision, and the current tests assert the unquoted form.
+
 ## F-014 — reproducibility fingerprint keys on mtime for >1 GB files (QR-03/L5+L7, S3)
 `repro/hashing.py` fingerprints files >1 GB as `name|size|mtime_ns` instead of
 content. Verified: identical content + different mtime → different `meta:` hash.
@@ -81,7 +90,7 @@ a correctly provisioned offline deployment pre-downloads weights.
 
 ---
 
-## Applied this run (NOT parked): F-004, F-005, F-007, F-008, F-010, F-012
+## Applied this run (NOT parked): F-004, F-005, F-007, F-008, F-010, F-012, F-016
 - **F-004** — `deid/scrubber.py` warns when `backend="auto"` silently falls back
   to `regex` (no `phi` extra). Logging-only; detection unchanged; ratchet 1.0/1.0.
 - **F-005** — `config.from_yaml` raises `ConfigurationError` (naming the file) on
@@ -98,6 +107,10 @@ a correctly provisioned offline deployment pre-downloads weights.
   `concept_mapper`/`Project` — closes a runtime hole where a post-construction
   config mutation to a remote embedder could send schema sample values
   (potential PHI) off-machine under `offline=True`.
+- **F-016** — the Jinja ETL templates (`artifacts/templates/*_etl.py.j2`, used by
+  `ArtifactManager.generate_etl_script`) now escape `source_path`/`output_path`
+  via the `tojson` filter — same fix class as F-008 on the template codegen
+  path. Transparent for simple paths; fixes Windows/quoted paths.
 
 F-004/5/7/8/10 are already committed (`aef3103…a9cddf1`); **F-012 is the one
 uncommitted code fix** in the tree. See HANDOFF for the commit line.
