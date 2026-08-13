@@ -194,3 +194,39 @@ class TestReviewRegressions:
         tv = (col.get("top_values") or [{}])[0]
         # a clean numeric top value must not be coerced to str
         assert not isinstance(tv.get("visits"), str)
+
+
+class TestReviewF004:
+    def test_auto_warns_when_falling_back_to_regex(self, monkeypatch):
+        """F-004: base install (no presidio) must warn that names/addresses are
+        not covered, instead of silently under-scrubbing."""
+        import builtins
+
+        real_import = builtins.__import__
+
+        def no_presidio(name, *a, **k):
+            if name.startswith("presidio"):
+                raise ImportError(name)
+            return real_import(name, *a, **k)
+
+        monkeypatch.setattr(builtins, "__import__", no_presidio)
+        import warnings as _w
+
+        from portiere.deid import PHIScrubber
+
+        with _w.catch_warnings(record=True) as caught:
+            _w.simplefilter("always")
+            s = PHIScrubber(backend="auto")
+        assert s.backend == "regex"
+        assert any("does NOT detect person names" in str(x.message) for x in caught)
+
+    def test_regex_explicit_does_not_warn(self):
+        """Explicitly choosing regex is not a silent downgrade — no warning."""
+        import warnings as _w
+
+        from portiere.deid import PHIScrubber
+
+        with _w.catch_warnings(record=True) as caught:
+            _w.simplefilter("always")
+            PHIScrubber(backend="regex")
+        assert not any("person names" in str(x.message) for x in caught)
