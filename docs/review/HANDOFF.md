@@ -10,18 +10,49 @@ review's baseline is now **`a9cddf1`**; only this session's **Mapping-pass doc
 updates** (findings/DECISIONS/HANDOFF/state) remain uncommitted. §1 and §3 below
 describe the original pre-commit state and are kept for the record.
 
-Partial run by design, extended across sessions. Complete so far: Phase 0
-(baseline) + **Privacy** (PV-01…04) + **Core** (CO-01…04) + **Pipeline**
-(PL-01…06) + **Mapping** (MP-01…06) + **Knowledge** (KN-01…06) + **Standards**
-(ST-01…04) + **Quality & Repro** (QR-01…04) + **Surface** (SF-01…07). **41 of 47
-subsystems** are terminal; the last 6 (CROSS-CUTTING XC-01…06) are `PENDING` and
-resumable — `docs/review/state.json` carries the registry forward; re-invoke
-`/review` (clean tree first) to continue at **XC-01** without re-auditing what is
-done.
+## ✅ REVIEW COMPLETE — all 47 subsystems audited
 
-**Seven safe fixes applied and verified; nine findings parked for your call.**
-Uncommitted code fix this pass: **F-016** (ETL template path escaping, the
-Jinja-codegen twin of F-008).
+Every subsystem across all nine groups (Privacy, Core, Pipeline, Mapping,
+Knowledge, Standards, Quality & Repro, Surface, Cross-cutting) is terminal.
+**18 findings: 7 fixed & verified, 11 parked, 0 blocked.** Public API verified
+unchanged (0 breaking diffs vs the Phase-0 baseline). PHI ratchet held 1.0/1.0
+throughout. Every fix passed the full suite on the first attempt.
+
+The 7 fixes (F-004, F-005, F-007, F-008, F-010, F-012, F-016) are all committed
+on `review/core-privacy-pipeline-pass`. The 11 parked findings are maintainer
+decisions in `docs/review/DECISIONS.md`, headed by the two that matter most:
+
+- **⚠️ F-013 (S1)** — the advertised **FHIR→OMOP** crosswalk is a non-functional
+  stub (`extract_*` transforms are passthrough); it silently produces invalid
+  OMOP records. Recommend documenting FHIR→OMOP as experimental until fixed.
+- **F-012 (S2, FIXED)** — closed an offline-gate hole on the schema-mapping PHI
+  path; the other privacy findings (F-001/F-002/F-003) are parked defense-in-depth.
+
+### Complete findings ledger
+
+| ID | Sev | Subsystem | Status | One line |
+|----|-----|-----------|--------|----------|
+| F-004 | S2 | PV-01 deid | ✅ FIXED | warn on `auto`→regex scrubber fallback |
+| F-005 | S3 | CO-01 config | ✅ FIXED | `from_yaml` clear error on bad YAML |
+| F-007 | S2 | CO-04 storage | ✅ FIXED | reject path-traversal project names |
+| F-008 | S2 | PL-04 transform | ✅ FIXED | escape paths + csv module in generated ETL |
+| F-010 | S3 | PL-06 runner | ✅ FIXED | surface dropped duplicate-target column |
+| F-012 | S2 | MP-01 schema_mapper | ✅ FIXED | re-assert offline gate before embedding |
+| F-016 | S2 | SF-02 codegen | ✅ FIXED | escape path literals in ETL templates |
+| **F-013** | **S1** | ST-01 crossmaps | 🅿️ PARKED | **FHIR→OMOP crosswalk is a stub** |
+| F-001 | S3 | PV-03 schema_mapper | 🅿️ PARKED | scrub sample values before remote embed |
+| F-002 | S3 | PV-03 llm_verifier | 🅿️ PARKED | scrub source terms before remote LLM |
+| F-003 | S3 | PV-01 deid | 🅿️ PARKED | add Malaysian NRIC recogniser |
+| F-006 | S4 | CO-01 config | 🅿️ PARKED | warn on unset `${VAR}` interpolation |
+| F-009 | S3 | PL-04 transform | 🅿️ PARKED | sanitize column names → identifiers |
+| F-011 | S3 | MP-05 reranker | 🅿️ PARKED | `offline` doesn't block HF model download |
+| F-014 | S3 | QR-03 hashing | 🅿️ PARKED | >1 GB fingerprint keys on mtime |
+| F-015 | S2 | SF-03 dbt | 🅿️ PARKED | generated dbt SQL uses unquoted identifiers |
+| F-017 | S2 | XC-05 cloud | 🅿️ PARKED | exported stubs raise `NotImplementedError` |
+| F-018 | S3 | XC-03 packaging | 🅿️ PARKED | pre-1.0 deps have no upper bound |
+
+The remainder of this document (commit plan, per-finding notes) is retained from
+the incremental passes.
 F-004/5/7/8/10 are committed (`aef3103…a9cddf1`); F-012 was committed this
 session too (`59469ea` area). No uncommitted code fixes remain — only this
 Standards-pass doc update.
@@ -203,8 +234,8 @@ The version bump, changelog, tag, and publish are yours.
 - **XC-05 cloud stubs:** `CloudStorageBackend` raises `NotImplementedError` at
   construction; `Client` is exported — verify which cloud methods raise (S2 per L2).
 
-## What was NOT audited (resume scope)
+## Audit coverage — COMPLETE
 
-6 subsystems remain `PENDING`: XC-01…06 (public API surface, packaging/extras,
-supply chain, docs executability, cloud stubs, optional-dependency degradation).
-Re-invoke `/review` (clean tree first) to continue at XC-01 — the final group.
+All 47 subsystems terminal (45 AUDITED, 2 VERIFIED-clean). Nothing remains
+`PENDING`. `state.json` holds the full registry, changeset ledger, and per-fix
+patch references (`docs/review/patches/F-0NN.patch`).

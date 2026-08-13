@@ -1,8 +1,8 @@
 {
   "run_id": "review-2026-08-13",
   "started": "2026-08-13T20:32:00+07:00",
-  "last_updated": "2026-08-13T23:35:00+07:00",
-  "current_module": "(SURFACE done; CROSS-CUTTING XC-01 next on resume)",
+  "last_updated": "2026-08-14T00:04:00+07:00",
+  "current_module": "ALL SUBSYSTEMS COMPLETE",
   "current_phase": "5-handoff (partial run)",
   "git_at_start": {
     "branch": "main",
@@ -400,7 +400,7 @@
     {
       "id": "XC-01",
       "name": "Public API surface",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -409,7 +409,7 @@
     {
       "id": "XC-02",
       "name": "Packaging + extras",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -418,16 +418,16 @@
     {
       "id": "XC-03",
       "name": "Supply chain",
-      "status": "PENDING",
-      "findings": 0,
+      "status": "AUDITED",
+      "findings": 1,
       "fixed": 0,
-      "parked": 0,
+      "parked": 1,
       "blocked": 0
     },
     {
       "id": "XC-04",
       "name": "Docs executability",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -436,16 +436,16 @@
     {
       "id": "XC-05",
       "name": "Cloud stubs",
-      "status": "PENDING",
-      "findings": 0,
+      "status": "AUDITED",
+      "findings": 1,
       "fixed": 0,
-      "parked": 0,
+      "parked": 1,
       "blocked": 0
     },
     {
       "id": "XC-06",
       "name": "Optional-dep degradation",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -555,9 +555,9 @@
     }
   ],
   "totals": {
-    "findings": 16,
+    "findings": 18,
     "fixed": 7,
-    "parked": 9,
+    "parked": 11,
     "blocked": 0
   },
   "halt_reason": null,

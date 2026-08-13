@@ -1,5 +1,20 @@
 # Park List — decisions the maintainer must make (not committable by the review)
 
+## F-017 — exported cloud stubs raise NotImplementedError (XC-05/L2, S2)
+`Client` and `SyncManager` are in the public `__all__` but every constructor
+raises `NotImplementedError` ("not available in the open-source SDK … see
+portiere.io"). Per the review's L2 rule, exported symbols that always raise are
+S2. **Parked because:** the fixes both need maintainer sign-off — drop them from
+`__all__` (a public-API change this review is constrained not to make) or ship
+the cloud implementation. Mitigated today by fail-fast construction + a clear,
+actionable message, so it is not a silent failure.
+
+## F-018 — pre-1.0 dependencies have no upper bound (XC-03/L9, S3)
+`bm25s`, `polars`, `duckdb`, `chromadb`, `pgvector`, `fhirpathpy` are pinned
+`>=` only. Pre-1.0 packages give no semver guarantee, so any upstream release
+can break `pip install`. **Parked because (Park List):** adding upper bounds
+constrains downstream users — a maintainer policy decision.
+
 ## ⚠️ F-013 — FHIR→OMOP crosswalk is a non-functional stub (ST-01/L7+L8, **S1** — highest priority)
 `standards/crossmaps/fhir_r4_to_omop.yaml` declares `extract_reference_id`,
 `extract_codeable_concept_code`, `extract_period_start`, `extract_quantity_value`
