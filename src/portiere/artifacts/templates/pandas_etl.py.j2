@@ -33,7 +33,7 @@ def apply_concept_mapping(df: pd.DataFrame, source_col: str, target_col: str = "
     return df
 
 
-def main(source_path="{{ source_path }}", output_path="{{ output_path }}"):
+def main(source_path={{ source_path | tojson }}, output_path={{ output_path | tojson }}):
     df = pd.read_csv(source_path)
     print(f"Read {len(df)} rows from {source_path}")
 
@@ -50,6 +50,6 @@ def main(source_path="{{ source_path }}", output_path="{{ output_path }}"):
 
 if __name__ == "__main__":
     import sys
-    source = sys.argv[1] if len(sys.argv) > 1 else "{{ source_path }}"
-    output = sys.argv[2] if len(sys.argv) > 2 else "{{ output_path }}"
+    source = sys.argv[1] if len(sys.argv) > 1 else {{ source_path | tojson }}
+    output = sys.argv[2] if len(sys.argv) > 2 else {{ output_path | tojson }}
     main(source, output)
