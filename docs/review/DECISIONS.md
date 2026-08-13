@@ -1,5 +1,25 @@
 # Park List — decisions the maintainer must make (not committable by the review)
 
+## ⚠️ F-013 — FHIR→OMOP crosswalk is a non-functional stub (ST-01/L7+L8, **S1** — highest priority)
+`standards/crossmaps/fhir_r4_to_omop.yaml` declares `extract_reference_id`,
+`extract_codeable_concept_code`, `extract_period_start`, `extract_quantity_value`
+— named to extract scalars from FHIR structures — but they are `type: passthrough`
+stubs (and none is registered in `local/transforms.py`). **Verified**: FHIR→OMOP
+mapping yields `person_id={'reference':'Patient/123'}` (dict, not int FK),
+`condition_source_value=`the whole CodeableConcept dict, `condition_concept_id`
+absent, Observation `measurement_source_value=''` (code overwritten by the
+`valueString` mapping), `value_as_number=None`. The direction is advertised as
+supported (`docs/documentations/21-cross-standard-mapping.md`) and has no
+value-level test. `fhir_r4_to_openehr.yaml` shares the broken `extract_period_start`.
+**Parked because (Park List — crosswalk/clinical semantics):** the fix is a real
+feature, not a config tweak — implement the four `extract_*` transforms in
+`transforms.py`, change the YAML transform `type`s, decide whether an inbound
+FHIR code populates `condition_concept_id` (standard) or `_source_value` (raw)
+i.e. round-trip fidelity, and add FHIR→OMOP value-level tests. Needs clinical
+review. **Until fixed, consider documenting FHIR→OMOP / FHIR→openEHR inbound
+mapping as experimental/structural-only so users don't trust the output.**
+This is the most consequential finding of the review.
+
 ## F-001 — scrub sample values before remote embedding (PV-03/L3, S3)
 `local/schema_mapper.py:253` sends `col_name + sample_values` to the embedding
 gateway; with a remote embedding provider those go off-machine unscrubbed.

@@ -1,8 +1,8 @@
 {
   "run_id": "review-2026-08-13",
   "started": "2026-08-13T20:32:00+07:00",
-  "last_updated": "2026-08-13T22:59:00+07:00",
-  "current_module": "(KNOWLEDGE done; STANDARDS ST-01 next on resume)",
+  "last_updated": "2026-08-13T23:10:00+07:00",
+  "current_module": "(STANDARDS done; QUALITY QR-01 next on resume)",
   "current_phase": "5-handoff (partial run)",
   "git_at_start": {
     "branch": "main",
@@ -265,16 +265,16 @@
     {
       "id": "ST-01",
       "name": "Crossmap definitions",
-      "status": "PENDING",
-      "findings": 0,
+      "status": "AUDITED",
+      "findings": 1,
       "fixed": 0,
-      "parked": 0,
+      "parked": 1,
       "blocked": 0
     },
     {
       "id": "ST-02",
       "name": "Data models",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -283,7 +283,7 @@
     {
       "id": "ST-03",
       "name": "FHIR profiles",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -292,7 +292,7 @@
     {
       "id": "ST-04",
       "name": "FHIR export",
-      "status": "PENDING",
+      "status": "AUDITED",
       "findings": 0,
       "fixed": 0,
       "parked": 0,
@@ -539,9 +539,9 @@
     }
   ],
   "totals": {
-    "findings": 12,
+    "findings": 13,
     "fixed": 6,
-    "parked": 6,
+    "parked": 7,
     "blocked": 0
   },
   "halt_reason": null,

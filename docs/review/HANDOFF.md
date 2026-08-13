@@ -12,17 +12,22 @@ describe the original pre-commit state and are kept for the record.
 
 Partial run by design, extended across sessions. Complete so far: Phase 0
 (baseline) + **Privacy** (PV-01…04) + **Core** (CO-01…04) + **Pipeline**
-(PL-01…06) + **Mapping** (MP-01…06) + **Knowledge** (KN-01…06). **26 of 47
-subsystems** are terminal; the other 21 (STANDARDS, QUALITY, SURFACE,
-CROSS-CUTTING) are `PENDING` and resumable — `docs/review/state.json` carries
-the registry forward; re-invoke `/review` (clean tree first) to continue at
-**ST-01** without re-auditing what is done.
+(PL-01…06) + **Mapping** (MP-01…06) + **Knowledge** (KN-01…06) + **Standards**
+(ST-01…04). **30 of 47 subsystems** are terminal; the other 17 (QUALITY,
+SURFACE, CROSS-CUTTING) are `PENDING` and resumable — `docs/review/state.json`
+carries the registry forward; re-invoke `/review` (clean tree first) to continue
+at **QR-01** without re-auditing what is done.
 
-**Six safe fixes applied and verified; six findings parked for your call.**
-F-004/5/7/8/10 are already committed (`aef3103…a9cddf1`). The Knowledge pass
-added **one fix, F-012** (offline-gate hole on the schema-mapping PHI path) —
-the only uncommitted code fix in the tree. Knowledge is otherwise a strong
-subsystem: its offline/egress posture holds comprehensively (see §Leads).
+**Six safe fixes applied and verified; seven findings parked for your call.**
+F-004/5/7/8/10 are committed (`aef3103…a9cddf1`); F-012 was committed this
+session too (`59469ea` area). No uncommitted code fixes remain — only this
+Standards-pass doc update.
+
+> **⚠️ Standards pass surfaced the review's most serious finding — F-013 (S1):**
+> the advertised **FHIR→OMOP** crosswalk is a non-functional stub (its
+> `extract_*` transforms are passthrough), silently producing invalid OMOP
+> records. Park List (crosswalk/clinical semantics) — see DECISIONS.md, top.
+> Recommend documenting FHIR→OMOP inbound mapping as experimental until fixed.
 
 **No git writes were made. Nothing was committed, tagged, or released.**
 
@@ -125,6 +130,12 @@ egress/privacy path — it only ever *adds* a `ConfigurationError` under
 
 ## 5. Decisions needed (parked — `docs/review/DECISIONS.md`)
 
+- **⚠️ F-013 (S1) — highest priority** — the advertised FHIR→OMOP crosswalk is a
+  non-functional stub (`extract_*` transforms are passthrough), silently
+  producing invalid OMOP records (`person_id` a dict not an int, codes lost,
+  `concept_id` absent). No value-level test. Fix = implement the extract
+  transforms + change crosswalk YAML types + clinical validation. Interim:
+  document FHIR→OMOP as experimental.
 - **F-001 (S3)** — schema-mapping sends `col_name + sample_values` to a *remote*
   embedding provider unscrubbed. Gated by `offline=True`. Scrub-on-remote vs doc.
 - **F-002 (S3)** — concept verifier sends raw `source_term`/`source_context` to a
@@ -191,5 +202,5 @@ The version bump, changelog, tag, and publish are yours.
 
 ## What was NOT audited (resume scope)
 
-21 subsystems remain `PENDING`: ST-01…04, QR-01…04, SF-01…07, XC-01…06.
-Re-invoke `/review` (clean tree first) to continue at ST-01.
+17 subsystems remain `PENDING`: QR-01…04, SF-01…07, XC-01…06.
+Re-invoke `/review` (clean tree first) to continue at QR-01.
