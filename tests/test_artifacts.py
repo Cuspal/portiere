@@ -743,7 +743,7 @@ class TestReviewF016:
                 engine, sm, cm, source_path=win, output_path="out.parquet"
             )
             f = Path(tempfile.mktemp(suffix=".py"))
-            f.write_text(script)
+            f.write_text(script, encoding="utf-8", newline="")
             py_compile.compile(str(f), doraise=True)  # no SyntaxError
             # the path must appear as a correctly-escaped literal in the def main default
             defline = next(ln for ln in script.splitlines() if "def main(" in ln)

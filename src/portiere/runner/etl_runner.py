@@ -199,7 +199,7 @@ class ETLRunner:
                 "Run generate_runner_config() first or check the artifacts directory."
             )
 
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             config = yaml.safe_load(f)
 
         # Resolve engine
@@ -223,7 +223,7 @@ class ETLRunner:
         lookup_file = config.get("concept_lookup_file", "source_to_concept_map.csv")
         lookup_path = artifacts_path / lookup_file
         if lookup_path.exists():
-            with open(lookup_path, newline="") as f:
+            with open(lookup_path, encoding="utf-8", newline="") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
                     # v1 compiled CSVs may omit decision fields entirely.

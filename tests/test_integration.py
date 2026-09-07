@@ -5,15 +5,47 @@ Full pipeline test: CSV -> Stage 1 (profile) -> Stage 2 (schema map)
 -> Stage 3 (concept map) -> Stage 4 (ETL gen) -> Stage 5 (validate)
 """
 
+import io
 import os
 import py_compile
+from pathlib import Path
 from unittest.mock import MagicMock
+
+import pytest
+
+
+@pytest.fixture
+def windows_text_defaults(monkeypatch):
+    """Exercise real file I/O with Windows CP1252 and CRLF defaults on every OS."""
+    real_open = io.open
+
+    def windows_open(
+        file,
+        mode="r",
+        buffering=-1,
+        encoding=None,
+        errors=None,
+        newline=None,
+        closefd=True,
+        opener=None,
+    ):
+        if "b" not in mode:
+            if encoding in (None, "locale"):
+                encoding = "cp1252"
+            if newline is None and any(flag in mode for flag in "wax+"):
+                newline = "\r\n"
+        return real_open(file, mode, buffering, encoding, errors, newline, closefd, opener)
+
+    monkeypatch.setattr(io, "open", windows_open)
+    monkeypatch.setattr("builtins.open", windows_open)
+    # Python 3.10's pathlib caches its opener when the module is imported.
+    monkeypatch.setattr(Path, "open", windows_open)
 
 
 class TestFullPipeline:
     """Test the complete 5-stage pipeline end-to-end."""
 
-    def test_stage4_generates_compilable_pandas_script(self, tmp_path):
+    def test_stage4_generates_compilable_pandas_script(self, tmp_path, windows_text_defaults):
         """Stage 4 generates a valid Python script for Pandas."""
         from portiere.stages.stage4_transform import _generate_pandas_etl
 
@@ -45,7 +77,7 @@ class TestFullPipeline:
 
         # Verify script is valid Python
         script_path = tmp_path / "test_etl.py"
-        script_path.write_text(script)
+        script_path.write_text(script, encoding="utf-8", newline="")
         py_compile.compile(str(script_path), doraise=True)
 
         # Verify script contains expected elements
@@ -55,7 +87,7 @@ class TestFullPipeline:
         assert "diag_code" in script
         assert "condition_source_value" in script
 
-    def test_stage4_generates_compilable_spark_script(self, tmp_path):
+    def test_stage4_generates_compilable_spark_script(self, tmp_path, windows_text_defaults):
         """Stage 4 generates a valid Python script for Spark."""
         from portiere.stages.stage4_transform import _generate_spark_etl
 
@@ -67,13 +99,13 @@ class TestFullPipeline:
         )
 
         script_path = tmp_path / "test_spark_etl.py"
-        script_path.write_text(script)
+        script_path.write_text(script, encoding="utf-8", newline="")
         py_compile.compile(str(script_path), doraise=True)
 
         assert "from pyspark.sql import SparkSession" in script
         assert "spark.read.csv" in script
 
-    def test_stage4_generates_compilable_polars_script(self, tmp_path):
+    def test_stage4_generates_compilable_polars_script(self, tmp_path, windows_text_defaults):
         """Stage 4 generates a valid Python script for Polars."""
         from portiere.stages.stage4_transform import _generate_polars_etl
 
@@ -89,7 +121,7 @@ class TestFullPipeline:
         )
 
         script_path = tmp_path / "test_polars_etl.py"
-        script_path.write_text(script)
+        script_path.write_text(script, encoding="utf-8", newline="")
         py_compile.compile(str(script_path), doraise=True)
 
         assert "import polars" in script
@@ -541,7 +573,9 @@ class TestReviewF008:
     split the lookup CSV into an extra row, silently mis-mapping concepts.
     """
 
-    def test_windows_source_path_roundtrips_in_generated_script(self, tmp_path):
+    def test_windows_source_path_roundtrips_in_generated_script(
+        self, tmp_path, windows_text_defaults
+    ):
         import py_compile
 
         from portiere.stages.stage4_transform import (
@@ -554,7 +588,7 @@ class TestReviewF008:
         for gen in (_generate_polars_etl, _generate_spark_etl, _generate_pandas_etl):
             script = gen({"items": []}, {"items": []}, win, "out.parquet")
             f = tmp_path / f"{gen.__name__}.py"
-            f.write_text(script)
+            f.write_text(script, encoding="utf-8", newline="")
             py_compile.compile(str(f), doraise=True)  # no SyntaxError/warning-as-error
             # The path constant must evaluate back to the exact original string.
             ns: dict = {}
@@ -564,7 +598,10 @@ class TestReviewF008:
                 f"{gen.__name__}: path corrupted -> {ns['SOURCE_PATH']!r}"
             )
 
-    def test_lookup_csv_quotes_values_with_newlines_and_commas(self, tmp_path):
+    @pytest.mark.parametrize("source_code", ["line1\nline2", "line1\r\nline2"])
+    def test_lookup_csv_quotes_values_with_newlines_and_commas(
+        self, tmp_path, windows_text_defaults, source_code
+    ):
         import csv
 
         from portiere.stages.stage4_transform import _generate_lookup_table
@@ -572,7 +609,7 @@ class TestReviewF008:
         cm = {
             "items": [
                 {
-                    "source_code": "line1\nline2",
+                    "source_code": source_code,
                     "source_column": "dx",
                     "target_concept_id": 1,
                     "target_concept_name": "Name, with comma",
@@ -583,9 +620,89 @@ class TestReviewF008:
         }
         p = tmp_path / "lookup.csv"
         _generate_lookup_table(cm, p)
-        with open(p, newline="") as f:
+        with open(p, encoding="utf-8", newline="") as f:
             rows = list(csv.reader(f))
         assert rows[0][0] == "source_code"
         assert len(rows) == 2  # header + exactly one data row (newline did NOT split it)
-        assert rows[1][0] == "line1\nline2"
+        assert rows[1][0] == source_code
         assert rows[1][3] == "Name, with comma"  # comma preserved, not turned into ';'
+
+
+@pytest.mark.usefixtures("windows_text_defaults")
+class TestWindowsArtifactIO:
+    @pytest.mark.parametrize("engine_name", ["pandas", "polars", "spark"])
+    def test_stage4_saved_script_compiles(self, tmp_path, engine_name):
+        from portiere.stages.stage4_transform import generate_etl
+
+        result = generate_etl(
+            engine=MagicMock(engine_name=engine_name),
+            schema_mapping={"items": []},
+            concept_mapping={"items": []},
+            source_path=r"C:\data\patients\raw.csv",
+            output_path="out.parquet",
+            artifact_dir=str(tmp_path),
+        )
+        script = next(a["path"] for a in result["artifacts"] if a["type"] == "etl_script")
+        py_compile.compile(script, doraise=True)
+
+    def test_artifact_manager_preserves_unicode_and_embedded_newlines(self, tmp_path):
+        import csv
+
+        from portiere.artifacts.artifact_manager import ArtifactManager
+
+        manager = ArtifactManager(output_dir=str(tmp_path))
+        manager.generate_etl_script(
+            schema_mapping={"mappings": []},
+            concept_mapping={"mappings": []},
+            source_path="source.csv",
+            output_path="out.parquet",
+            project_name="ข้อมูล",
+        )
+        manager.generate_source_to_concept_map(
+            [
+                {
+                    "source_code": "รหัส\n001",
+                    "source_column": "code",
+                    "target_concept_id": 201826,
+                    "method": "auto",
+                }
+            ]
+        )
+        manager.save_artifacts()
+
+        py_compile.compile(str(tmp_path / "etl_polars.py"), doraise=True)
+        with (tmp_path / "source_to_concept_map.csv").open(encoding="utf-8", newline="") as f:
+            rows = list(csv.DictReader(f))
+        assert len(rows) == 1
+        assert rows[0]["source_code"] == "รหัส\n001"
+
+    def test_runner_reads_utf8_artifacts_and_maps_unicode_codes(self, tmp_path):
+        import pandas as pd
+
+        from portiere.engines.pandas_engine import PandasEngine
+        from portiere.runner.etl_runner import ETLRunner
+
+        (tmp_path / "etl_config.yaml").write_text(
+            "project_name: ข้อมูล\n"
+            "schema_mappings:\n"
+            "  - source_column: code\n"
+            "    target_table: condition\n"
+            "    target_column: condition_source_value\n",
+            encoding="utf-8",
+            newline="",
+        )
+        (tmp_path / "source_to_concept_map.csv").write_text(
+            'source_code,source_column,target_concept_id\n"รหัส\n001",code,201826\n',
+            encoding="utf-8",
+            newline="",
+        )
+        source_path = tmp_path / "source.csv"
+        pd.DataFrame({"code": ["รหัส\n001"]}).to_csv(source_path, index=False, encoding="utf-8")
+
+        runner = ETLRunner.from_artifacts(str(tmp_path), engine=PandasEngine())
+        result = runner.run(str(source_path), str(tmp_path / "output"), output_format="csv")
+
+        assert runner.project_name == "ข้อมูล"
+        assert result.success
+        output = pd.read_csv(Path(result.tables[0].output_path), encoding="utf-8")
+        assert output["condition_source_value_concept_id"].tolist() == [201826]
