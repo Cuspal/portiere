@@ -276,19 +276,20 @@ class AbstractEngine(ABC):
 
         return pd.DataFrame(records)
 
-    def read_csv(self, path: str) -> Any:
+    def read_csv(self, path: str, **options: Any) -> Any:
         """
         Read a CSV file into a native DataFrame.
 
         Args:
             path: Path to CSV file.
+            **options: Native reader options (for example, string-only parsing).
 
         Returns:
             DataFrame in the engine's native format.
         """
         import pandas as pd
 
-        return pd.read_csv(path)
+        return pd.read_csv(path, **options)
 
     def write_csv(self, df: Any, path: str) -> None:
         """

@@ -5,6 +5,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def isolate_project_storage(tmp_path, monkeypatch):
+    monkeypatch.setenv("PORTIERE_LOCAL_PROJECT_DIR", str(tmp_path / "projects"))
+
 
 def _find_manifest(out_dir: Path) -> Path | None:
     runs = out_dir / "portiere-quickstart" / "runs"
@@ -27,6 +34,55 @@ class TestQuickstartCommand:
 
 
 class TestQuickstartEndToEnd:
+    def test_success_means_validation_passed(self, tmp_path):
+        from click.testing import CliRunner
+
+        from portiere.cli import cli
+
+        result = CliRunner().invoke(cli, ["quickstart", "-o", str(tmp_path)])
+
+        assert result.exit_code == 0, result.output
+        manifest_path = _find_manifest(tmp_path)
+        assert manifest_path is not None
+        manifest = json.loads(manifest_path.read_text())
+        validation = [s for s in manifest["stages"] if s["stage"] == "validate"]
+        assert validation[-1]["metrics"]["all_passed"] is True
+        assert validation[-1]["outputs"]["total_tables"] > 0
+
+    def test_failed_validation_sets_nonzero_exit(self, tmp_path, monkeypatch):
+        from click.testing import CliRunner
+
+        from portiere.cli import cli
+        from portiere.quality.validator import GXValidator
+
+        original = GXValidator.validate
+
+        def fail_validation(self, *args, **kwargs):
+            report = original(self, *args, **kwargs)
+            report["passed"] = False
+            return report
+
+        monkeypatch.setattr(GXValidator, "validate", fail_validation)
+        result = CliRunner().invoke(cli, ["quickstart", "-o", str(tmp_path)])
+
+        assert result.exit_code == 1, result.output
+        assert "FAIL" in result.output
+
+    def test_failed_etl_result_sets_nonzero_exit(self, tmp_path, monkeypatch):
+        from click.testing import CliRunner
+
+        from portiere.cli import cli
+        from portiere.runner import ETLRunner
+        from portiere.runner.result import ETLResult
+
+        monkeypatch.setattr(
+            ETLRunner, "run", lambda *a, **kw: ETLResult(success=False, errors=["test failure"])
+        )
+        result = CliRunner().invoke(cli, ["quickstart", "-o", str(tmp_path)])
+
+        assert result.exit_code == 1, result.output
+        assert "test failure" in result.output
+
     def test_runs_to_completion_offline(self, tmp_path, monkeypatch):
         """End-to-end: portiere quickstart against tmp output dir."""
         from click.testing import CliRunner
@@ -140,6 +196,26 @@ class TestQuickstartReplayRoundtrip:
 
 
 class TestNoNetworkCalls:
+    def test_demo_never_loads_embedding_or_reranker_models(self, tmp_path, monkeypatch):
+        from click.testing import CliRunner
+
+        from portiere.cli import cli
+        from portiere.embedding.providers.huggingface_provider import HuggingFaceEmbeddingProvider
+        from portiere.local.reranker import LocalReranker
+
+        attempted = []
+
+        def forbidden_load(self):
+            attempted.append(type(self).__name__)
+            raise AssertionError("Demo attempted to load an optional model")
+
+        monkeypatch.setattr(HuggingFaceEmbeddingProvider, "_load_model", forbidden_load)
+        monkeypatch.setattr(LocalReranker, "_load_model", forbidden_load)
+        result = CliRunner().invoke(cli, ["quickstart", "-o", str(tmp_path)])
+
+        assert attempted == []
+        assert result.exit_code == 0, result.output
+
     """The whole demo runs entirely against bundled data — no socket."""
 
     def test_no_outbound_network(self, tmp_path, monkeypatch):

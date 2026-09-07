@@ -51,7 +51,7 @@ class LocalFAISSBackend(KnowledgeLayerBackend):
         self.index: Any = None
         self.metadata: dict[str, dict] = {}
         self._concept_id_index: dict[int, dict] = {}
-        self._model = None
+        self._model: Any = None
 
         if self.index_path.exists() and self.metadata_path.exists():
             self._load_index()

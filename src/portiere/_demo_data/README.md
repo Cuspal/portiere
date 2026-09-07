@@ -1,11 +1,12 @@
 # Portiere Demo Data
 
-This directory ships inside the `portiere-health` wheel as `portiere/_demo_data/`. It powers the `portiere quickstart` CLI — a fully offline, end-to-end demo of the OMOP mapping pipeline against ~20 synthetic patients.
+This directory ships inside the `portiere-health` wheel as `portiere/_demo_data/`. The offline `portiere quickstart` CLI uses three synthetic patients with bundled review decisions for demographic ETL. The larger datasets are available for further exploration.
 
 ## What's here
 
 ```
 _demo_data/
+├── quickstart.csv               3 patients with complete demo demographics
 ├── synthetic_patients.csv        20 patients with deliberately messy column names
 ├── synthetic_conditions.csv      30 condition records (ICD-10-CM)
 ├── synthetic_observations.csv    37 measurement/observation records (LOINC)
@@ -26,7 +27,7 @@ Column names are deliberately mixed:
 - **Abbreviated** (~40%): `dob`, `pt_zip`, `phone`, `lab_dt`, `onset_date`. Should hit pattern aliases.
 - **Rephrased** (~20%): `dx_code`, `med_code`, `lab_description`. Forces the embedding-similarity path.
 
-This way the quickstart demo produces a healthy mix of confidence tiers (auto-accept / needs-review / manual) so users see the full routing.
+The larger datasets let users explore confidence tiers. Quickstart applies explicit review decisions for its nine demographic fields; gender, race and ethnicity use OMOP's unknown concept ID (`0`). It saves diagnosis concept proposals separately and does not apply those proposals to the demographic output.
 
 ## Vocabulary subset
 

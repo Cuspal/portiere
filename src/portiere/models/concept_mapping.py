@@ -301,8 +301,8 @@ class ConceptMapping(BaseModel):
             domain_id = _clean(r.get("target_domain_id") or r.get("domain_id"))
 
             target_id = _clean(r.get("target_concept_id"))
-            if target_id is not None:
-                target_id = int(target_id)
+            # Let Pydantic validate integer identity, including integral CSV
+            # floats ("123.0") emitted by pandas for nullable integer columns.
 
             confidence = _clean(r.get("confidence"))
             confidence = float(confidence) if confidence is not None else 0.0
@@ -349,16 +349,11 @@ class ConceptMapping(BaseModel):
 
         Args:
             path: Path to CSV file.
-            engine: Optional compute engine to use for reading. If None, uses pandas.
+            engine: Optional compute engine for its supported CSV transports.
         """
-        if engine:
-            df = engine.read_csv(path)
-            records = engine.to_dict_records(df, limit=999999)
-        else:
-            import pandas as pd
+        from portiere.models._mapping_csv import read_mapping_records
 
-            df = pd.read_csv(path)
-            records = df.to_dict("records")
+        records = read_mapping_records(path, engine=engine)
 
         items = cls._items_from_records(records)
         return cls(items=items)

@@ -17,6 +17,22 @@ def spark():
 
 
 class TestSparkEngineEnrichment:
+    @pytest.mark.parametrize(
+        "model_name,column", [("ConceptMapping", "source_code"), ("SchemaMapping", "source_column")]
+    )
+    def test_mapping_csv_directory_preserves_identifiers(self, spark, tmp_path, model_name, column):
+        from portiere.models.concept_mapping import ConceptMapping
+        from portiere.models.schema_mapping import SchemaMapping
+
+        model = {"ConceptMapping": ConceptMapping, "SchemaMapping": SchemaMapping}[model_name]
+        engine = SparkEngine()
+        path = str(tmp_path / "mapping.csv")
+        engine.write_csv(spark.createDataFrame([("00123",), ("NA",)], [column]), path)
+
+        restored = model.from_csv(path, engine=engine)
+
+        assert [getattr(item, column) for item in restored.items] == ["00123", "NA"]
+
     def test_profile_enrichment(self, spark):
         df = spark.createDataFrame([("A",), (" ",), ("",), (None,), ("BB",)], ["code"])
         cols = {c["name"]: c for c in SparkEngine().profile(df)["columns"]}

@@ -284,7 +284,9 @@ class PortiereConfig(BaseSettings):
     # executable form of the "PHI never leaves your machine" guarantee.
     offline: bool = False
 
-    model_config = SettingsConfigDict(env_prefix="PORTIERE_", extra="allow")
+    model_config = SettingsConfigDict(
+        env_prefix="PORTIERE_", env_nested_delimiter="__", extra="allow"
+    )
 
     @model_validator(mode="after")
     def _enforce_offline(self) -> PortiereConfig:

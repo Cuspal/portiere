@@ -1,0 +1,4 @@
+patient_id,gender,birth_year,birth_month,birth_day,birth_date,race,ethnicity,source_id,dx_code,dx_description
+1,0,1990,1,15,1990-01-15,0,0,demo-001,E11.9,Type 2 diabetes mellitus without complications
+2,0,1985,6,20,1985-06-20,0,0,demo-002,I10,Essential hypertension
+3,0,2000,11,5,2000-11-05,0,0,demo-003,F32.A,Depression unspecified

@@ -1,0 +1,3 @@
+# Build tools for the contributor environment; runtime dependencies stay in pyproject.toml.
+build>=1.0
+hatchling

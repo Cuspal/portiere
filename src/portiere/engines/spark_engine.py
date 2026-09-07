@@ -336,9 +336,10 @@ class SparkEngine(AbstractEngine):
         """Create a Spark DataFrame from a list of dicts."""
         return self._spark.createDataFrame(records)
 
-    def read_csv(self, path: str) -> DataFrame:
+    def read_csv(self, path: str, **options: Any) -> DataFrame:
         """Read a CSV file into a Spark DataFrame."""
-        return self._spark.read.option("header", True).option("inferSchema", True).csv(path)
+        reader = self._spark.read.option("header", True).option("inferSchema", True)
+        return reader.options(**options).csv(path)
 
     def write_csv(self, df: DataFrame, path: str) -> None:
         """Write a Spark DataFrame to CSV."""

@@ -1,8 +1,17 @@
 """Tests for the `portiere doctor` egress-posture preflight."""
 
+from pathlib import Path
+
+import pytest
 from click.testing import CliRunner
 
 from portiere.cli import cli
+
+
+@pytest.fixture(autouse=True)
+def isolated_config(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path / "home"))
 
 
 def test_doctor_reports_local_stack(tmp_path):
@@ -52,3 +61,26 @@ def test_doctor_reports_remote_knowledge_backend(tmp_path):
     res = CliRunner().invoke(cli, ["doctor", "--config", str(cfg), "--assert-no-egress"])
     assert res.exit_code == 1
     assert "qdrant" in res.output
+
+
+def test_doctor_discovers_parent_project_config(tmp_path, monkeypatch):
+    """The preflight must check the same discovered settings as the SDK."""
+    (tmp_path / "portiere.yaml").write_text("llm:\n  provider: openai\n")
+    child = tmp_path / "work"
+    child.mkdir()
+    monkeypatch.chdir(child)
+
+    res = CliRunner().invoke(cli, ["doctor", "--assert-no-egress"])
+
+    assert res.exit_code == 1, res.output
+    assert "openai" in res.output
+
+
+def test_doctor_honors_nested_provider_environment(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PORTIERE_LLM__PROVIDER", "openai")
+
+    res = CliRunner().invoke(cli, ["doctor", "--assert-no-egress"])
+
+    assert res.exit_code == 1, res.output
+    assert "openai" in res.output

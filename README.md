@@ -56,7 +56,7 @@ Portiere combines **clinical-domain embeddings** (SapBERT as default model), **l
 - **Multi-Standard Support** — OMOP CDM v5.4 (19 entities, incl. core vocabulary tables), FHIR R4 (18 resources), HL7 v2.5.1, OpenEHR 1.0.4 (extensible via YAML). [Full coverage details below](#standards-coverage).
 - **Real Plausibility Validation** — Kahn-style cross-table and ValueSet checks via a hybrid YAML DSL + Python rules. [Plausibility guide](docs/plausibility.md).
 - **Reproducibility Manifest** — every pipeline run emits a versioned `manifest.lock.json` capturing model identity, vocab fingerprints, source-data hash, threshold snapshot, and per-stage entries. `portiere replay` reconstructs the project from a manifest. [Reproducibility guide](docs/reproducibility.md).
-- **Bundled Quickstart** — `portiere quickstart` runs the full OMOP pipeline against ~20 synthetic patients in <60 s, **fully offline** (no SapBERT download, no Athena required).
+- **Bundled Quickstart** — `portiere quickstart` profiles three synthetic patients, generates mapping proposals, and validates reviewed demographic ETL, **fully offline** (no model downloads or Athena setup).
 - **AI-Powered Mapping** — SapBERT embeddings (default) + cross-encoder reranking + optional LLM verification.
 - **9 Knowledge Backends** — BM25s, FAISS, Elasticsearch, ChromaDB, PGVector, MongoDB, Qdrant, Milvus, Hybrid (RRF fusion).
 - **BYO-LLM** — Bring your own LLM: OpenAI, Anthropic Claude, AWS Bedrock, Ollama (local).
@@ -70,11 +70,13 @@ Portiere combines **clinical-domain embeddings** (SapBERT as default model), **l
 ## Quickstart in 60 seconds
 
 ```bash
-pip install portiere-health[polars,quality]
+python -m pip install "portiere-health[polars,quality]"
 portiere quickstart
 ```
 
-Runs the full pipeline (ingest → schema-map → concept-map → ETL → validate) against bundled synthetic data. Produces a real OMOP mapping plus a reproducibility manifest. No network calls, no extra setup.
+Runs ingest → schema-map → concept-map → ETL → validate against bundled synthetic data. Produces a three-row `person.csv` using bundled demographic review decisions, diagnosis concept proposals for separate review, and a reproducibility manifest. It prints PASS/FAIL/SKIP for each stage and exits successfully only when all required stages pass. After installation, this demo requires no network access or model downloads.
+
+Use `portiere quickstart --output-dir ./demo-output` to choose where artifacts go. Each run writes to a new ETL directory. The vocabulary is simplified for demonstration; it does not provide a clinical ICD-to-SNOMED conversion.
 
 ## Quick Start
 
@@ -91,9 +93,12 @@ pip install "portiere-health[pandas]"    # Prototyping
 
 ### Map Clinical Data to OMOP CDM
 
+For your own data, first configure a knowledge layer and any optional models in `portiere.yaml` following the [vocabulary setup guide](docs/documentations/15-vocabulary-setup.md). Inspect and save reviewed mapping decisions before running ETL; printing a summary does not approve them.
+
 ```python
 import portiere
 from portiere.engines import PolarsEngine
+from portiere.config import PortiereConfig
 
 # Initialize a project
 project = portiere.init(
@@ -101,6 +106,7 @@ project = portiere.init(
     engine=PolarsEngine(),
     target_model="omop_cdm_v5.4",
     vocabularies=["SNOMED", "LOINC", "RxNorm", "ICD10CM"],
+    config=PortiereConfig.from_yaml("portiere.yaml"),
 )
 
 # Add and profile a data source
@@ -114,11 +120,17 @@ schema_map = project.map_schema(source)
 concept_map = project.map_concepts(codes=["E11.9", "I10", "R73.03"])
 
 # Review mappings
-schema_map.summary()
-concept_map.summary()
+print(schema_map.summary())
+print(concept_map.summary())
 
-# Generate and run ETL
-result = project.run_etl(source, schema_map, concept_map)
+# After reviewing and saving the mappings, generate and run ETL
+result = project.run_etl(
+    source,
+    output_dir="./output",
+    schema_mapping=schema_map,
+    concept_mapping=concept_map,
+)
+print(result.summary())
 ```
 
 ### Cross-Standard Mapping (OMOP → FHIR)
@@ -330,7 +342,12 @@ project = portiere.init(
 source = project.add_source("patients.csv")
 schema_map = project.map_schema(source)
 concept_map = project.map_concepts(codes=["E11.9", "I10"])
-result = project.run_etl(source, schema_map, concept_map)
+result = project.run_etl(
+    source,
+    output_dir="./output",
+    schema_mapping=schema_map,
+    concept_mapping=concept_map,
+)
 ```
 
 Or load directly for inspection:
@@ -730,8 +747,9 @@ cd portiere
 python -m venv .venv
 source .venv/bin/activate
 
-# Install in development mode
-pip install -e ".[dev,docs,polars,quality]"
+# Install pinned contributor dependencies and the local source
+python -m pip install -r requirements/dev.txt
+python -m pip install --no-deps --no-build-isolation -e .
 
 # Run tests
 pytest
@@ -743,7 +761,7 @@ ruff check src/ tests/
 mypy src/portiere/
 ```
 
-Please read our contributing guidelines before submitting a pull request.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the pinned contributor environment, Windows setup, optional model tests and release checks.
 
 ## License
 

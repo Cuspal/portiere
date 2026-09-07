@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The `[quality]` extra now includes PyArrow, required to validate Polars output in a fresh installation.
+- Quickstart disables embedding, reranking and remote providers, uses reviewed synthetic demographics, and returns a nonzero exit status when any required stage fails. Validation must pass, and each invocation writes to a new ETL directory.
+- Mapping CSV imports preserve literal identifiers such as `00123`, `NA` and `NULL`, accept nullable concept IDs exported by pandas, and no longer truncate engine imports at 999,999 rows. Compressed local files and engine transports remain supported.
+- `portiere doctor` uses the SDK's configuration discovery. Nested environment settings such as `PORTIERE_LLM__PROVIDER` are recognized.
+- Validation rejects missing or empty output directories. Automatic replay calls validation with its supported arguments.
+- Ordinary benchmark tests explicitly disable model reranking; doctor and quickstart tests isolate personal storage/configuration. The integration workflow now selects real tests and exercises Linux, macOS and Windows.
+- README ETL examples supply the required output directory and use named mapping arguments.
+
+### Added
+
+- A pinned contributor dependency file, isolated setup instructions, an installed-wheel CI quickstart and a staged publication checklist.
+
 ## [0.5.0] - 2026-07-25
 
 The **"Integration Surface"** release. Portiere's pipeline is now drivable from the ecosystems clinical-data teams already use — agentic tools (MCP), agent frameworks (LangChain), and analytics engineering (dbt) — plus the domain-reranker decision harness that closes out the v0.4.0 benchmark work.

@@ -237,3 +237,24 @@ class TestSchemaMappingCSVRoundtrip:
         assert "target_table" in df.columns
         assert "confidence" in df.columns
         assert "status" in df.columns
+
+    @pytest.mark.parametrize("engine_name", [None, "pandas", "polars"])
+    def test_csv_preserves_literal_column_names(self, tmp_path, engine_name):
+        from portiere.engines import get_engine
+
+        path = tmp_path / "schema.csv"
+        path.write_text(
+            "source_column,source_table,target_table,target_column,confidence,status\n"
+            "00123,0001,person,person_id,0.99,approved\n"
+            "NA,NULL,,,0,unmapped\n",
+            encoding="utf-8",
+        )
+        engine = get_engine(engine_name) if engine_name else None
+
+        mapping = SchemaMapping.from_csv(str(path), engine=engine)
+
+        assert [(item.source_column, item.source_table) for item in mapping.items] == [
+            ("00123", "0001"),
+            ("NA", "NULL"),
+        ]
+        assert mapping.items[1].target_table is None

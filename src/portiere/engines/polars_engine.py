@@ -302,9 +302,9 @@ class PolarsEngine(AbstractEngine):
         """Create a Polars DataFrame from a list of dicts."""
         return self._pl.DataFrame(records)
 
-    def read_csv(self, path: str) -> pl.DataFrame:
+    def read_csv(self, path: str, **options: Any) -> pl.DataFrame:
         """Read a CSV file into a Polars DataFrame."""
-        return self._pl.read_csv(path)
+        return self._pl.read_csv(path, **options)
 
     def write_csv(self, df: pl.DataFrame, path: str) -> None:
         """Write a Polars DataFrame to CSV."""

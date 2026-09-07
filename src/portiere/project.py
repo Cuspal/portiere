@@ -735,6 +735,11 @@ class Project:
         reports = []
         output_dir = Path(output_path)
         output_files = list(output_dir.glob("*.csv")) + list(output_dir.glob("*.parquet"))
+        if not output_files:
+            raise ValueError(
+                f"No CSV or Parquet output files found in {output_dir}. "
+                "Run ETL successfully before validating its output."
+            )
         for output_file in output_files:
             # Use engine to read output files — preserves DataFrame type (Spark/Pandas)
             fmt = "parquet" if output_file.suffix == ".parquet" else "csv"

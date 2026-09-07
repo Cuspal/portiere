@@ -285,6 +285,43 @@ class TestConceptMappingExport:
 
 
 class TestConceptMappingFromRecords:
+    def test_csv_roundtrip_preserves_nullable_concept_ids(self, tmp_path):
+        original = ConceptMapping(
+            items=[
+                ConceptMappingItem(source_code="00123", target_concept_id=123),
+                ConceptMappingItem(source_code="NA"),
+            ]
+        )
+        path = str(tmp_path / "nullable.csv")
+        original.to_csv(path)
+
+        restored = ConceptMapping.from_csv(path)
+
+        assert [(item.source_code, item.target_concept_id) for item in restored.items] == [
+            ("00123", 123),
+            ("NA", None),
+        ]
+
+    @pytest.mark.parametrize("engine_name", [None, "pandas", "polars"])
+    def test_csv_preserves_literal_source_codes(self, tmp_path, engine_name):
+        from portiere.engines import get_engine
+
+        path = tmp_path / "codes.csv"
+        path.write_text(
+            "source_code,source_description,target_concept_id,method\n"
+            "00123,Leading zero,123,auto\n"
+            "NA,Literal NA,,review\n"
+            "NULL,Literal NULL,,manual\n",
+            encoding="utf-8",
+        )
+        engine = get_engine(engine_name) if engine_name else None
+
+        mapping = ConceptMapping.from_csv(str(path), engine=engine)
+
+        assert [item.source_code for item in mapping.items] == ["00123", "NA", "NULL"]
+        assert mapping.items[0].target_concept_id == 123
+        assert mapping.items[1].target_concept_id is None
+
     def test_from_records_basic(self):
         records = [
             {

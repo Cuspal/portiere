@@ -30,7 +30,7 @@ def _posture_line(kind: str, provider: str, endpoint: str | None, model: str | N
     "config_path",
     type=click.Path(exists=True, dir_okay=False),
     default=None,
-    help="Path to portiere.yaml (default: library defaults + PORTIERE_* env).",
+    help="Path to portiere.yaml (default: same config discovery as portiere.init()).",
 )
 @click.option(
     "--assert-no-egress",
@@ -46,8 +46,8 @@ def doctor_command(config_path: str | None, assert_no_egress: bool) -> None:
         config = PortiereConfig.from_yaml(config_path)
         click.echo(f"config: {config_path}")
     else:
-        config = PortiereConfig()
-        click.echo("config: (defaults + PORTIERE_* environment)")
+        config = PortiereConfig.discover()
+        click.echo("config: (SDK discovery: project/user config + PORTIERE_* environment)")
 
     click.echo(f"engine: {config.engine.type}")
     click.echo(f"model cache: {config.model_cache_dir}")

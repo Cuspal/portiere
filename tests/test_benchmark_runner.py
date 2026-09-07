@@ -229,7 +229,7 @@ class TestRunBenchmark:
 
         athena = _make_synthetic_athena(tmp_path)
         test_set = tmp_path / "gold_test_set.csv"
-        result = run_benchmark(athena, test_set_path=test_set, backend="bm25s")
+        result = run_benchmark(athena, test_set_path=test_set, backend="bm25s", use_reranker=False)
         assert result.n == 3
         # Shape only — metric values depend on Portiere config and
         # the BM25-based fallback retrieval; we don't assert specific
@@ -254,7 +254,9 @@ class TestRunBenchmark:
 
         athena = _make_synthetic_athena(tmp_path)
         test_set = tmp_path / "gold_test_set.csv"
-        bench_runner.run_benchmark(athena, test_set_path=test_set, backend="bm25s")
+        bench_runner.run_benchmark(
+            athena, test_set_path=test_set, backend="bm25s", use_reranker=False
+        )
 
         assert captured["knowledge_layer"].backend == "bm25s"
 
@@ -264,7 +266,7 @@ class TestRunBenchmark:
 
         athena = _make_synthetic_athena(tmp_path)
         test_set = tmp_path / "gold_test_set.csv"
-        result = run_benchmark(athena, test_set_path=test_set, backend=backend)
+        result = run_benchmark(athena, test_set_path=test_set, backend=backend, use_reranker=False)
 
         assert result.n == 3
         assert 0.0 <= result.top_1 <= 1.0
@@ -424,6 +426,7 @@ class TestBenchmarkCLI:
                 str(test_set),
                 "--backend",
                 "bm25s",
+                "--no-reranker",
                 "--out",
                 str(out_json),
             ],
@@ -453,6 +456,7 @@ class TestBenchmarkCLI:
                 str(test_set),
                 "--backend",
                 "bm25s",
+                "--no-reranker",
                 "--out",
                 str(out_json),
             ],
@@ -626,6 +630,7 @@ class TestStratifiedRunBenchmark:
             test_set_path=test_set,
             backend="bm25s",
             stratify_by="domain",
+            use_reranker=False,
         )
         assert result.n == 3
 
@@ -649,6 +654,7 @@ class TestStratifiedRunBenchmark:
                 str(test_set),
                 "--backend",
                 "bm25s",
+                "--no-reranker",
                 "--stratify-by",
                 "domain",
                 "--out",
