@@ -774,11 +774,11 @@ class TestETLRunnerRun:
             concept_items=[],
         )
 
-        result = runner.run(source_path=source_path, output_path=str(tmp_path / "out"))
+        from portiere.exceptions import ETLExecutionError
 
-        assert result.success is True
-        assert len(result.tables) == 0
-        assert result.source_rows_read == 2
+        with pytest.raises(ETLExecutionError, match="No approved schema routes"):
+            runner.run(source_path=source_path, output_path=str(tmp_path / "out"))
+        assert not (tmp_path / "out").exists()
 
     def test_run_tracks_unmapped_columns(self, tmp_path):
         import pandas as pd

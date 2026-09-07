@@ -4,86 +4,76 @@ No Streamlit imports — these functions are testable in isolation. The
 Streamlit pages call into this module rather than reaching into the
 storage layer directly.
 
-Persistence rule (locked in the v0.3.1 plan): reviewed mappings are
-written to ``<project_dir>/schema_mappings/schema_mapping_reviewed.json``
-next to the original ``schema_mapping.yaml``. The original is never
-modified.
+The SDK and UI share source-bound JSON snapshots and revision checks.
+Legacy YAML is read without modification. A review session retains the
+displayed revision until the user saves or explicitly reloads.
 """
 
 from __future__ import annotations
 
-import json
+from collections.abc import MutableMapping
 from pathlib import Path
 from typing import Literal
 
 import yaml
 
 from portiere.models.concept_mapping import (
-    ConceptCandidate,
     ConceptMapping,
-    ConceptMappingItem,
     ConceptMappingMethod,
 )
-from portiere.models.schema_mapping import MappingStatus, SchemaMapping, SchemaMappingItem
+from portiere.models.mapping_policy import ConceptReviewDecision
+from portiere.models.schema_mapping import MappingStatus, SchemaMapping
+from portiere.storage.mapping_store import MappingStore
 
 ReviewDecision = Literal["approve", "reject", "override"]
 
 
-# ── Paths ─────────────────────────────────────────────────────────
+def list_review_sources(project_dir: Path) -> list[dict]:
+    labels = {}
+    for path in (project_dir / "sources").glob("*.yaml"):
+        metadata = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        if metadata.get("id"):
+            labels[metadata["id"]] = metadata.get("name", metadata["id"])
+    store = MappingStore(project_dir)
+    for kind in ("schema", "concept"):
+        for source_id in store.source_ids(kind):
+            labels.setdefault(source_id, source_id)
+    return [
+        {"id": source_id, "name": name}
+        for source_id, name in sorted(labels.items(), key=lambda pair: pair[1])
+    ]
 
 
-def _schema_dir(project_dir: Path) -> Path:
-    return Path(project_dir) / "schema_mappings"
+def _session_key(project_dir, kind, source_id):
+    return f"portiere:review:{Path(project_dir).resolve()}:{kind}:{source_id}"
 
 
-def _original_schema_path(project_dir: Path) -> Path:
-    return _schema_dir(project_dir) / "schema_mapping.yaml"
+def load_review_session(
+    session: MutableMapping, project_dir: Path, kind, source_id=None, *, reload=False
+):
+    key = _session_key(project_dir, kind, source_id)
+    if reload or key not in session:
+        session[key] = MappingStore(project_dir).load(kind, source_id)
+    return session[key]
 
 
-def _reviewed_schema_path(project_dir: Path) -> Path:
-    return _schema_dir(project_dir) / "schema_mapping_reviewed.json"
+def save_review_session(session: MutableMapping, project_dir: Path, kind, source_id, mapping):
+    context_source = MappingStore(project_dir).load(kind, source_id).source_id
+    if mapping.source_id != context_source:
+        raise ValueError("Mapping belongs to a different source than this review session.")
+    path = MappingStore(project_dir).save(kind, mapping)
+    session[_session_key(project_dir, kind, source_id)] = mapping
+    return path
 
 
-# ── Load ──────────────────────────────────────────────────────────
-
-
-def load_schema_mapping(project_dir: Path) -> SchemaMapping:
-    """Load the schema mapping for review.
-
-    Preference order:
-    1. ``schema_mapping_reviewed.json`` (if a prior session persisted edits).
-    2. ``schema_mapping.yaml`` (the original AI output).
-    3. Empty mapping if neither exists.
-    """
-    reviewed = _reviewed_schema_path(project_dir)
-    if reviewed.exists():
-        data = json.loads(reviewed.read_text())
-        items_data = data.get("items", [])
-        return SchemaMapping(items=[SchemaMappingItem(**it) for it in items_data])
-
-    original = _original_schema_path(project_dir)
-    if not original.exists():
-        return SchemaMapping(items=[])
-
-    items_data = yaml.safe_load(original.read_text()) or []
-    return SchemaMapping(items=[SchemaMappingItem(**it) for it in items_data])
-
-
-# ── Save ──────────────────────────────────────────────────────────
+def load_schema_mapping(project_dir: Path, *, source_id: str | None = None) -> SchemaMapping:
+    """Load the same source revision used by the SDK and ETL."""
+    return MappingStore(project_dir).load("schema", source_id)
 
 
 def save_reviewed_schema_mapping(mapping: SchemaMapping, project_dir: Path) -> Path:
-    """Persist reviewed mapping to ``schema_mapping_reviewed.json``.
-
-    Returns the written path. The original ``schema_mapping.yaml`` is
-    never touched.
-    """
-    schema_dir = _schema_dir(project_dir)
-    schema_dir.mkdir(parents=True, exist_ok=True)
-    out = _reviewed_schema_path(project_dir)
-    payload = {"items": [item.model_dump(mode="json") for item in mapping.items]}
-    out.write_text(json.dumps(payload, indent=2))
-    return out
+    """Atomically save the current revision; reject stale edits."""
+    return MappingStore(project_dir).save("schema", mapping)
 
 
 # ── Decision application ─────────────────────────────────────────
@@ -130,68 +120,20 @@ def apply_user_decision(
     else:
         raise ValueError(f"Unknown decision={decision!r}; expected approve/reject/override")
 
-    return SchemaMapping(items=new_items)
+    return mapping.model_copy(update={"items": new_items})
 
 
 # ── Concept mapping (Slice 5) ─────────────────────────────────────
 
 
-def _concept_dir(project_dir: Path) -> Path:
-    return Path(project_dir) / "concept_mappings"
-
-
-def _original_concept_path(project_dir: Path) -> Path:
-    return _concept_dir(project_dir) / "concept_mapping.yaml"
-
-
-def _reviewed_concept_path(project_dir: Path) -> Path:
-    return _concept_dir(project_dir) / "concept_mapping_reviewed.json"
-
-
-def load_concept_mapping(project_dir: Path) -> ConceptMapping:
-    """Load the concept mapping for review.
-
-    Same preference order as ``load_schema_mapping``:
-    reviewed JSON > original YAML > empty.
-    """
-    reviewed = _reviewed_concept_path(project_dir)
-    if reviewed.exists():
-        data = json.loads(reviewed.read_text())
-        return ConceptMapping(
-            items=[
-                ConceptMappingItem(
-                    **{
-                        **it,
-                        "candidates": [ConceptCandidate(**c) for c in it.get("candidates", [])],
-                    }
-                )
-                for it in data.get("items", [])
-            ]
-        )
-
-    original = _original_concept_path(project_dir)
-    if not original.exists():
-        return ConceptMapping(items=[])
-
-    raw = yaml.safe_load(original.read_text()) or []
-    return ConceptMapping(
-        items=[
-            ConceptMappingItem(
-                **{**it, "candidates": [ConceptCandidate(**c) for c in it.get("candidates", [])]}
-            )
-            for it in raw
-        ]
-    )
+def load_concept_mapping(project_dir: Path, *, source_id: str | None = None) -> ConceptMapping:
+    """Load the same source revision used by the SDK and ETL."""
+    return MappingStore(project_dir).load("concept", source_id)
 
 
 def save_reviewed_concept_mapping(mapping: ConceptMapping, project_dir: Path) -> Path:
-    """Persist reviewed concept mapping; original YAML untouched."""
-    out_dir = _concept_dir(project_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out = _reviewed_concept_path(project_dir)
-    payload = {"items": [item.model_dump(mode="json") for item in mapping.items]}
-    out.write_text(json.dumps(payload, indent=2))
-    return out
+    """Atomically save the current revision; reject stale edits."""
+    return MappingStore(project_dir).save("concept", mapping)
 
 
 def apply_concept_decision(
@@ -223,28 +165,36 @@ def apply_concept_decision(
 
     if decision == "approve":
         item.method = ConceptMappingMethod.AUTO
+        item.review_decision = ConceptReviewDecision.APPROVED
     elif decision == "reject":
-        item.method = ConceptMappingMethod.UNMAPPED
+        item.mark_unmapped()
     elif decision == "override":
-        item.method = ConceptMappingMethod.OVERRIDE
-        if candidate_index is not None and 0 <= candidate_index < len(item.candidates):
+        if candidate_index is not None:
+            if not 0 <= candidate_index < len(item.candidates):
+                raise ValueError("Select an available candidate index.")
             cand = item.candidates[candidate_index]
             item.target_concept_id = cand.concept_id
             item.target_concept_name = cand.concept_name
             item.target_vocabulary_id = cand.vocabulary_id
             item.target_domain_id = cand.domain_id
-        elif target_concept_id is not None:
+        elif target_concept_id is not None and target_concept_id > 0:
             item.target_concept_id = target_concept_id
             if target_concept_name is not None:
                 item.target_concept_name = target_concept_name
             if target_vocabulary_id is not None:
                 item.target_vocabulary_id = target_vocabulary_id
+        else:
+            raise ValueError("Select a candidate or a positive target concept ID.")
+        if item.target_concept_id is None or item.target_concept_id <= 0:
+            raise ValueError("Select a positive target concept ID.")
+        item.method = ConceptMappingMethod.OVERRIDE
+        item.review_decision = ConceptReviewDecision.OVERRIDDEN
         if reviewer_note is not None:
             item.provenance = {**(item.provenance or {}), "reviewer_note": reviewer_note}
     else:
         raise ValueError(f"Unknown decision={decision!r}; expected approve/reject/override")
 
-    return ConceptMapping(items=new_items)
+    return mapping.model_copy(update={"items": new_items})
 
 
 def sort_by_confidence_ascending(mapping: ConceptMapping) -> list[int]:

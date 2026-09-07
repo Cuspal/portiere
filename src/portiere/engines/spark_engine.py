@@ -207,12 +207,15 @@ class SparkEngine(AbstractEngine):
         self,
         df: DataFrame,
         column: str,
-        limit: int = 1000,
+        limit: int | None = 1000,
     ) -> list[dict[str, Any]]:
         """Get distinct values with counts."""
         from pyspark.sql import functions as F
 
-        result = df.groupBy(column).count().orderBy(F.desc("count")).limit(limit).collect()
+        grouped = df.groupBy(column).count().orderBy(F.desc("count"))
+        if limit is not None:
+            grouped = grouped.limit(limit)
+        result = grouped.toLocalIterator()
         return [{"value": row[column], "count": row["count"]} for row in result]
 
     def transform(
@@ -336,9 +339,10 @@ class SparkEngine(AbstractEngine):
         """Create a Spark DataFrame from a list of dicts."""
         return self._spark.createDataFrame(records)
 
-    def read_csv(self, path: str) -> DataFrame:
+    def read_csv(self, path: str, **options: Any) -> DataFrame:
         """Read a CSV file into a Spark DataFrame."""
-        return self._spark.read.option("header", True).option("inferSchema", True).csv(path)
+        reader = self._spark.read.option("header", True).option("inferSchema", True)
+        return reader.options(**options).csv(path)
 
     def write_csv(self, df: DataFrame, path: str) -> None:
         """Write a Spark DataFrame to CSV."""

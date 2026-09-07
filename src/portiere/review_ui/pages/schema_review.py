@@ -11,15 +11,29 @@ from pathlib import Path
 
 from portiere.review_ui.state import (
     apply_user_decision,
-    load_schema_mapping,
-    save_reviewed_schema_mapping,
+    load_review_session,
+    save_review_session,
 )
 
 
-def render_schema_review(project_dir: Path) -> None:
+def render_schema_review(project_dir: Path, *, source_id: str | None = None) -> None:
     import streamlit as st
 
-    mapping = load_schema_mapping(project_dir)
+    from portiere.storage.mapping_store import MappingConflictError
+
+    reload = st.button("Reload mappings", key=f"{source_id}_reload_schema")
+    mapping = load_review_session(st.session_state, project_dir, "schema", source_id, reload=reload)
+
+    def save(mapping):
+        try:
+            save_review_session(st.session_state, project_dir, "schema", source_id, mapping)
+        except MappingConflictError:
+            st.error(
+                "Mappings changed in another session. Reload mappings and review the latest decisions."
+            )
+            return
+        st.rerun()
+
     if not mapping.items:
         st.info(
             "No schema mapping found in this project. "
@@ -49,21 +63,19 @@ def render_schema_review(project_dir: Path) -> None:
             expanded=item.status.value == "needs_review",
         ):
             cols = st.columns([1, 1, 1, 2])
-            if cols[0].button("Approve", key=f"approve_{i}"):
+            if cols[0].button("Approve", key=f"{source_id}_{mapping.revision}_approve_{i}"):
                 mapping = apply_user_decision(mapping, index=i, decision="approve")
-                save_reviewed_schema_mapping(mapping, project_dir)
-                st.rerun()
-            if cols[1].button("Reject", key=f"reject_{i}"):
+                save(mapping)
+            if cols[1].button("Reject", key=f"{source_id}_{mapping.revision}_reject_{i}"):
                 mapping = apply_user_decision(mapping, index=i, decision="reject")
-                save_reviewed_schema_mapping(mapping, project_dir)
-                st.rerun()
+                save(mapping)
             override_target = cols[3].text_input(
                 "Override target (table.column)",
                 value="",
-                key=f"override_input_{i}",
+                key=f"{source_id}_{mapping.revision}_override_input_{i}",
                 placeholder="person.year_of_birth",
             )
-            if cols[2].button("Override", key=f"override_{i}"):
+            if cols[2].button("Override", key=f"{source_id}_{mapping.revision}_override_{i}"):
                 if "." in override_target:
                     table, column = override_target.split(".", 1)
                     mapping = apply_user_decision(
@@ -73,8 +85,7 @@ def render_schema_review(project_dir: Path) -> None:
                         target_table=table.strip(),
                         target_column=column.strip(),
                     )
-                    save_reviewed_schema_mapping(mapping, project_dir)
-                    st.rerun()
+                    save(mapping)
                 else:
                     st.warning("Override target must be `table.column`")
 

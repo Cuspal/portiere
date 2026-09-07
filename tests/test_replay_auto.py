@@ -220,6 +220,27 @@ class TestValidateComparator:
 
 
 class TestAutoReplayOrchestrator:
+    def test_validation_reexecutes_with_existing_project_engine(self, tmp_path):
+        import portiere
+        from portiere.engines import PolarsEngine
+        from portiere.repro.replay import _replay_stage
+
+        output = tmp_path / "output"
+        output.mkdir()
+        # An intentionally incomplete person table must produce a real failed
+        # validation result, not become UNAVAILABLE due to a bad SDK argument.
+        (output / "person.csv").write_text("person_id\n1\n")
+        with portiere.init(
+            name="replay-validation",
+            engine=PolarsEngine(),
+            config=portiere.PortiereConfig(local_project_dir=tmp_path),
+        ) as project:
+            result = _replay_stage(
+                project, _stage("validate", inputs={"output_path": str(output)}), None
+            )
+
+        assert result == {"total_tables": 1, "all_passed": False}
+
     def test_empty_stages_returns_passing_report(self, tmp_path):
         from portiere.repro.replay import ReplayReport, auto_replay
 

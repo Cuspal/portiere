@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-07
+
+The **Mapping Foundation** release keeps mappings separate for each source and makes saved review decisions authoritative across the SDK, review UI and generated artifacts. It also improves offline setup, mapping-file exchange and failure reporting.
+
+**Upgrading from 0.5.x:** read the [mapping migration guide](docs/reviewed-mappings.md). Source selection, revision checks, the JSON export envelope and explicit concept exports affect existing automation.
+
+### Fixed
+
+- SDK execution, review UI, generated ETL artifacts and dbt seeds share mapping eligibility rules. Explicit pending/rejected concept decisions cannot execute or enter approved exports; inference method is retained separately. Empty ETL plans fail instead of reporting success.
+- Concept extraction processes all distinct codes, including literal CSV identifiers such as `00123` and `NA`. Direct concept lookup respects vocabulary/domain filters and preserves standard/nonstandard metadata; nonstandard concepts are not automatically accepted as standard targets.
+- The `[quality]` extra now includes PyArrow, required to validate Polars output in a fresh installation.
+- The contributor dependency lock includes Hatchling's `editables` build dependency so fresh CI and contributor environments can install the package with `--no-build-isolation -e .`.
+- Generated ETL artifacts use UTF-8 and preserve embedded CSV newlines on Windows. The artifact runner reads UTF-8 explicitly so Unicode mapping codes remain intact across environments.
+- Quickstart disables embedding, reranking and remote providers, uses reviewed synthetic demographics, and returns a nonzero exit status when any required stage fails. Validation must pass, and each invocation writes to a new ETL directory.
+- Mapping CSV imports preserve literal identifiers such as `00123`, `NA` and `NULL`, accept nullable concept IDs exported by pandas, and no longer truncate engine imports at 999,999 rows. Compressed local files and engine transports remain supported.
+- `portiere doctor` uses the SDK's configuration discovery. Nested environment settings such as `PORTIERE_LLM__PROVIDER` are recognized.
+- Validation rejects missing or empty output directories. Automatic replay calls validation with its supported arguments.
+- Ordinary benchmark tests explicitly disable model reranking; doctor and quickstart tests isolate personal storage/configuration. The integration workflow now selects real tests and exercises Linux, macOS and Windows.
+- README ETL examples supply the required output directory and use named mapping arguments.
+
+### Added
+
+- Stable source identities and source-scoped schema/concept snapshots shared by the SDK and review UI. Atomic local writes and revision checks reject concurrent/stale reviews; source registration uses the same project lock.
+- Source selection in concept import/export, revision-preserving JSON/CSV review exchange, and a [review/migration guide](docs/reviewed-mappings.md).
+- A pinned contributor dependency file, isolated setup instructions, an installed-wheel CI quickstart and a staged publication checklist.
+
+### Changed
+
+- Concept JSON exports now contain a versioned object with `items`, `source_id` and `revision`; legacy top-level lists remain readable. CSV exports include `mapping_source_id` and `mapping_revision`. Replacing a versioned mapping from an unversioned table requires an explicit expected revision.
+- New mapping writes use source-scoped JSON snapshots. Legacy YAML remains readable and is retained. Saving concepts no longer emits an implicit `source_to_concept_map.csv`; export it explicitly after review. Multisource callers must select a source. See the migration guide before upgrading automation.
+- Empty concept review CSV exports now require JSON to preserve source and revision metadata. Ordinary CSV, gzip, bzip2, xz and ZIP review exchange works without Pandas; additional transports retain their optional dependencies.
+- dbt generation requires a fresh, empty output directory so SQL models and seeds from previous decisions cannot survive regeneration.
+
+### Release scope and validation
+
+- Locally verified on macOS/Python 3.12: 1,371 tests passed, 30 skipped and 5 model tests deselected, including Windows text-I/O regression coverage; lint, formatting, type checks and installed-wheel workflows passed. Remote CI, Spark and native Streamlit interaction require their own verification.
+- Explicit concept destination compilation, immutable mapping bundles, a unified run report and bounded-memory execution remain planned. Existing concept-column generation still needs review against the target standard; Athena relationship traversal and one-to-many target expansion are not implemented.
+
 ## [0.5.0] - 2026-07-25
 
 The **"Integration Surface"** release. Portiere's pipeline is now drivable from the ecosystems clinical-data teams already use — agentic tools (MCP), agent frameworks (LangChain), and analytics engineering (dbt) — plus the domain-reranker decision harness that closes out the v0.4.0 benchmark work.

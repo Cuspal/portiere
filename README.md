@@ -53,10 +53,12 @@ Portiere combines **clinical-domain embeddings** (SapBERT as default model), **l
 
 ## Key Features
 
+- **Source-scoped review** *(v0.6.0)* — Each source keeps its own schema and concept mappings. The SDK and review UI share saved decisions, and revision checks reject stale edits. [Review and migration guide](docs/reviewed-mappings.md).
+- **Reusable concept review files** *(v0.6.0)* — JSON and CSV exports retain source/revision context. Explicit pending or rejected decisions stay out of executable lookups and approved exports.
 - **Multi-Standard Support** — OMOP CDM v5.4 (19 entities, incl. core vocabulary tables), FHIR R4 (18 resources), HL7 v2.5.1, OpenEHR 1.0.4 (extensible via YAML). [Full coverage details below](#standards-coverage).
 - **Real Plausibility Validation** — Kahn-style cross-table and ValueSet checks via a hybrid YAML DSL + Python rules. [Plausibility guide](docs/plausibility.md).
 - **Reproducibility Manifest** — every pipeline run emits a versioned `manifest.lock.json` capturing model identity, vocab fingerprints, source-data hash, threshold snapshot, and per-stage entries. `portiere replay` reconstructs the project from a manifest. [Reproducibility guide](docs/reproducibility.md).
-- **Bundled Quickstart** — `portiere quickstart` runs the full OMOP pipeline against ~20 synthetic patients in <60 s, **fully offline** (no SapBERT download, no Athena required).
+- **Bundled Quickstart** — `portiere quickstart` profiles three synthetic patients, generates mapping proposals, and validates reviewed demographic ETL, **fully offline** (no model downloads or Athena setup).
 - **AI-Powered Mapping** — SapBERT embeddings (default) + cross-encoder reranking + optional LLM verification.
 - **9 Knowledge Backends** — BM25s, FAISS, Elasticsearch, ChromaDB, PGVector, MongoDB, Qdrant, Milvus, Hybrid (RRF fusion).
 - **BYO-LLM** — Bring your own LLM: OpenAI, Anthropic Claude, AWS Bedrock, Ollama (local).
@@ -67,14 +69,16 @@ Portiere combines **clinical-domain embeddings** (SapBERT as default model), **l
 - **Cross-Standard Mapping** — Transform between standards (OMOP ↔ FHIR, HL7v2 → FHIR, OMOP → OpenEHR).
 - **Local-First** — All processing runs on your machine; no cloud dependency.
 
-## Quickstart in 60 seconds
+## Offline quickstart
 
 ```bash
-pip install portiere-health[polars,quality]
+python -m pip install "portiere-health[polars,quality]"
 portiere quickstart
 ```
 
-Runs the full pipeline (ingest → schema-map → concept-map → ETL → validate) against bundled synthetic data. Produces a real OMOP mapping plus a reproducibility manifest. No network calls, no extra setup.
+Runs ingest → schema-map → concept-map → ETL → validate against bundled synthetic data. Produces a three-row `person.csv` using bundled demographic review decisions, diagnosis concept proposals for separate review, and a reproducibility manifest. It prints PASS/FAIL/SKIP for each stage and exits successfully only when all required stages pass. After installation, this demo requires no network access or model downloads.
+
+Use `portiere quickstart --output-dir ./demo-output` to choose where artifacts go. Each run writes to a new ETL directory. The vocabulary is simplified for demonstration; it does not provide a clinical ICD-to-SNOMED conversion.
 
 ## Quick Start
 
@@ -91,9 +95,12 @@ pip install "portiere-health[pandas]"    # Prototyping
 
 ### Map Clinical Data to OMOP CDM
 
+For your own data, first configure a knowledge layer and any optional models in `portiere.yaml` following the [vocabulary setup guide](docs/documentations/15-vocabulary-setup.md). Inspect and save reviewed mapping decisions before running ETL; printing a summary does not approve them.
+
 ```python
 import portiere
 from portiere.engines import PolarsEngine
+from portiere.config import PortiereConfig
 
 # Initialize a project
 project = portiere.init(
@@ -101,6 +108,7 @@ project = portiere.init(
     engine=PolarsEngine(),
     target_model="omop_cdm_v5.4",
     vocabularies=["SNOMED", "LOINC", "RxNorm", "ICD10CM"],
+    config=PortiereConfig.from_yaml("portiere.yaml"),
 )
 
 # Add and profile a data source
@@ -111,15 +119,25 @@ profile = project.profile(source)
 schema_map = project.map_schema(source)
 
 # AI-powered concept mapping (clinical codes → standard concepts)
-concept_map = project.map_concepts(codes=["E11.9", "I10", "R73.03"])
+concept_map = project.map_concepts(source, code_columns=["diagnosis_code"])
 
 # Review mappings
-schema_map.summary()
-concept_map.summary()
+print(schema_map.summary())
+print(concept_map.summary())
 
-# Generate and run ETL
-result = project.run_etl(source, schema_map, concept_map)
+# After reviewing and saving the mappings, generate and run ETL
+result = project.run_etl(
+    source,
+    output_dir="./output",
+    schema_mapping=schema_map,
+    concept_mapping=concept_map,
+)
+print(result.summary())
 ```
+
+Version 0.6.0 keeps each source's mappings separate and checks revisions when saving reviews. For source selection, CSV/JSON review exchange, and upgrading from 0.5.x, see [Review and reuse mappings](docs/reviewed-mappings.md). JSON exports now use a versioned envelope; saving concepts no longer refreshes an implicit `source_to_concept_map.csv`. Export that projection explicitly after review.
+
+This release establishes mapping ownership and review consistency. Explicit concept destination compilation, frozen mapping bundles and a unified run report remain planned; inspect generated concept columns against your target standard before applying them to clinical data.
 
 ### Cross-Standard Mapping (OMOP → FHIR)
 
@@ -330,7 +348,12 @@ project = portiere.init(
 source = project.add_source("patients.csv")
 schema_map = project.map_schema(source)
 concept_map = project.map_concepts(codes=["E11.9", "I10"])
-result = project.run_etl(source, schema_map, concept_map)
+result = project.run_etl(
+    source,
+    output_dir="./output",
+    schema_mapping=schema_map,
+    concept_mapping=concept_map,
+)
 ```
 
 Or load directly for inspection:
@@ -639,21 +662,21 @@ For a programmatic listing: `python -c "from portiere.standards import YAMLTarge
 Portiere is in active development. Current limitations (will be addressed in upcoming releases):
 
 - **Standards coverage is partial.** OMOP CDM v5.4: 19 of ~37 tables — but the covered set includes the core clinical-event tables that carry most rows in a typical conversion (`person`, `visit_occurrence`, `condition_occurrence`, `drug_exposure`, `measurement`, `observation`, `procedure_occurrence`). FHIR R4: 18 of 145 resources. Check the [support matrix](docs/documentations/20-multi-standard-support.md) against your protocol; PRs to extend coverage are welcome. See [how Portiere compares](docs/comparison.md).
-- **FHIR profile coverage is US Core + mCODE only.** v0.3.0 validates against US Core 6.1.0 (10 resource types); v0.3.1 adds mCODE STU3 2.0.0 (5 oncology profiles). IPS, mCODE-extended (treatments, additional staging) **planned for v0.5.0.**
-- **Mapping Review UI covers schema mappings.** v0.3.1 ships the Streamlit-based UI for schema-mapping review (approve / override / reject); concept-mapping review **planned for v0.4.x.**
+- **FHIR profile coverage is US Core + mCODE only.** v0.3.0 validates against US Core 6.1.0 (10 resource types); v0.3.1 adds mCODE STU3 2.0.0 (5 oncology profiles). IPS and mCODE-extended coverage (treatments, additional staging) remain planned.
+- **Review interchange has limits.** The UI supports schema and concept review. Concept JSON preserves candidates and provenance; CSV is a row-level projection. Frozen, portable schema/concept bundles remain planned. See the [review guide](docs/reviewed-mappings.md).
 - **PHI scrubbing is opt-in and structural-first.** v0.4.0 ships value-level detection/scrubbing ([docs/phi-scrubbing.md](docs/phi-scrubbing.md)): a built-in regex backend (email/phone/MRN/national-ID/date) plus optional Presidio NER (`[phi]` extra) for person names. Off by default in v0.4.0 (`scrub_phi=True` to enable); planned default-on in v1.0. Unlabeled free-text names require the NER extra.
 - **SNOMED CT and CPT-4 not bundled.** Both have licensing constraints. `portiere quickstart` operates on bundled ICD-10-CM/LOINC/RxNorm only; for SNOMED, see [vocabulary setup](docs/documentations/15-vocabulary-setup.md).
-- **Replay reproduces stages best-effort.** `portiere replay --auto-replay` re-runs deterministic stages (ingest, validate) and records LLM-bound stages (schema, concept, ETL) as `UNAVAILABLE`. Full BYO-LLM rehydration **planned for v0.3.x.** Within-tolerance outputs may still differ ±1% due to LLM sampling. See [reproducibility guide](docs/reproducibility.md).
-- **Benchmark coverage.** v0.3.1 publishes the ICD-10-CM → SNOMED 4-row ablation (BM25 / FAISS / hybrid / USAGI baseline). LOINC / RxNorm pairs **planned for v0.3.x.**
+- **Replay reproduces stages best-effort.** `portiere replay --auto-replay` re-runs deterministic stages (ingest, validate) and records LLM-bound stages (schema, concept, ETL) as `UNAVAILABLE`. Full BYO-LLM rehydration and deterministic replay from frozen mappings remain planned. See [reproducibility guide](docs/reproducibility.md).
+- **Benchmark coverage.** The measured benchmark below covers ICD-10-CM → SNOMED. LOINC and RxNorm benchmark pairs remain planned.
 
 ## Roadmap
 
-- **v0.3.2 (shipped):** aggregated data-profile report export (`portiere profile-report`, HTML + CSV) with additive engine profile enrichment.
-- **v0.3.x:** Full BYO-LLM rehydration for `replay --auto-replay` LLM-bound stages; additional benchmark pairs (LOINC, RxNorm); active-learning loop on review-UI override decisions.
-- **v0.4.0 (this release):** executable no-egress guarantee (`offline` mode + `portiere doctor`); value-level PHI scrubber; compliance docs (COMPLIANCE.md + threat model); reranker-ablation harness + score-blending fix; Docker; published docs site.
-- **v0.5.0 (shipped):** MCP / LangChain / dbt integration surface; domain-reranker decision harness (`scripts/reranker_spike.py`).
-- **v0.5.x:** concept-mapping review UI page; second benchmark vocabulary pair (RxNorm→ATC); auto-tier precision metric.
-- **v0.5.0+:** PCORnet / Sentinel / i2b2 / CDISC SDTM CDMs; clinical NLP path (scispaCy / GLiNER-clinical); OHDSI DataQualityDashboard parity.
+- **v0.3.2 (shipped):** aggregated data-profile report export (`portiere profile-report`, HTML + CSV) with engine profile enrichment.
+- **v0.4.0 (shipped):** offline configuration checks; value-level PHI scrubbing; compliance documentation; reranker evaluation and score blending; Docker and the docs site.
+- **v0.5.0 (shipped):** MCP, LangChain and dbt integrations; domain-reranker decision harness.
+- **v0.6.0 (this release):** source-scoped mappings; shared SDK/UI review decisions; revision-aware concept file exchange; complete code extraction; offline quickstart and packaging fixes.
+- **Next:** explicit concept destination compilation, immutable mapping bundles, a unified run report, strict CI comparison and bounded resource use.
+- **Later:** additional vocabulary benchmarks and CDMs, expanded FHIR profiles, clinical NLP, review-driven learning and wider deployment verification.
 
 Each release tracks via GitHub Milestones; please open issues or PRs against the relevant milestone. See [specs/](specs/) for the design docs behind each release.
 
@@ -730,8 +753,9 @@ cd portiere
 python -m venv .venv
 source .venv/bin/activate
 
-# Install in development mode
-pip install -e ".[dev,docs,polars,quality]"
+# Install pinned contributor dependencies and the local source
+python -m pip install -r requirements/dev.txt
+python -m pip install --no-deps --no-build-isolation -e .
 
 # Run tests
 pytest
@@ -743,7 +767,7 @@ ruff check src/ tests/
 mypy src/portiere/
 ```
 
-Please read our contributing guidelines before submitting a pull request.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the pinned contributor environment, Windows setup, optional model tests and release checks.
 
 ## License
 

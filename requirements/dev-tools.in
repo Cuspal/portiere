@@ -1,0 +1,5 @@
+# Build tools for the contributor environment; runtime dependencies stay in pyproject.toml.
+build>=1.0
+hatchling
+# Hatchling's dynamic dependency for pip install --no-build-isolation -e .
+editables~=0.3

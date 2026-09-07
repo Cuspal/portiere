@@ -134,7 +134,7 @@ class TestImportConceptMapping:
 
     def test_no_input_raises(self, tmp_path):
         project = _make_project(tmp_path, name="imp-empty")
-        with pytest.raises(ValueError, match="Provide one of"):
+        with pytest.raises(ValueError, match="Provide exactly one of"):
             project.import_concept_mapping()
 
 
@@ -164,9 +164,9 @@ class TestExportConceptMapping:
         project.export_concept_mapping(str(out))
         assert out.exists()
         loaded = json.loads(out.read_text())
-        # to_json emits a top-level list
-        assert isinstance(loaded, list)
-        assert len(loaded) == 1
+        assert loaded["format_version"] == 1
+        assert loaded["revision"] == project.load_concept_mapping().revision
+        assert len(loaded["items"]) == 1
 
     def test_export_csv(self, tmp_path):
         project = _make_project(tmp_path, name="exp-csv")

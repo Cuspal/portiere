@@ -165,10 +165,12 @@ class PandasEngine(AbstractEngine):
         self,
         df: pd.DataFrame,
         column: str,
-        limit: int = 1000,
+        limit: int | None = 1000,
     ) -> list[dict[str, Any]]:
         """Get distinct values with counts."""
-        value_counts = df[column].value_counts().head(limit)
+        value_counts = df[column].value_counts()
+        if limit is not None:
+            value_counts = value_counts.head(limit)
         return [{"value": k, "count": v} for k, v in value_counts.items()]
 
     def transform(
@@ -282,9 +284,9 @@ class PandasEngine(AbstractEngine):
         """Create a Pandas DataFrame from a list of dicts."""
         return self._pd.DataFrame(records)
 
-    def read_csv(self, path: str) -> pd.DataFrame:
+    def read_csv(self, path: str, **options: Any) -> pd.DataFrame:
         """Read a CSV file into a Pandas DataFrame."""
-        return self._pd.read_csv(path)
+        return self._pd.read_csv(path, **options)
 
     def write_csv(self, df: pd.DataFrame, path: str) -> None:
         """Write a Pandas DataFrame to CSV."""

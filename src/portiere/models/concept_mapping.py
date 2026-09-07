@@ -13,7 +13,13 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 import structlog
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+from portiere.models.mapping_policy import (
+    ConceptReviewDecision,
+    concept_is_approved,
+    concept_is_executable,
+)
 
 if TYPE_CHECKING:
     from portiere.models.project import Project
@@ -63,12 +69,20 @@ class ConceptMappingItem(BaseModel):
     # AI inference
     confidence: float = 0.0
     method: ConceptMappingMethod = ConceptMappingMethod.REVIEW
+    inference_method: ConceptMappingMethod | None = None
+    review_decision: ConceptReviewDecision | None = None
 
     # All candidates considered
     candidates: list[ConceptCandidate] = Field(default_factory=list)
 
     # Provenance (audit trail)
     provenance: dict = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _preserve_inference_method(self):
+        if self.inference_method is None:
+            self.inference_method = self.method
+        return self
 
     @property
     def is_mapped(self) -> bool:
@@ -78,15 +92,19 @@ class ConceptMappingItem(BaseModel):
     @property
     def approved(self) -> bool:
         """Check if this item has been approved (AUTO or OVERRIDE)."""
-        return self.method in (ConceptMappingMethod.AUTO, ConceptMappingMethod.OVERRIDE)
+        return concept_is_approved(self)
 
     @property
     def rejected(self) -> bool:
         """Check if this item has been rejected (UNMAPPED)."""
+        if self.review_decision is not None:
+            return self.review_decision == ConceptReviewDecision.REJECTED
         return self.method == ConceptMappingMethod.UNMAPPED
 
     def approve(self, candidate_index: int = 0):
         """Approve this mapping using the specified candidate."""
+        if candidate_index < 0 or candidate_index >= max(1, len(self.candidates)):
+            raise ValueError("Invalid candidate index; select an available candidate.")
         if self.candidates and candidate_index < len(self.candidates):
             candidate = self.candidates[candidate_index]
             self.target_concept_id = candidate.concept_id
@@ -99,6 +117,11 @@ class ConceptMappingItem(BaseModel):
         else:
             # No candidates — approve with current target
             self.method = ConceptMappingMethod.AUTO
+        self.review_decision = (
+            ConceptReviewDecision.OVERRIDDEN
+            if candidate_index > 0
+            else ConceptReviewDecision.APPROVED
+        )
 
     def reject(self):
         """Reject this mapping (mark as unmapped)."""
@@ -110,10 +133,12 @@ class ConceptMappingItem(BaseModel):
         self.target_concept_name = concept_name
         self.target_vocabulary_id = vocabulary_id
         self.method = ConceptMappingMethod.OVERRIDE
+        self.review_decision = ConceptReviewDecision.OVERRIDDEN
 
     def mark_unmapped(self):
         """Mark this code as unmapped (no suitable match)."""
         self.method = ConceptMappingMethod.UNMAPPED
+        self.review_decision = ConceptReviewDecision.REJECTED
 
 
 class ConceptMapping(BaseModel):
@@ -127,6 +152,8 @@ class ConceptMapping(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
 
     items: list[ConceptMappingItem] = Field(default_factory=list)
+    source_id: str | None = None
+    revision: str | None = None
 
     # Internal references
     project: Project | None = Field(default=None, exclude=True)
@@ -150,6 +177,8 @@ class ConceptMapping(BaseModel):
                     target_domain_id=item_data.get("target_domain_id"),
                     confidence=item_data.get("confidence", 0.0),
                     method=ConceptMappingMethod(item_data.get("method", "review")),
+                    inference_method=item_data.get("inference_method"),
+                    review_decision=item_data.get("review_decision"),
                     candidates=candidates,
                     provenance=item_data.get("provenance", {}),
                 )
@@ -163,7 +192,12 @@ class ConceptMapping(BaseModel):
 
     def needs_review(self) -> list[ConceptMappingItem]:
         """Return items that need human review."""
-        return [item for item in self.items if item.method == ConceptMappingMethod.REVIEW]
+        return [
+            item
+            for item in self.items
+            if item.review_decision == ConceptReviewDecision.PENDING
+            or (item.review_decision is None and item.method == ConceptMappingMethod.REVIEW)
+        ]
 
     def auto_mapped(self) -> list[ConceptMappingItem]:
         """Return items that were auto-mapped."""
@@ -218,11 +252,13 @@ class ConceptMapping(BaseModel):
             return self.project._engine
         return None
 
-    def to_dataframe(self):
-        """Export mappings as a DataFrame using the project's engine."""
+    def _review_records(self) -> list[dict]:
+        """Flat review rows shared by CSV and dataframe exports."""
         rows = []
         for item in self.items:
             row = {
+                "mapping_source_id": self.source_id,
+                "mapping_revision": self.revision,
                 "source_code": item.source_code,
                 "source_description": item.source_description,
                 "source_column": item.source_column,
@@ -233,9 +269,15 @@ class ConceptMapping(BaseModel):
                 "target_domain_id": item.target_domain_id,
                 "confidence": item.confidence,
                 "method": item.method.value,
+                "inference_method": item.inference_method.value if item.inference_method else None,
+                "review_decision": item.review_decision.value if item.review_decision else None,
             }
             rows.append(row)
+        return rows
 
+    def to_dataframe(self):
+        """Export mappings as a DataFrame using the project's engine."""
+        rows = self._review_records()
         if self._engine:
             return self._engine.from_records(rows)
 
@@ -245,18 +287,24 @@ class ConceptMapping(BaseModel):
 
     def to_csv(self, path: str) -> None:
         """Export mappings to CSV for review."""
-        df = self.to_dataframe()
-        if self._engine:
-            self._engine.write_csv(df, path)
+        from pathlib import Path
+
+        from portiere.models._mapping_csv import write_mapping_records
+
+        if not self.items:
+            raise ValueError("Use JSON to export an empty mapping with its source and revision.")
+        if self._engine and Path(path).suffix.lower() not in {".gz", ".bz2", ".xz", ".zip"}:
+            self._engine.write_csv(self.to_dataframe(), path)
         else:
-            df.to_csv(path, index=False)
+            rows = self._review_records()
+            write_mapping_records(path, rows, list(rows[0]))
 
     def to_json(self, path: str) -> None:
         """Export mappings to JSON file."""
         import json
 
-        data = [item.model_dump(mode="json") for item in self.items]
-        with open(path, "w") as f:
+        data = {"format_version": 1, **self.model_dump(mode="json")}
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
     @classmethod
@@ -264,10 +312,13 @@ class ConceptMapping(BaseModel):
         """Import mappings from a JSON file."""
         import json
 
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
-        items = [ConceptMappingItem(**item) for item in data]
-        return cls(items=items)
+        if isinstance(data, list):
+            return cls(items=data)
+        if data.get("format_version", 1) != 1:
+            raise ValueError("Unsupported concept mapping format_version")
+        return cls.model_validate(data)
 
     @classmethod
     def _items_from_records(cls, records: list[dict]) -> list[ConceptMappingItem]:
@@ -301,8 +352,8 @@ class ConceptMapping(BaseModel):
             domain_id = _clean(r.get("target_domain_id") or r.get("domain_id"))
 
             target_id = _clean(r.get("target_concept_id"))
-            if target_id is not None:
-                target_id = int(target_id)
+            # Let Pydantic validate integer identity, including integral CSV
+            # floats ("123.0") emitted by pandas for nullable integer columns.
 
             confidence = _clean(r.get("confidence"))
             confidence = float(confidence) if confidence is not None else 0.0
@@ -322,6 +373,8 @@ class ConceptMapping(BaseModel):
                     target_domain_id=domain_id,
                     confidence=confidence,
                     method=method,
+                    inference_method=_clean(r.get("inference_method")),
+                    review_decision=_clean(r.get("review_decision")),
                 )
             )
         return items
@@ -349,19 +402,13 @@ class ConceptMapping(BaseModel):
 
         Args:
             path: Path to CSV file.
-            engine: Optional compute engine to use for reading. If None, uses pandas.
+            engine: Optional compute engine for its supported CSV transports.
         """
-        if engine:
-            df = engine.read_csv(path)
-            records = engine.to_dict_records(df, limit=999999)
-        else:
-            import pandas as pd
+        from portiere.models._mapping_csv import read_mapping_records
 
-            df = pd.read_csv(path)
-            records = df.to_dict("records")
+        records = read_mapping_records(path, engine=engine)
 
-        items = cls._items_from_records(records)
-        return cls(items=items)
+        return cls.from_records(records)
 
     @classmethod
     def from_dataframe(cls, df) -> ConceptMapping:
@@ -371,8 +418,7 @@ class ConceptMapping(BaseModel):
         The DataFrame must have at least a ``source_code`` column.
         """
         records = cls._dataframe_to_records(df)
-        items = cls._items_from_records(records)
-        return cls(items=items)
+        return cls.from_records(records)
 
     @classmethod
     def from_records(cls, records: list[dict]) -> ConceptMapping:
@@ -381,8 +427,21 @@ class ConceptMapping(BaseModel):
 
         Each dict must have at least a ``source_code`` key.
         """
+        import math
+
+        context = {}
+        for field in ("source_id", "revision"):
+            values = set()
+            for record in records:
+                value = record.get(f"mapping_{field}")
+                if value == "" or (isinstance(value, float) and math.isnan(value)):
+                    value = None
+                values.add(value)
+            if len(values) > 1:
+                raise ValueError(f"Inconsistent mapping {field} metadata across rows.")
+            context[field] = next(iter(values), None)
         items = cls._items_from_records(records)
-        return cls(items=items)
+        return cls(items=items, source_id=context["source_id"], revision=context["revision"])
 
     def finalize(self):
         """Finalize the concept mapping."""
@@ -421,7 +480,7 @@ class ConceptMapping(BaseModel):
         """
         rows = []
         for item in self.items:
-            if item.is_mapped:
+            if concept_is_executable(item):
                 rows.append(
                     {
                         "source_code": item.source_code,
@@ -434,6 +493,12 @@ class ConceptMapping(BaseModel):
                         "target_vocabulary_id": item.target_vocabulary_id,
                         "confidence": item.confidence,
                         "method": item.method.value,
+                        "inference_method": item.inference_method.value
+                        if item.inference_method
+                        else None,
+                        "review_decision": item.review_decision.value
+                        if item.review_decision
+                        else None,
                         "valid_start_date": "1970-01-01",
                         "valid_end_date": "2099-12-31",
                         "invalid_reason": None,

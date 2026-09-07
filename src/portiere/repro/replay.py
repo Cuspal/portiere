@@ -183,9 +183,7 @@ def _replay_stage(project: Any, stage_entry: dict, source_path: str | None) -> d
         if not recorded_path or not Path(recorded_path).exists():
             return None
         try:
-            from portiere.engines.polars_engine import PolarsEngine
-
-            report = project.validate(engine=PolarsEngine(), output_path=recorded_path)
+            report = project.validate(output_path=recorded_path)
             return {
                 "total_tables": report.get("total_tables", 0),
                 "all_passed": bool(report.get("all_passed", False)),

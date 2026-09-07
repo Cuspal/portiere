@@ -1,14 +1,11 @@
 """``portiere quickstart`` — fully offline end-to-end demo (Slice 5 Task 5.6).
 
-Runs the OMOP mapping pipeline against the bundled demo data:
-~20 synthetic patients with deliberately messy column names, plus a
-small Athena-format ICD-10-CM/LOINC/RxNorm vocabulary subset. No
-network access required at any point.
+Runs the OMOP mapping pipeline against three synthetic patients and a
+small bundled vocabulary. Demographics use explicit bundled review decisions;
+diagnosis concepts are proposals for review, separate from demographic ETL.
 
-Each pipeline stage is wrapped in try/except so a single failure
-(e.g., missing ``[quality]`` extra) doesn't block the rest of the
-demo. The manifest still emits — it records what succeeded, with
-each missing stage flagged in the printed output.
+Every required stage must succeed for exit code zero. A failed stage is
+reported and its dependent stages are skipped. Optional models are disabled.
 
 Output goes to ``~/.cache/portiere/quickstart_run/`` by default.
 Override with ``--output-dir`` or the ``PORTIERE_QUICKSTART_DIR``
@@ -19,8 +16,23 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from uuid import uuid4
 
 import click
+
+# Review decisions apply only to the bundled synthetic fixture. Zero-valued
+# demographic concepts explicitly represent unknown values in OMOP.
+_DEMO_PERSON_COLUMNS = {
+    "patient_id": "person_id",
+    "gender": "gender_concept_id",
+    "birth_year": "year_of_birth",
+    "birth_month": "month_of_birth",
+    "birth_day": "day_of_birth",
+    "birth_date": "birth_datetime",
+    "race": "race_concept_id",
+    "ethnicity": "ethnicity_concept_id",
+    "source_id": "person_source_value",
+}
 
 
 def _default_output_dir() -> Path:
@@ -63,6 +75,7 @@ def quickstart_command(output_dir: str | None) -> None:
     click.echo()
 
     success: dict[str, str] = {}
+    failures: dict[str, str] = {}
     skipped: dict[str, str] = {}
 
     # ── Knowledge layer: BM25s built from bundled vocab ───────────────
@@ -78,17 +91,30 @@ def quickstart_command(output_dir: str | None) -> None:
         )
         success["knowledge_layer"] = "built (bm25s)"
     except Exception as exc:
-        skipped["knowledge_layer"] = f"build failed: {exc}"
+        failures["knowledge_layer"] = f"build failed: {exc}"
 
     # ── Project setup ────────────────────────────────────────────────
     import portiere
-    from portiere.config import EmbeddingConfig, KnowledgeLayerConfig, PortiereConfig
+    from portiere.config import (
+        EmbeddingConfig,
+        EngineConfig,
+        KnowledgeLayerConfig,
+        LLMConfig,
+        PortiereConfig,
+        RerankerConfig,
+    )
+    from portiere.models.concept_mapping import ConceptMapping
 
     config = PortiereConfig(
         local_project_dir=out,
+        storage="local",
+        api_key=None,
+        offline=True,
+        engine=EngineConfig(type="polars"),
         knowledge_layer=KnowledgeLayerConfig(backend="bm25s", **knowledge_paths),
-        # Disable embeddings — the demo runs in pattern + BM25 mode, no SapBERT download
         embedding=EmbeddingConfig(provider="none"),
+        reranker=RerankerConfig(provider="none"),
+        llm=LLMConfig(provider="none"),
     )
 
     project = portiere.init(
@@ -100,54 +126,75 @@ def quickstart_command(output_dir: str | None) -> None:
 
     with project:
         # ── Stage 1: ingest ─────────────────────────────────────────
+        source = None
         try:
-            source = project.add_source(str(demo_data_dir() / "synthetic_conditions.csv"))
+            source = project.add_source(str(demo_data_dir() / "quickstart.csv"))
             success["ingest"] = (
                 f"{len(source.get('columns', []))} columns, {source.get('row_count', '?')} rows"
             )
         except Exception as exc:
-            skipped["ingest"] = f"failed: {exc}"
-            source = {"path": str(demo_data_dir() / "synthetic_conditions.csv")}
+            failures["ingest"] = str(exc)
 
         # ── Stage 2: schema mapping ─────────────────────────────────
         schema_map = None
-        try:
-            schema_map = project.map_schema(source)
-            n_items = len(schema_map.items)
-            n_auto = sum(1 for i in schema_map.items if i.status == "auto_accepted")
-            success["schema"] = f"{n_items} columns mapped ({n_auto} auto-accepted)"
-        except Exception as exc:
-            skipped["schema"] = f"failed: {type(exc).__name__}: {exc}"
+        if source is not None:
+            try:
+                candidate_map = project.map_schema(source)
+                for item in candidate_map.items:
+                    item.reject()
+                for column, target in _DEMO_PERSON_COLUMNS.items():
+                    candidate_map.get_item(column).approve("person", target)
+                project.save_schema_mapping(candidate_map)
+                schema_map = candidate_map
+                success["schema"] = "9 bundled reviewed demographic mappings"
+            except Exception as exc:
+                failures["schema"] = f"{type(exc).__name__}: {exc}"
+        else:
+            skipped["schema"] = "ingest failed"
 
         # ── Stage 3: concept mapping ────────────────────────────────
-        try:
-            concept_map = project.map_concepts(source=source)
-            success["concept"] = f"{len(concept_map.items)} concepts mapped"
-        except Exception as exc:
-            skipped["concept"] = f"failed: {type(exc).__name__}: {exc}"
+        if source is not None and "knowledge_layer" in success:
+            try:
+                concept_map = project.map_concepts(source=source)
+                success["concept"] = f"{len(concept_map.items)} proposals saved for review"
+            except Exception as exc:
+                failures["concept"] = f"{type(exc).__name__}: {exc}"
+        else:
+            skipped["concept"] = "ingest or knowledge layer failed"
 
         # ── Stage 4: ETL ────────────────────────────────────────────
-        if schema_map is not None:
+        etl_out = out / "etl_output" / uuid4().hex
+        if schema_map is not None and source is not None:
             try:
-                etl_out = out / "etl_output"
-                project.run_etl(source, output_dir=str(etl_out))
-                success["etl"] = f"output -> {etl_out}"
+                result = project.run_etl(
+                    source,
+                    output_dir=str(etl_out),
+                    schema_mapping=schema_map,
+                    concept_mapping=ConceptMapping(items=[]),
+                )
+                if not result.success:
+                    raise ValueError("; ".join(result.errors) or "ETL reported failure")
+                success["etl"] = f"{result.total_rows_written} person rows -> {etl_out}"
             except Exception as exc:
-                skipped["etl"] = f"failed: {type(exc).__name__}: {exc}"
+                failures["etl"] = f"{type(exc).__name__}: {exc}"
         else:
             skipped["etl"] = "skipped (schema mapping unavailable)"
 
         # ── Stage 5: validate ───────────────────────────────────────
-        try:
-            from portiere.quality.validator import GXValidator  # noqa: F401
-
+        if "etl" in success:
             try:
-                project.validate(output_path=str(out / "etl_output"))
-                success["validate"] = "ran"
+                report = project.validate(output_path=str(etl_out))
+                if not report["all_passed"]:
+                    raise ValueError(f"Validation checks failed; inspect {etl_out}")
+                success["validate"] = f"{report['total_tables']} table(s) passed"
+            except ImportError as exc:
+                failures["validate"] = (
+                    f'{exc}; install "portiere-health[polars,quality]" for validation'
+                )
             except Exception as exc:
-                skipped["validate"] = f"failed: {type(exc).__name__}: {exc}"
-        except ImportError:
-            skipped["validate"] = "skipped (install portiere-health[quality] for Stage 5)"
+                failures["validate"] = f"{type(exc).__name__}: {exc}"
+        else:
+            skipped["validate"] = "ETL failed; no current output to validate"
 
     # ── Summary ──────────────────────────────────────────────────────
     click.echo()
@@ -155,16 +202,18 @@ def quickstart_command(output_dir: str | None) -> None:
     click.echo("-" * 64)
     for stage in ("knowledge_layer", "ingest", "schema", "concept", "etl", "validate"):
         if stage in success:
-            click.echo(f"  ✓ {stage:18s} {success[stage]}")
+            click.echo(f"  PASS {stage:18s} {success[stage]}")
+        elif stage in failures:
+            click.echo(f"  FAIL {stage:18s} {failures[stage]}")
         elif stage in skipped:
-            click.echo(f"  ⏭ {stage:18s} {skipped[stage]}")
+            click.echo(f"  SKIP {stage:18s} {skipped[stage]}")
     click.echo()
 
     # ── Locate the manifest ─────────────────────────────────────────
     runs_dir = out / "portiere-quickstart" / "runs"
     manifests = list(runs_dir.glob("*/manifest.lock.json")) if runs_dir.exists() else []
     if manifests:
-        manifest = manifests[-1]
+        manifest = max(manifests, key=lambda path: path.stat().st_mtime_ns)
         click.echo(f"Manifest:  {manifest}")
         click.echo(f"Replay:    portiere replay {manifest}")
     else:
@@ -172,6 +221,8 @@ def quickstart_command(output_dir: str | None) -> None:
 
     click.echo()
     click.echo("Notes:")
+    click.echo("  - ETL writes reviewed synthetic demographics to person.csv.")
+    click.echo("  - Diagnosis concept proposals are saved for review, not applied to ETL.")
     click.echo("  - Demo uses bundled ICD-10-CM / LOINC / RxNorm subsets only (no network).")
     click.echo(
         "  - For SNOMED CT (free with registration), see "
@@ -181,3 +232,5 @@ def quickstart_command(output_dir: str | None) -> None:
         "  - Real Portiere usage: build a knowledge layer from your own "
         "Athena export, then portiere.init() with that path."
     )
+    if failures or skipped:
+        raise click.ClickException("Quickstart incomplete; resolve FAIL/SKIP stages above.")

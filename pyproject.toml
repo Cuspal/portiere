@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "portiere-health"
-version = "0.5.0"
+version = "0.6.0"
 description = "Local-first clinical data mapping SDK with human-in-the-loop review"
 readme = "README.md"
 license = "Apache-2.0"
@@ -73,7 +73,7 @@ qdrant = ["qdrant-client>=1.7.0"]
 milvus = ["pymilvus>=2.3.0"]
 
 # Data quality (Great Expectations + DuckDB for FK validation)
-quality = ["great_expectations>=1.0.0", "duckdb>=0.9.0"]
+quality = ["great_expectations>=1.0.0", "duckdb>=0.9.0", "pyarrow>=12.0.0"]
 
 # FHIR profile validation (US Core 6.1.0, mCODE 2.0.0)
 fhir = [
@@ -247,4 +247,3 @@ exclude_lines = [
     "@(abc\\.)?abstractmethod",
     "^\\s*\\.\\.\\.\\s*$",  # bare-ellipsis stub bodies
 ]
-

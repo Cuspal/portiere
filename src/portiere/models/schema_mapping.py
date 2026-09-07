@@ -102,6 +102,8 @@ class SchemaMapping(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
 
     items: list[SchemaMappingItem] = Field(default_factory=list)
+    source_id: str | None = None
+    revision: str | None = None
 
     # Internal references
     project: Project | None = Field(default=None, exclude=True)
@@ -221,15 +223,14 @@ class SchemaMapping(BaseModel):
 
     @classmethod
     def from_csv(cls, path: str, *, engine=None) -> SchemaMapping:
-        """Import mappings from a reviewed CSV file."""
-        if engine:
-            df = engine.read_csv(path)
-            records = engine.to_dict_records(df, limit=999999)
-        else:
-            import pandas as pd
+        """Import reviewed CSV without inferring types for source identifiers.
 
-            df = pd.read_csv(path)
-            records = df.to_dict("records")
+        Pass ``engine`` to use its CSV transport, including Spark directories.
+        Literal names such as ``00123`` or ``NA`` are preserved.
+        """
+        from portiere.models._mapping_csv import read_mapping_records
+
+        records = read_mapping_records(path, engine=engine)
 
         items = []
         for row in records:
@@ -239,8 +240,8 @@ class SchemaMapping(BaseModel):
                     source_table=row.get("source_table", ""),
                     target_table=row.get("target_table"),
                     target_column=row.get("target_column"),
-                    confidence=float(row.get("confidence", 0.0)),
-                    status=MappingStatus(row.get("status", "needs_review")),
+                    confidence=float(row.get("confidence") or 0.0),
+                    status=MappingStatus(row.get("status") or "needs_review"),
                 )
             )
         return cls(items=items)

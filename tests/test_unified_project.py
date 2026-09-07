@@ -609,6 +609,16 @@ class TestProjectValidate:
             with pytest.raises(ValueError, match="etl_result or output_path"):
                 project.validate()
 
+    @pytest.mark.parametrize("exists", [False, True])
+    def test_validate_rejects_missing_or_empty_output(self, tmp_path, exists):
+        project = self._make_project(tmp_path)
+        output = tmp_path / "empty-output"
+        if exists:
+            output.mkdir()
+
+        with pytest.raises(ValueError, match=r"[Nn]o .*output|[Nn]o .*files"):
+            project.validate(output_path=str(output))
+
     def test_validate_uses_etl_result_output_dir(self, tmp_path):
         project = self._make_project(tmp_path)
 

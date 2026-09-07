@@ -60,6 +60,14 @@ class StorageBackend(ABC):
 
     # --- Sources ---
 
+    def register_source(
+        self, project_name: str, source_name: str, metadata: dict, *, replace_binding=False
+    ) -> dict:
+        """Atomically assign/reuse a source ID. Backends must implement this capability."""
+        raise NotImplementedError(
+            "This storage backend does not support atomic source registration."
+        )
+
     @abstractmethod
     def save_source(self, project_name: str, source_name: str, metadata: dict) -> None:
         """Save source metadata."""
@@ -78,7 +86,9 @@ class StorageBackend(ABC):
         ...
 
     @abstractmethod
-    def load_schema_mapping(self, project_name: str) -> SchemaMapping:
+    def load_schema_mapping(
+        self, project_name: str, *, source_id: str | None = None
+    ) -> SchemaMapping:
         """Load schema mapping. Returns empty SchemaMapping if not found."""
         ...
 
@@ -90,7 +100,9 @@ class StorageBackend(ABC):
         ...
 
     @abstractmethod
-    def load_concept_mapping(self, project_name: str) -> ConceptMapping:
+    def load_concept_mapping(
+        self, project_name: str, *, source_id: str | None = None
+    ) -> ConceptMapping:
         """Load concept mapping. Returns empty ConceptMapping if not found."""
         ...
 

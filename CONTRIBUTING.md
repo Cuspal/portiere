@@ -5,24 +5,48 @@ Thank you for your interest in contributing to Portiere!
 ## Development Setup
 
 ```bash
-# Clone and install in editable mode with dev dependencies
+# Use Python 3.12 for the maintainer baseline
 git clone https://github.com/Cuspal/portiere.git
 cd portiere
-pip install -e ".[dev,polars,quality]"
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements/dev.txt
+python -m pip install --no-deps --no-build-isolation -e .
 ```
+
+On Windows, create the environment with `py -3.12 -m venv .venv` and activate it with `.venv\Scripts\Activate.ps1` in PowerShell. Use the same `python -m pip` commands afterward. Keep optional model engines in a separate environment so ordinary checks do not depend on downloaded models or native ML libraries.
+
+`requirements/dev.txt` pins the contributor dependencies, including Polars, Pandas, quality checks and build tools, with platform/Python markers. It does not constrain library consumers. CI tests Python 3.10–3.12; the bundled integration workflow exercises Python 3.12 on Linux, macOS and Windows. A configured CI job is a coverage target, not evidence that an unrun platform passes.
+
+Install the requirements before the editable package. With `--no-build-isolation`, pip expects all build dependencies to be installed already, including Hatchling's dynamic `editables` dependency. Contributor build dependencies belong in `requirements/dev-tools.in` and the generated lock.
+
+Regenerate the lock deliberately after editing dependencies, review the diff and rerun checks. Add `--upgrade` when intentionally refreshing pinned versions:
+
+```bash
+uv pip compile pyproject.toml requirements/dev-tools.in --extra dev --extra polars --extra quality --python-version 3.10 --universal --no-annotate -o requirements/dev.txt
+```
+
+See the [uv locking documentation](https://docs.astral.sh/uv/pip/compile/) for resolution and synchronization behavior. Start with a new virtual environment when reproducing a failure; installing requirements does not remove unrelated packages already present.
 
 ## Running Tests
 
 ```bash
-# Run all tests
+# Run the default suite (excludes model-download tests marked slow)
 python -m pytest
 
 # Run with coverage report
 python -m pytest --cov=portiere --cov-report=term-missing
 
 # Run a specific test file
-python -m pytest tests/test_models.py -v
+python -m pytest tests/test_quickstart.py -v
+
+# Reproduce the first-use pipeline with bundled data
+portiere quickstart --output-dir ./demo-output
 ```
+
+Model benchmarks require a separate environment with the appropriate extras and vocabulary/model assets. Select them explicitly with `python -m pytest -m slow`; they are not part of the offline contributor baseline. Spark adapter tests require PySpark and Java and otherwise skip.
+
+Before a pull request, run `ruff check src/ tests/`, `ruff format --check src/ tests/`, `mypy src/portiere/`, and the default test suite. Build with `python -m build` and test the installed wheel from outside the checkout when changing packaging or bundled data. The publication checklist is in [docs/releasing.md](docs/releasing.md).
 
 ## Code Style
 

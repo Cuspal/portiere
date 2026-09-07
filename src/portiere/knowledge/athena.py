@@ -89,6 +89,8 @@ def load_athena_concepts(
             # Only include standard concepts
             if row.get("standard_concept") != "S":
                 continue
+            if (row.get("invalid_reason") or "").strip():
+                continue
 
             vocab_id = row.get("vocabulary_id", "")
             if vocabularies and vocab_id not in vocabularies:
@@ -110,6 +112,7 @@ def load_athena_concepts(
                 "domain_id": row.get("domain_id", ""),
                 "concept_class_id": row.get("concept_class_id", ""),
                 "standard_concept": "S",
+                "invalid_reason": "",
             }
 
             # Attach synonyms (exclude duplicates of the concept name)

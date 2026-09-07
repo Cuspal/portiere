@@ -141,6 +141,7 @@ class LocalConceptMapper:
         vocabularies: list[str] | None = None,
         domain: str | None = None,
         limit: int = 10,
+        standard_only: bool = False,
     ) -> list[dict]:
         """
         Search for concepts matching query.
@@ -152,6 +153,7 @@ class LocalConceptMapper:
             vocabularies: Filter by vocabulary (SNOMED, LOINC, etc.)
             domain: Filter by domain (Drug, Condition, etc.)
             limit: Max results
+            standard_only: Restrict mapping targets before selecting the top results.
 
         Returns:
             Ranked list of matching concepts with scores
@@ -161,6 +163,12 @@ class LocalConceptMapper:
         # Fast path: direct code lookup
         if self._code_index:
             code_result = self._code_lookup(query)
+            code_result = [
+                c
+                for c in code_result or []
+                if self._matches_filters(c, vocabularies, domain)
+                and (not standard_only or c.get("standard_concept") == "S")
+            ]
             if code_result:
                 return code_result[:limit]
 
@@ -176,6 +184,12 @@ class LocalConceptMapper:
             domain=domain,
             limit=candidate_limit,
         )
+        candidates = [
+            c
+            for c in candidates
+            if self._matches_filters(c, vocabularies, domain)
+            and (not standard_only or c.get("standard_concept") == "S")
+        ]
 
         if not candidates:
             return []
@@ -206,7 +220,7 @@ class LocalConceptMapper:
             or self._code_index.get(q.lower())
         )
         if match:
-            return [{**match, "score": 0.99, "standard_concept": "S"}]
+            return [{**match, "score": 0.99}]
 
         # Variant: with/without dots (E11.9 ↔ E119)
         if "." in q:
@@ -219,16 +233,24 @@ class LocalConceptMapper:
             match = None
 
         if match:
-            return [{**match, "score": 0.97, "standard_concept": "S"}]
+            return [{**match, "score": 0.97}]
 
         # ICD-10 prefix match (E11 → E11.*)
         prefix = q.split(".")[0].upper()
         if len(prefix) >= 3:
             match = self._code_index.get(prefix)
             if match:
-                return [{**match, "score": 0.92, "standard_concept": "S"}]
+                return [{**match, "score": 0.92}]
 
         return None
+
+    @staticmethod
+    def _matches_filters(candidate, vocabularies, domain):
+        return (
+            (not vocabularies or candidate.get("vocabulary_id") in vocabularies)
+            and (domain is None or candidate.get("domain_id") == domain)
+            and not candidate.get("invalid_reason")
+        )
 
     async def map_code(
         self,
@@ -261,6 +283,7 @@ class LocalConceptMapper:
             vocabularies=vocabularies,
             domain=domain,
             limit=10,
+            standard_only=True,
         )
 
         # Route based on confidence
@@ -326,6 +349,8 @@ class LocalConceptMapper:
                 vocabularies=vocabularies,
             )
             result["source_count"] = code_entry.get("count", 1)
+            if code_entry.get("source_column"):
+                result["source_column"] = code_entry["source_column"]
             results.append(result)
 
         return results
