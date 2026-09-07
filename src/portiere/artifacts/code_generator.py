@@ -7,10 +7,14 @@ that can run without the Portiere SDK installed.
 
 from __future__ import annotations
 
+import csv
+import io
 from typing import TYPE_CHECKING
 
 import structlog
 from jinja2 import Environment, PackageLoader, select_autoescape
+
+from portiere.models.mapping_policy import concept_is_executable, schema_is_executable
 
 if TYPE_CHECKING:
     pass
@@ -65,6 +69,10 @@ class CodeGenerator:
             Generated Python script as a string
         """
         template_name = f"{engine_type}_etl.py.j2"
+        schema_mappings = [
+            m for m in schema_mappings if "status" not in m or schema_is_executable(m)
+        ]
+        concept_mappings = [m for m in concept_mappings if concept_is_executable(m)]
 
         # Determine which columns have concept mappings
         concept_columns = list(
@@ -155,7 +163,7 @@ class CodeGenerator:
             "engine": engine_type,
             "project_name": project_name,
             "target_model": target_model,
-            "concept_mappings": concept_mappings or [],
+            "concept_mappings": [m for m in concept_mappings or [] if concept_is_executable(m)],
             "thresholds": thresholds,
         }
 
@@ -172,19 +180,28 @@ class CodeGenerator:
 
     def generate_source_to_concept_csv(self, concept_mappings: list[dict]) -> str:
         """Generate OMOP source_to_concept_map CSV content."""
-        lines = [
-            "source_code,source_description,source_vocabulary_id,"
-            "target_concept_id,target_concept_name,target_vocabulary_id,"
-            "confidence,method"
+        fields = [
+            "source_code",
+            "source_description",
+            "source_vocabulary_id",
+            "source_column",
+            "target_concept_id",
+            "target_concept_name",
+            "target_vocabulary_id",
+            "confidence",
+            "method",
+            "inference_method",
+            "review_decision",
         ]
+        stream = io.StringIO()
+        writer = csv.DictWriter(
+            stream, fieldnames=fields, extrasaction="ignore", lineterminator="\n"
+        )
+        writer.writeheader()
         for c in concept_mappings:
-            lines.append(
-                f'"{c.get("source_code", "")}","{c.get("source_description", "")}",'
-                f'"source",{c.get("target_concept_id", 0)},'
-                f'"{c.get("target_concept_name", "")}","{c.get("target_vocabulary_id", "")}",'
-                f"{c.get('confidence', 0.0)},{c.get('method', 'manual')}"
-            )
-        return "\n".join(lines)
+            if concept_is_executable(c):
+                writer.writerow({"source_vocabulary_id": "source", **c})
+        return stream.getvalue().rstrip("\n")
 
     def _generate_fallback(self, engine_type: str, context: dict) -> str:
         """Fallback code generation when templates aren't available."""

@@ -330,6 +330,7 @@ class TestLocalConceptMapperMapCode:
                 "concept_id": 1,
                 "concept_name": "X",
                 "score": 0.97,
+                "standard_concept": "S",
                 "vocabulary_id": "SNOMED",
                 "domain_id": "Condition",
             },
@@ -387,6 +388,7 @@ class TestLocalConceptMapperCandidatesNotTruncated:
             {
                 "concept_id": 1000 + i,
                 "concept_name": f"Concept {i}",
+                "standard_concept": "S",
                 "score": 0.9 - 0.05 * i,
                 "vocabulary_id": "SNOMED",
                 "domain_id": "Condition",

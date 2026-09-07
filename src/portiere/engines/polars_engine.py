@@ -187,10 +187,12 @@ class PolarsEngine(AbstractEngine):
         self,
         df: pl.DataFrame,
         column: str,
-        limit: int = 1000,
+        limit: int | None = 1000,
     ) -> list[dict[str, Any]]:
         """Get distinct values with counts."""
-        result = df.group_by(column).len().sort("len", descending=True).head(limit)
+        result = df.group_by(column).len().sort("len", descending=True)
+        if limit is not None:
+            result = result.head(limit)
         return [{"value": row[column], "count": row["len"]} for row in result.to_dicts()]
 
     def transform(

@@ -33,6 +33,14 @@ def main() -> None:
     st.title("Mapping Review")
     st.caption(f"Project: `{project_dir}`")
 
+    from portiere.review_ui.state import list_review_sources
+
+    sources = list_review_sources(project_dir)
+    names = {source["id"]: source["name"] for source in sources}
+    source_id = (
+        st.sidebar.selectbox("Source", list(names), format_func=names.get) if names else None
+    )
+
     page = st.sidebar.radio(
         "Mapping type",
         options=["Schema Mapping", "Concept Mapping"],
@@ -42,11 +50,11 @@ def main() -> None:
     if page == "Schema Mapping":
         from portiere.review_ui.pages.schema_review import render_schema_review
 
-        render_schema_review(project_dir)
+        render_schema_review(project_dir, source_id=source_id)
     elif page == "Concept Mapping":
         from portiere.review_ui.pages.concept_review import render_concept_review
 
-        render_concept_review(project_dir)
+        render_concept_review(project_dir, source_id=source_id)
 
 
 if __name__ == "__main__":

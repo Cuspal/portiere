@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- SDK execution, review UI, generated ETL artifacts and dbt seeds share mapping eligibility rules. Explicit pending/rejected concept decisions cannot execute or enter approved exports; inference method is retained separately. Empty ETL plans fail instead of reporting success.
+- Concept extraction processes all distinct codes, including literal CSV identifiers such as `00123` and `NA`. Direct concept lookup respects vocabulary/domain filters and preserves standard/nonstandard metadata; nonstandard concepts are not automatically accepted as standard targets.
 - The `[quality]` extra now includes PyArrow, required to validate Polars output in a fresh installation.
 - Quickstart disables embedding, reranking and remote providers, uses reviewed synthetic demographics, and returns a nonzero exit status when any required stage fails. Validation must pass, and each invocation writes to a new ETL directory.
 - Mapping CSV imports preserve literal identifiers such as `00123`, `NA` and `NULL`, accept nullable concept IDs exported by pandas, and no longer truncate engine imports at 999,999 rows. Compressed local files and engine transports remain supported.
@@ -19,7 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Stable source identities and source-scoped schema/concept snapshots shared by the SDK and review UI. Atomic local writes and revision checks reject concurrent/stale reviews; source registration uses the same project lock.
+- Source selection in concept import/export, revision-preserving JSON/CSV review exchange, and a [review/migration guide](docs/reviewed-mappings.md).
 - A pinned contributor dependency file, isolated setup instructions, an installed-wheel CI quickstart and a staged publication checklist.
+
+### Changed
+
+- Concept JSON exports now contain a versioned object with `items`, `source_id` and `revision`; legacy top-level lists remain readable. CSV exports include `mapping_source_id` and `mapping_revision`. Replacing a versioned mapping from an unversioned table requires an explicit expected revision.
+- New mapping writes use source-scoped JSON snapshots. Legacy YAML remains readable and is retained. Saving concepts no longer emits an implicit `source_to_concept_map.csv`; export it explicitly after review. Multisource callers must select a source. See the migration guide before upgrading automation.
 
 ## [0.5.0] - 2026-07-25
 

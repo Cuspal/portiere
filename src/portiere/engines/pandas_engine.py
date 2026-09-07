@@ -165,10 +165,12 @@ class PandasEngine(AbstractEngine):
         self,
         df: pd.DataFrame,
         column: str,
-        limit: int = 1000,
+        limit: int | None = 1000,
     ) -> list[dict[str, Any]]:
         """Get distinct values with counts."""
-        value_counts = df[column].value_counts().head(limit)
+        value_counts = df[column].value_counts()
+        if limit is not None:
+            value_counts = value_counts.head(limit)
         return [{"value": k, "count": v} for k, v in value_counts.items()]
 
     def transform(

@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any
 
 import structlog
 
+from portiere.models.mapping_policy import concept_is_executable, schema_is_executable
 from portiere.runner.result import ETLResult, TableResult
 
 if TYPE_CHECKING:
@@ -26,9 +27,6 @@ if TYPE_CHECKING:
     from portiere.engines.base import AbstractEngine
 
 logger = structlog.get_logger(__name__)
-
-# Actionable schema mapping statuses
-_ACTIONABLE_SCHEMA_STATUSES = {"auto_accepted", "approved", "overridden"}
 
 
 class ETLRunner:
@@ -64,8 +62,16 @@ class ETLRunner:
             project_name: Project name for logging
         """
         self.engine = engine
-        self.schema_items = schema_items
-        self.concept_items = concept_items
+        # Reduced execution dictionaries are already compiled. When callers
+        # supply review metadata, enforce it before constructing any lookups.
+        self.schema_items = [
+            item for item in schema_items if "status" not in item or schema_is_executable(item)
+        ]
+        self.concept_items = [
+            item
+            for item in concept_items
+            if not ({"method", "review_decision"} & item.keys()) or concept_is_executable(item)
+        ]
         self.target_model = target_model
         self.project_name = project_name
 
@@ -111,7 +117,7 @@ class ETLRunner:
 
         Filters to actionable statuses only:
         - Schema: AUTO_ACCEPTED, APPROVED, OVERRIDDEN
-        - Concepts: non-UNMAPPED with is_mapped=True
+        - Concepts: approved/auto-accepted with a positive target concept ID
 
         Args:
             engine: Compute engine (required)
@@ -120,10 +126,17 @@ class ETLRunner:
             target_model: Target data model
             project_name: Project name
         """
+        schema_source = getattr(schema_mapping, "source_id", None)
+        concept_source = getattr(concept_mapping, "source_id", None)
+        if (
+            schema_source is not None
+            and concept_source is not None
+            and schema_source != concept_source
+        ):
+            raise ValueError("Schema and concept mappings must belong to the same source.")
         schema_items = []
         for item in schema_mapping.items:
-            status = item.status.value if hasattr(item.status, "value") else str(item.status)
-            if status in _ACTIONABLE_SCHEMA_STATUSES:
+            if schema_is_executable(item):
                 schema_items.append(
                     {
                         "source_column": item.source_column,
@@ -134,7 +147,7 @@ class ETLRunner:
 
         concept_items = []
         for item in concept_mapping.items:
-            if item.is_mapped and item.method.value != "unmapped":
+            if concept_is_executable(item):
                 concept_items.append(
                     {
                         "source_code": item.source_code,
@@ -213,6 +226,11 @@ class ETLRunner:
             with open(lookup_path, newline="") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
+                    # v1 compiled CSVs may omit decision fields entirely.
+                    if {"method", "review_decision"} & row.keys() and not concept_is_executable(
+                        row
+                    ):
+                        continue
                     concept_id = row.get("target_concept_id")
                     if concept_id:
                         try:
@@ -287,7 +305,7 @@ class ETLRunner:
         )
         for item in schema_list:
             status = item.get("status", "")
-            if status in _ACTIONABLE_SCHEMA_STATUSES:
+            if schema_is_executable(item):
                 target_table = item.get("override_target_table") or item.get("target_table")
                 target_column = item.get("override_target_column") or item.get("target_column")
                 schema_items.append(
@@ -311,7 +329,7 @@ class ETLRunner:
         for item in concept_list:
             method = item.get("method", "")
             concept_id = item.get("target_concept_id")
-            if method != "unmapped" and concept_id is not None:
+            if concept_is_executable(item):
                 concept_items.append(
                     {
                         "source_code": item.get("source_code", ""),
@@ -364,6 +382,10 @@ class ETLRunner:
         table_results: list[TableResult] = []
 
         try:
+            if not self._table_routes:
+                raise ValueError(
+                    "No approved schema routes to execute; review mappings before running ETL."
+                )
             # Read source data
             logger.info("Reading source", path=source_path, format=source_format)
             df = self.engine.read_source(source_path, format=source_format)

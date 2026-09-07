@@ -207,12 +207,15 @@ class SparkEngine(AbstractEngine):
         self,
         df: DataFrame,
         column: str,
-        limit: int = 1000,
+        limit: int | None = 1000,
     ) -> list[dict[str, Any]]:
         """Get distinct values with counts."""
         from pyspark.sql import functions as F
 
-        result = df.groupBy(column).count().orderBy(F.desc("count")).limit(limit).collect()
+        grouped = df.groupBy(column).count().orderBy(F.desc("count"))
+        if limit is not None:
+            grouped = grouped.limit(limit)
+        result = grouped.toLocalIterator()
         return [{"value": row[column], "count": row["count"]} for row in result]
 
     def transform(

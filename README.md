@@ -67,7 +67,7 @@ Portiere combines **clinical-domain embeddings** (SapBERT as default model), **l
 - **Cross-Standard Mapping** — Transform between standards (OMOP ↔ FHIR, HL7v2 → FHIR, OMOP → OpenEHR).
 - **Local-First** — All processing runs on your machine; no cloud dependency.
 
-## Quickstart in 60 seconds
+## Offline quickstart
 
 ```bash
 python -m pip install "portiere-health[polars,quality]"
@@ -117,7 +117,7 @@ profile = project.profile(source)
 schema_map = project.map_schema(source)
 
 # AI-powered concept mapping (clinical codes → standard concepts)
-concept_map = project.map_concepts(codes=["E11.9", "I10", "R73.03"])
+concept_map = project.map_concepts(source, code_columns=["diagnosis_code"])
 
 # Review mappings
 print(schema_map.summary())
@@ -132,6 +132,8 @@ result = project.run_etl(
 )
 print(result.summary())
 ```
+
+The development branch now keeps each source's mappings separate and checks revisions when saving reviews. For source selection, CSV/JSON review exchange, and migration from earlier releases, see [Review and reuse mappings](docs/reviewed-mappings.md). These changes are **Unreleased**.
 
 ### Cross-Standard Mapping (OMOP → FHIR)
 

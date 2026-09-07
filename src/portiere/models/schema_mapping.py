@@ -102,6 +102,8 @@ class SchemaMapping(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
 
     items: list[SchemaMappingItem] = Field(default_factory=list)
+    source_id: str | None = None
+    revision: str | None = None
 
     # Internal references
     project: Project | None = Field(default=None, exclude=True)

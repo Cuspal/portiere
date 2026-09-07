@@ -374,8 +374,8 @@ class TestSourceToConceptCSV:
 
         assert isinstance(csv, str)
         lines = csv.strip().split("\n")
-        # Header + 3 data rows
-        assert len(lines) == 4
+        # Header + 2 executable rows; the third suggestion still needs review.
+        assert len(lines) == 3
 
     def test_csv_header(self, sample_concept_mappings):
         """CSV should have the correct header."""

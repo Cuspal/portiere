@@ -1,11 +1,11 @@
-# Publishing the stabilization release
+# Publishing the next release
 
-The working version remains 0.5.0 until a release is prepared. The planned first patch is 0.5.1; confirm that version is still unused on PyPI before selecting it. Source-scoped mapping bundles and the new workflow belong to later minor releases.
+The working version remains 0.5.0 until a release is prepared. This branch now includes source-scoped storage and changes to review interchange, so plan a **0.6.0 candidate**, subject to checking PyPI availability. A separate 0.5.1 patch would need to contain only the earlier stabilization changes. Frozen mapping bundles and the new reporting workflow remain planned work.
 
 ## Before selecting a version
 
 1. Complete the stabilization checks in [CONTRIBUTING.md](../CONTRIBUTING.md), including an installed-wheel quickstart outside the checkout. Review the GitHub CI results for the exact commit, including the OS integration matrix. Record which optional backends remain untested.
-2. Review the changes and migration notes. Quickstart now fails on incomplete runs, and validation rejects empty output directories; automation that relied on a false success must be updated.
+2. Review the [mapping migration notes](reviewed-mappings.md). Source selection, revision checks, the JSON envelope and explicit concept exports affect existing automation. Quickstart fails on incomplete runs, and ETL/validation reject empty plans or output directories.
 3. Verify the local author and committer with `git var GIT_AUTHOR_IDENT` and `git var GIT_COMMITTER_IDENT`. For Tharathip's releases, both must be Tharathip's own configured identity. Verify GitHub authentication with `gh auth status` and `gh api user --jq .login`; do not switch to another account to work around an authentication failure.
 4. Verify repository access and the existing PyPI/TestPyPI project configuration. The current workflow is `.github/workflows/publish.yml`, repository `Cuspal/portiere`, environments `testpypi` and `pypi`. Configure separate trusted publishers on each index with those exact values. Protect the production environment with a required reviewer so publication waits for TestPyPI verification.
 

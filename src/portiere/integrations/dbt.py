@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
+from portiere.models.mapping_policy import concept_is_executable, schema_is_executable
 from portiere.standards import STANDARDS_DIR
 
 if TYPE_CHECKING:
@@ -117,6 +118,10 @@ def build_dbt_project(
 ) -> Path:
     """Generate a dbt project and return its root path."""
     out = Path(out_dir)
+    if out.exists() and any(out.iterdir()):
+        raise ValueError(
+            "Use a new empty output directory for each dbt generation; old models and seeds may contain previous decisions."
+        )
     (out / "models").mkdir(parents=True, exist_ok=True)
 
     required = _required_fields(standard)
@@ -126,6 +131,8 @@ def build_dbt_project(
     seed_rows: list[dict[str, Any]] = []
     if concept_mapping is not None:
         for it in concept_mapping.items:
+            if not concept_is_executable(it):
+                continue
             col = it.source_column or ""
             vocab = it.target_vocabulary_id or col
             if col:
@@ -145,7 +152,7 @@ def build_dbt_project(
     by_table: dict[str, list] = defaultdict(list)
     for item in schema_mapping.items:
         table = item.effective_target_table
-        if table:
+        if table and (schema_is_executable(item) or item.effective_target_column is None):
             by_table[table].append(item)
 
     models_meta: list[dict] = []
@@ -169,6 +176,8 @@ def build_dbt_project(
             if i.source_column in concept_by_col:
                 concept_cols[tgt] = concept_by_col[i.source_column]
 
+        if not renames:
+            continue
         sql = _model_sql(
             table, source_table, renames, unmapped, concept_cols, source_schema, standard
         )

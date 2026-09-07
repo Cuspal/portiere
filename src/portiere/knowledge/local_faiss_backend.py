@@ -143,6 +143,7 @@ class LocalFAISSBackend(KnowledgeLayerBackend):
                     "domain_id": concept.get("domain_id", ""),
                     "concept_class_id": concept.get("concept_class_id", ""),
                     "standard_concept": concept.get("standard_concept", ""),
+                    "invalid_reason": concept.get("invalid_reason", ""),
                     "score": score,
                 }
             )

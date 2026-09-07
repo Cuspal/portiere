@@ -269,11 +269,12 @@ if __name__ == "__main__":
         """
         import yaml
 
-        actionable_statuses = {"auto_accepted", "approved", "overridden"}
+        from portiere.models.mapping_policy import schema_is_executable
+
         schema_items = []
         for item in schema_mapping.items:
             status = item.status.value if hasattr(item.status, "value") else str(item.status)
-            if status in actionable_statuses:
+            if schema_is_executable(item):
                 schema_items.append(
                     {
                         "source_column": item.source_column,

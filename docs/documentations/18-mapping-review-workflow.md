@@ -9,7 +9,7 @@ pip install "portiere-health[review]"   # adds streamlit>=1.30
 portiere review <project-dir>           # launches the UI at http://127.0.0.1:8501
 ```
 
-The UI reads from the project's existing storage (`<project_dir>/schema_mappings/schema_mapping.yaml`), persists reviewed decisions to `schema_mapping_reviewed.json` next to the original, and never modifies the source-of-truth YAML. The Python API below remains the testable surface; the UI is a convenience layer on top.
+**Development-branch migration:** the SDK and UI now share source-scoped JSON snapshots with revision checks. Legacy YAML is retained as a fallback. Follow [Review and reuse mappings](../reviewed-mappings.md) for the current storage and import/export contract; examples below predate those Unreleased changes.
 
 ---
 

@@ -155,6 +155,19 @@ def _should_use_local(
     return False
 
 
+def _read_code_source(engine: "AbstractEngine", source_path: str, format: str):
+    """Read CSV identifiers literally before collecting clinical codes."""
+    options: dict[str, Any] = {}
+    if format == "csv":
+        if engine.engine_name == "pandas":
+            options = {"dtype": str, "keep_default_na": False}
+        elif engine.engine_name == "polars":
+            options = {"infer_schema_length": 0}
+        elif engine.engine_name == "spark":
+            options = {"inferSchema": False}
+    return engine.read_source(source_path, format=format, options=options)
+
+
 def _map_concepts_cloud(
     client: "Client",
     engine: "AbstractEngine",
@@ -169,7 +182,7 @@ def _map_concepts_cloud(
     if vocabularies is None:
         vocabularies = ["SNOMED", "LOINC", "RxNorm", "ICD10CM"]
 
-    df = engine.read_source(source_path, format=format)
+    df = _read_code_source(engine, source_path, format)
 
     all_mappings = {}
     total_stats = {
@@ -182,7 +195,7 @@ def _map_concepts_cloud(
     for column in code_columns:
         logger.info(f"Mapping column: {column}")
 
-        distinct_values = engine.get_distinct_values(df, column, limit=5000)
+        distinct_values = engine.get_distinct_values(df, column, limit=None)
 
         # Look for a companion description column (e.g. diagnosis_code → diagnosis_description)
         desc_column = _find_description_column(list(df.columns), column)
@@ -198,6 +211,8 @@ def _map_concepts_cloud(
 
         codes = []
         for item in distinct_values:
+            if item.get("value") is None:
+                continue
             code = str(item.get("value", ""))
             if code:
                 codes.append(
@@ -291,12 +306,12 @@ def _map_concepts_local(
     if engine is None:
         raise ValueError("Either 'engine' or 'codes' must be provided for concept mapping.")
 
-    df = engine.read_source(source_path, format=format)
+    df = _read_code_source(engine, source_path, format)
 
     for column in code_columns:
         logger.info(f"Mapping column: {column}")
 
-        distinct_values = engine.get_distinct_values(df, column, limit=5000)
+        distinct_values = engine.get_distinct_values(df, column, limit=None)
 
         # Look for a companion description column (e.g. diagnosis_code → diagnosis_description)
         desc_column = _find_description_column(list(df.columns), column)
@@ -312,6 +327,8 @@ def _map_concepts_local(
 
         codes = []
         for item in distinct_values:
+            if item.get("value") is None:
+                continue
             code = str(item.get("value", ""))
             if code:
                 codes.append(

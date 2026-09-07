@@ -186,7 +186,9 @@ class CloudStorageBackend(StorageBackend):
             items_count=len(mapping.items),
         )
 
-    def load_schema_mapping(self, project_name: str) -> SchemaMapping:
+    def load_schema_mapping(
+        self, project_name: str, *, source_id: str | None = None
+    ) -> SchemaMapping:
         from portiere.models.schema_mapping import SchemaMapping, SchemaMappingItem
 
         cloud_id = self._get_cloud_id(project_name)
@@ -213,7 +215,9 @@ class CloudStorageBackend(StorageBackend):
             items_count=len(mapping.items),
         )
 
-    def load_concept_mapping(self, project_name: str) -> ConceptMapping:
+    def load_concept_mapping(
+        self, project_name: str, *, source_id: str | None = None
+    ) -> ConceptMapping:
         from portiere.models.concept_mapping import ConceptMapping, ConceptMappingItem
 
         cloud_id = self._get_cloud_id(project_name)

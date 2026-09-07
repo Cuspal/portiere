@@ -103,6 +103,9 @@ class TestSaveReviewedMapping:
                 )
             ]
         )
+        from portiere.review_ui.state import load_schema_mapping
+
+        mapping.revision = load_schema_mapping(tmp_path).revision
         save_reviewed_schema_mapping(mapping, tmp_path)
 
         reviewed_path = tmp_path / "schema_mappings" / "schema_mapping_reviewed.json"
@@ -131,6 +134,9 @@ class TestSaveReviewedMapping:
                 )
             ]
         )
+        from portiere.review_ui.state import load_schema_mapping
+
+        mapping.revision = load_schema_mapping(tmp_path).revision
         save_reviewed_schema_mapping(mapping, tmp_path)
         assert (schema_dir / "schema_mapping.yaml").read_text() == original_yaml
 
@@ -319,6 +325,9 @@ class TestSaveReviewedConceptMapping:
                 )
             ]
         )
+        from portiere.review_ui.state import load_concept_mapping
+
+        mapping.revision = load_concept_mapping(tmp_path).revision
         save_reviewed_concept_mapping(mapping, tmp_path)
 
         out = tmp_path / "concept_mappings" / "concept_mapping_reviewed.json"
@@ -336,6 +345,9 @@ class TestSaveReviewedConceptMapping:
         mapping = ConceptMapping(
             items=[ConceptMappingItem(source_code="E11.9", method="unmapped", confidence=0.0)]
         )
+        from portiere.review_ui.state import load_concept_mapping
+
+        mapping.revision = load_concept_mapping(tmp_path).revision
         save_reviewed_concept_mapping(mapping, tmp_path)
         assert (cm_dir / "concept_mapping.yaml").read_text() == original
 

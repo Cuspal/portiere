@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING, Any
 
 import structlog
 
+from portiere.models.mapping_policy import concept_is_executable, schema_is_executable
+
 if TYPE_CHECKING:
     from portiere.engines.base import AbstractEngine
 
@@ -41,6 +43,27 @@ def generate_etl(
         Generation result with artifact paths
     """
     logger.info("Stage 4: Generating ETL artifacts")
+
+    schema_mapping = {
+        **schema_mapping,
+        "items": [
+            item
+            for item in schema_mapping.get("items", [])
+            if "status" not in item or schema_is_executable(item)
+        ],
+    }
+    concept_mapping = {
+        **concept_mapping,
+        "items": [item for item in concept_mapping.get("items", []) if concept_is_executable(item)],
+        "mappings": {
+            column: {
+                **data,
+                "items": [item for item in data.get("items", []) if concept_is_executable(item)],
+            }
+            for column, data in concept_mapping.get("mappings", {}).items()
+            if any(concept_is_executable(item) for item in data.get("items", []))
+        },
+    }
 
     artifact_path = Path(artifact_dir or "./medmap_artifacts")
     artifact_path.mkdir(parents=True, exist_ok=True)
@@ -363,6 +386,8 @@ def _generate_lookup_table(concept_mapping: dict, path: Path) -> None:
     # Handle nested dict format: {mappings: {column: {items: [...]}}}
     for column, data in concept_mapping.get("mappings", {}).items():
         for item in data.get("items", []):
+            if not concept_is_executable(item):
+                continue
             writer.writerow(
                 [
                     item.get("source_code", ""),
@@ -376,6 +401,8 @@ def _generate_lookup_table(concept_mapping: dict, path: Path) -> None:
 
     # Handle flat list format: {items: [...]} from ConceptMapping.to_source_to_concept_map()
     for item in concept_mapping.get("items", []):
+        if not concept_is_executable(item):
+            continue
         writer.writerow(
             [
                 item.get("source_code", ""),

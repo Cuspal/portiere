@@ -15,16 +15,32 @@ from pathlib import Path
 
 from portiere.review_ui.state import (
     apply_concept_decision,
-    load_concept_mapping,
-    save_reviewed_concept_mapping,
+    load_review_session,
+    save_review_session,
     sort_by_confidence_ascending,
 )
 
 
-def render_concept_review(project_dir: Path) -> None:
+def render_concept_review(project_dir: Path, *, source_id: str | None = None) -> None:
     import streamlit as st
 
-    mapping = load_concept_mapping(project_dir)
+    from portiere.storage.mapping_store import MappingConflictError
+
+    reload = st.button("Reload mappings", key=f"{source_id}_reload_concept")
+    mapping = load_review_session(
+        st.session_state, project_dir, "concept", source_id, reload=reload
+    )
+
+    def save(mapping):
+        try:
+            save_review_session(st.session_state, project_dir, "concept", source_id, mapping)
+        except MappingConflictError:
+            st.error(
+                "Mappings changed in another session. Reload mappings and review the latest decisions."
+            )
+            return
+        st.rerun()
+
     if not mapping.items:
         st.info(
             "No concept mapping found in this project. "
@@ -68,15 +84,19 @@ def render_concept_review(project_dir: Path) -> None:
 
             cols = st.columns([1, 1, 2])
 
-            if cols[0].button("Approve", key=f"c_approve_{i}"):
+            if cols[0].button(
+                "Approve",
+                key=f"{source_id}_{mapping.revision}_c_approve_{i}",
+                disabled=not item.target_concept_id or item.target_concept_id <= 0,
+            ):
                 mapping = apply_concept_decision(mapping, index=i, decision="approve")
-                save_reviewed_concept_mapping(mapping, project_dir)
-                st.rerun()
+                save(mapping)
 
-            if cols[1].button("Reject (unmapped)", key=f"c_reject_{i}"):
+            if cols[1].button(
+                "Reject (unmapped)", key=f"{source_id}_{mapping.revision}_c_reject_{i}"
+            ):
                 mapping = apply_concept_decision(mapping, index=i, decision="reject")
-                save_reviewed_concept_mapping(mapping, project_dir)
-                st.rerun()
+                save(mapping)
 
             # Override section
             st.markdown("**Override**")
@@ -88,10 +108,15 @@ def render_concept_review(project_dir: Path) -> None:
                 pick = st.selectbox(
                     "Pick a candidate",
                     options=["(none)", *cand_labels],
-                    key=f"c_pick_{i}",
+                    key=f"{source_id}_{mapping.revision}_c_pick_{i}",
                 )
-                note = st.text_input("Reviewer note (optional)", key=f"c_note_{i}")
-                if st.button("Override with picked candidate", key=f"c_apply_pick_{i}"):
+                note = st.text_input(
+                    "Reviewer note (optional)", key=f"{source_id}_{mapping.revision}_c_note_{i}"
+                )
+                if st.button(
+                    "Override with picked candidate",
+                    key=f"{source_id}_{mapping.revision}_c_apply_pick_{i}",
+                ):
                     if pick != "(none)":
                         ci = int(pick.split(":", 1)[0].lstrip("#"))
                         mapping = apply_concept_decision(
@@ -101,21 +126,27 @@ def render_concept_review(project_dir: Path) -> None:
                             candidate_index=ci,
                             reviewer_note=note or None,
                         )
-                        save_reviewed_concept_mapping(mapping, project_dir)
-                        st.rerun()
+                        save(mapping)
 
             free_id = st.text_input(
-                "Or enter a concept_id directly", key=f"c_free_id_{i}", placeholder="e.g. 4170143"
+                "Or enter a concept_id directly",
+                key=f"{source_id}_{mapping.revision}_c_free_id_{i}",
+                placeholder="e.g. 4170143",
             )
             free_name = st.text_input(
-                "Concept name (optional)", key=f"c_free_name_{i}", placeholder="Glucose intolerance"
+                "Concept name (optional)",
+                key=f"{source_id}_{mapping.revision}_c_free_name_{i}",
+                placeholder="Glucose intolerance",
             )
             free_note = st.text_input(
                 "Reviewer note (optional)",
-                key=f"c_free_note_{i}",
+                key=f"{source_id}_{mapping.revision}_c_free_note_{i}",
             )
-            if st.button("Override with free-form concept_id", key=f"c_apply_free_{i}"):
-                if free_id.strip().isdigit():
+            if st.button(
+                "Override with free-form concept_id",
+                key=f"{source_id}_{mapping.revision}_c_apply_free_{i}",
+            ):
+                if free_id.strip().isdigit() and int(free_id) > 0:
                     mapping = apply_concept_decision(
                         mapping,
                         index=i,
@@ -124,7 +155,6 @@ def render_concept_review(project_dir: Path) -> None:
                         target_concept_name=free_name or None,
                         reviewer_note=free_note or None,
                     )
-                    save_reviewed_concept_mapping(mapping, project_dir)
-                    st.rerun()
+                    save(mapping)
                 else:
-                    st.warning("concept_id must be an integer")
+                    st.warning("concept_id must be a positive integer")

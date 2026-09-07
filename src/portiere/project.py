@@ -210,6 +210,8 @@ class Project:
         if not path and not connection_string:
             raise ValueError("Either 'path' or 'connection_string' must be provided.")
 
+        explicit_name = name is not None
+
         if connection_string:
             # Database source
             if not table and not query:
@@ -260,7 +262,9 @@ class Project:
         except Exception:
             logger.debug("project.source_introspection_skipped", source=name)
 
-        self._storage.save_source(self.name, name, metadata)
+        metadata = self._storage.register_source(
+            self.name, name, metadata, replace_binding=explicit_name
+        )
         logger.info("project.source_added", project=self.name, source=name)
 
         # Manifest recording: source_data + ingest stage.
@@ -371,6 +375,8 @@ class Project:
         """
         from portiere.stages.stage2_schema import map_schema
 
+        previous = self._storage.load_schema_mapping(self.name, source_id=source.get("id"))
+
         # Read source to get columns
         df = self._read_source_data(source)
         columns = self._extract_columns(df)
@@ -397,7 +403,7 @@ class Project:
                     status=m.get("status", "needs_review"),
                 )
             )
-        mapping = SchemaMapping(items=items)
+        mapping = SchemaMapping(items=items, source_id=source.get("id"), revision=previous.revision)
         mapping.project = self  # type: ignore[assignment]
 
         # Persist
@@ -497,6 +503,9 @@ class Project:
         """
         from portiere.stages.stage3_concepts import map_concepts
 
+        source_id = source.get("id") if source else None
+        previous = self._storage.load_concept_mapping(self.name, source_id=source_id)
+
         if vocabularies is None:
             vocabularies = self.vocabularies
 
@@ -524,19 +533,22 @@ class Project:
             df = self._read_source_data(source)
             normalized_codes = normalized_codes or []
             for col in code_columns:
-                distinct = self.engine.get_distinct_values(df, col)
+                distinct = self.engine.get_distinct_values(df, col, limit=None)
                 # Look for companion description column
                 desc_col = _find_description_column(list(df.columns), col)
                 code_to_desc: dict[str, str] = {}
                 if desc_col:
                     code_to_desc = _extract_description_map(df, col, desc_col)
                 for item in distinct:
+                    if item["value"] is None:
+                        continue
                     code_val = str(item["value"])
                     normalized_codes.append(
                         {
                             "code": code_val,
                             "description": code_to_desc.get(code_val, code_val),
                             "count": item["count"],
+                            "source_column": col,
                         }
                     )
             # Codes extracted — no need to pass engine/path to stage
@@ -605,7 +617,7 @@ class Project:
                         candidates=parsed_candidates,
                     )
                 )
-        mapping = ConceptMapping(items=items)
+        mapping = ConceptMapping(items=items, source_id=source_id, revision=previous.revision)
         mapping.project = self  # type: ignore[assignment]
 
         # Persist
@@ -655,9 +667,30 @@ class Project:
         from portiere.runner import ETLRunner
 
         if schema_mapping is None:
-            schema_mapping = self._storage.load_schema_mapping(self.name)
+            schema_mapping = self._storage.load_schema_mapping(
+                self.name, source_id=source.get("id")
+            )
         if concept_mapping is None:
-            concept_mapping = self._storage.load_concept_mapping(self.name)
+            concept_mapping = self._storage.load_concept_mapping(
+                self.name, source_id=source.get("id")
+            )
+
+        for kind, mapping in (("schema", schema_mapping), ("concept", concept_mapping)):
+            if mapping.source_id is not None and mapping.source_id != source.get("id"):
+                raise ValueError(
+                    "Mapping belongs to a different source; load mappings for this source before ETL."
+                )
+            if mapping.revision is not None:
+                loader = (
+                    self._storage.load_schema_mapping
+                    if kind == "schema"
+                    else self._storage.load_concept_mapping
+                )
+                current = loader(self.name, source_id=mapping.source_id)
+                if current.revision != mapping.revision:
+                    raise ValueError(
+                        "Mapping revision changed; reload the current reviewed mappings before ETL."
+                    )
 
         if source.get("format") == "database":
             raise NotImplementedError(
@@ -931,19 +964,39 @@ class Project:
 
     # --- Convenience ---
 
-    def load_schema_mapping(self) -> SchemaMapping:
-        """Load the current schema mapping from storage."""
-        return self._storage.load_schema_mapping(self.name)
+    @staticmethod
+    def _mapping_source_id(source: dict | None, source_id: str | None) -> str | None:
+        if source is not None:
+            if source_id is not None and source.get("id") != source_id:
+                raise ValueError("source and source_id must identify the same source.")
+            return source.get("id")
+        return source_id
 
-    def load_concept_mapping(self) -> ConceptMapping:
+    def load_schema_mapping(
+        self, source: dict | None = None, *, source_id: str | None = None
+    ) -> SchemaMapping:
+        """Load the current schema mapping from storage."""
+        return self._storage.load_schema_mapping(
+            self.name, source_id=self._mapping_source_id(source, source_id)
+        )
+
+    def load_concept_mapping(
+        self, source: dict | None = None, *, source_id: str | None = None
+    ) -> ConceptMapping:
         """Load the current concept mapping from storage."""
-        return self._storage.load_concept_mapping(self.name)
+        return self._storage.load_concept_mapping(
+            self.name, source_id=self._mapping_source_id(source, source_id)
+        )
 
     def import_concept_mapping(
         self,
         path: str | None = None,
         dataframe: Any = None,
         records: list[dict] | None = None,
+        *,
+        source: dict | None = None,
+        source_id: str | None = None,
+        expected_revision: str | None = None,
     ) -> ConceptMapping:
         """
         Import an existing concept mapping table into this project.
@@ -958,12 +1011,17 @@ class Project:
             path: Path to a CSV or JSON file.
             dataframe: A Pandas, Polars, or Spark DataFrame.
             records: A list of dicts, each with at least ``source_code``.
+            source: Registered source returned by ``add_source``.
+            source_id: Source identity (alternative to ``source``).
+            expected_revision: Revision to replace when importing an unversioned table.
 
         Returns:
             ConceptMapping instance persisted to project storage.
         """
         from portiere.models.concept_mapping import ConceptMapping
 
+        if sum(value is not None for value in (path, dataframe, records)) != 1:
+            raise ValueError("Provide exactly one of: path, dataframe, or records.")
         if path is not None:
             if path.endswith(".json"):
                 mapping = ConceptMapping.from_json(path)
@@ -976,6 +1034,15 @@ class Project:
         else:
             raise ValueError("Provide one of: path (CSV/JSON file), dataframe, or records.")
 
+        selected_source = self._mapping_source_id(source, source_id)
+        if selected_source is not None:
+            if mapping.source_id not in (None, selected_source):
+                raise ValueError("Imported mapping belongs to another source.")
+            mapping.source_id = selected_source
+        if expected_revision is not None:
+            if mapping.revision not in (None, expected_revision):
+                raise ValueError("Expected revision does not match the exported mapping revision.")
+            mapping.revision = expected_revision
         mapping.project = self  # type: ignore[assignment]
         self._storage.save_concept_mapping(self.name, mapping)
         logger.info(
@@ -990,6 +1057,8 @@ class Project:
         path: str,
         *,
         omop_format: bool = False,
+        source: dict | None = None,
+        source_id: str | None = None,
     ) -> str:
         """
         Export the project's concept mapping to a file.
@@ -1002,13 +1071,28 @@ class Project:
         Returns:
             The output file path.
         """
-        mapping = self.load_concept_mapping()
+        mapping = self.load_concept_mapping(source=source, source_id=source_id)
 
         if omop_format:
-            import pandas as pd
+            from portiere.models._mapping_csv import write_mapping_records
 
             rows = mapping.to_source_to_concept_map()
-            pd.DataFrame(rows).to_csv(path, index=False)
+            fields = (
+                list(rows[0])
+                if rows
+                else [
+                    "source_code",
+                    "source_concept_id",
+                    "source_vocabulary_id",
+                    "source_description",
+                    "target_concept_id",
+                    "target_vocabulary_id",
+                    "valid_start_date",
+                    "valid_end_date",
+                    "invalid_reason",
+                ]
+            )
+            write_mapping_records(path, rows, fields)
         elif path.endswith(".json"):
             mapping.to_json(path)
         else:

@@ -29,6 +29,12 @@ import structlog
 import yaml
 
 from portiere.storage.base import StorageBackend
+from portiere.storage.mapping_store import (
+    MappingStore,
+    atomic_write,
+    project_write_lock,
+    touch_project,
+)
 
 if TYPE_CHECKING:
     from portiere.models.concept_mapping import ConceptMapping
@@ -170,10 +176,39 @@ class LocalStorageBackend(StorageBackend):
     # --- Sources ---
 
     def save_source(self, project_name: str, source_name: str, metadata: dict) -> None:
+        with project_write_lock(self._project_dir(project_name)):
+            self._save_source(project_name, source_name, metadata)
+
+    def _save_source(self, project_name, source_name, metadata):
+        source_name = self._safe_name(source_name)
+        if "\\" in source_name or "\x00" in source_name:
+            raise ValueError("Source name must be a single path component.")
         source_path = self._project_dir(project_name) / "sources" / f"{source_name}.yaml"
-        with open(source_path, "w") as f:
-            yaml.dump(metadata, f, default_flow_style=False, sort_keys=False)
-        self._update_timestamp(project_name)
+        atomic_write(source_path, yaml.safe_dump(metadata, sort_keys=False).encode("utf-8"))
+        touch_project(self._project_dir(project_name))
+
+    def register_source(
+        self, project_name: str, source_name: str, metadata: dict, *, replace_binding=False
+    ) -> dict:
+        with project_write_lock(self._project_dir(project_name)):
+            existing = next(
+                (s for s in self.list_sources(project_name) if s.get("name") == source_name), None
+            )
+            if existing and not replace_binding:
+                if any(
+                    existing.get(key) != metadata.get(key)
+                    for key in ("path", "connection_string", "table", "query")
+                ):
+                    raise ValueError(
+                        f"Source name {source_name!r} already exists; provide a distinct name=."
+                    )
+            metadata = {
+                **metadata,
+                "name": source_name,
+                "id": (existing or {}).get("id") or uuid4().hex,
+            }
+            self._save_source(project_name, source_name, metadata)
+            return metadata
 
     def list_sources(self, project_name: str) -> list[dict]:
         sources_dir = self._project_dir(project_name) / "sources"
@@ -186,82 +221,32 @@ class LocalStorageBackend(StorageBackend):
     # --- Schema Mappings ---
 
     def save_schema_mapping(self, project_name: str, mapping: SchemaMapping) -> None:
-        mapping_path = self._project_dir(project_name) / "schema_mappings" / "schema_mapping.yaml"
-        items_data = [item.model_dump(mode="json") for item in mapping.items]
-        with open(mapping_path, "w") as f:
-            yaml.dump(items_data, f, default_flow_style=False, sort_keys=False)
-        self._update_timestamp(project_name)
+        MappingStore(self._project_dir(project_name)).save("schema", mapping)
         logger.info(
             "local_storage.schema_mapping_saved",
             project=project_name,
             items_count=len(mapping.items),
         )
 
-    def load_schema_mapping(self, project_name: str) -> SchemaMapping:
-        from portiere.models.schema_mapping import SchemaMapping, SchemaMappingItem
-
-        mapping_path = self._project_dir(project_name) / "schema_mappings" / "schema_mapping.yaml"
-        if not mapping_path.exists():
-            return SchemaMapping(items=[])
-
-        with open(mapping_path) as f:
-            items_data = yaml.safe_load(f) or []
-
-        items = [SchemaMappingItem(**item) for item in items_data]
-        return SchemaMapping(items=items)
+    def load_schema_mapping(
+        self, project_name: str, *, source_id: str | None = None
+    ) -> SchemaMapping:
+        return MappingStore(self._project_dir(project_name)).load("schema", source_id)
 
     # --- Concept Mappings ---
 
     def save_concept_mapping(self, project_name: str, mapping: ConceptMapping) -> None:
-        import pandas as pd
-
-        project_dir = self._project_dir(project_name)
-
-        # Save as YAML
-        yaml_path = project_dir / "concept_mappings" / "concept_mapping.yaml"
-        items_data = [item.model_dump(mode="json") for item in mapping.items]
-        with open(yaml_path, "w") as f:
-            yaml.dump(items_data, f, default_flow_style=False, sort_keys=False)
-
-        # Also save as CSV for easy database import
-        csv_path = project_dir / "concept_mappings" / "source_to_concept_map.csv"
-        if items_data:
-            df = pd.DataFrame(items_data)
-            df.to_csv(csv_path, index=False)
-        else:
-            df = pd.DataFrame(
-                columns=[
-                    "source_code",
-                    "source_description",
-                    "target_concept_id",
-                    "target_concept_name",
-                    "vocabulary_id",
-                    "domain_id",
-                    "confidence",
-                    "method",
-                ]
-            )
-            df.to_csv(csv_path, index=False)
-
-        self._update_timestamp(project_name)
+        MappingStore(self._project_dir(project_name)).save("concept", mapping)
         logger.info(
             "local_storage.concept_mapping_saved",
             project=project_name,
             items_count=len(mapping.items),
         )
 
-    def load_concept_mapping(self, project_name: str) -> ConceptMapping:
-        from portiere.models.concept_mapping import ConceptMapping, ConceptMappingItem
-
-        mapping_path = self._project_dir(project_name) / "concept_mappings" / "concept_mapping.yaml"
-        if not mapping_path.exists():
-            return ConceptMapping(items=[])
-
-        with open(mapping_path) as f:
-            items_data = yaml.safe_load(f) or []
-
-        items = [ConceptMappingItem(**item) for item in items_data]
-        return ConceptMapping(items=items)
+    def load_concept_mapping(
+        self, project_name: str, *, source_id: str | None = None
+    ) -> ConceptMapping:
+        return MappingStore(self._project_dir(project_name)).load("concept", source_id)
 
     # --- Cross Mappings ---
 
@@ -354,15 +339,14 @@ class LocalStorageBackend(StorageBackend):
         self, project_name: str, cloud_id: str, timestamp: str | None = None
     ) -> None:
         """Save cloud sync metadata to project.yaml."""
-        yaml_path = self._project_dir(project_name) / "project.yaml"
-        with open(yaml_path) as f:
-            metadata = yaml.safe_load(f)
+        with project_write_lock(self._project_dir(project_name)):
+            yaml_path = self._project_dir(project_name) / "project.yaml"
+            with open(yaml_path) as f:
+                metadata = yaml.safe_load(f)
 
-        metadata["cloud_project_id"] = cloud_id
-        metadata["last_synced"] = timestamp or datetime.now(tz=timezone.utc).isoformat()
-
-        with open(yaml_path, "w") as f:
-            yaml.dump(metadata, f, default_flow_style=False, sort_keys=False)
+            metadata["cloud_project_id"] = cloud_id
+            metadata["last_synced"] = timestamp or datetime.now(tz=timezone.utc).isoformat()
+            atomic_write(yaml_path, yaml.safe_dump(metadata, sort_keys=False).encode("utf-8"))
 
     def load_sync_metadata(self, project_name: str) -> dict | None:
         """Load cloud sync metadata. Returns None if not synced."""
@@ -383,11 +367,5 @@ class LocalStorageBackend(StorageBackend):
 
     def _update_timestamp(self, project_name: str) -> None:
         """Update project.yaml with current timestamp."""
-        yaml_path = self._project_dir(project_name) / "project.yaml"
-        if not yaml_path.exists():
-            return
-        with open(yaml_path) as f:
-            metadata = yaml.safe_load(f)
-        metadata["updated_at"] = datetime.now(tz=timezone.utc).isoformat()
-        with open(yaml_path, "w") as f:
-            yaml.dump(metadata, f, default_flow_style=False, sort_keys=False)
+        with project_write_lock(self._project_dir(project_name)):
+            touch_project(self._project_dir(project_name))

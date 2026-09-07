@@ -92,7 +92,7 @@ class AbstractEngine(ABC):
         self,
         df: Any,
         column: str,
-        limit: int = 1000,
+        limit: int | None = 1000,
     ) -> list[dict[str, Any]]:
         """
         Get distinct values with counts for a column.
@@ -102,7 +102,7 @@ class AbstractEngine(ABC):
         Args:
             df: DataFrame
             column: Column name
-            limit: Maximum distinct values to return
+            limit: Maximum distinct values to return; None returns all values.
 
         Returns:
             List of {value, count} dicts
