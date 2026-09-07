@@ -1,6 +1,6 @@
 # Review and reuse mappings
 
-**Unreleased development functionality.** Install this checkout using the [contributor instructions](../CONTRIBUTING.md). The public 0.5.0 release does not include this workflow.
+**Introduced in 0.6.0.** This guide covers source-scoped reviews and migration from 0.5.x. To test a release candidate from this checkout, follow the [contributor instructions](../CONTRIBUTING.md).
 
 Each registered source now has a stable `id`. Schema and concept mappings belong to that source, so adding another hospital's file no longer overwrites the first hospital's decisions. The SDK and Streamlit review UI read and save the same current snapshot.
 

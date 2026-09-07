@@ -9,7 +9,7 @@ pip install "portiere-health[review]"   # adds streamlit>=1.30
 portiere review <project-dir>           # launches the UI at http://127.0.0.1:8501
 ```
 
-**Development-branch migration:** the SDK and UI now share source-scoped JSON snapshots with revision checks. Legacy YAML is retained as a fallback. Follow [Review and reuse mappings](../reviewed-mappings.md) for the current storage and import/export contract; examples below predate those Unreleased changes.
+**Migration in 0.6.0:** the SDK and UI now share source-scoped JSON snapshots with revision checks. Legacy YAML is retained as a fallback. Follow [Review and reuse mappings](../reviewed-mappings.md) for the current storage and import/export contract; examples below predate those changes.
 
 ---
 

@@ -10,7 +10,7 @@ runtime** and no lock-in.
 
 No extra needed — generation is pure text (`pip install "portiere-health[polars]"`).
 
-**Unreleased:** generation requires a fresh, empty output directory. Choose a new directory for each reviewed revision so older SQL models and seeds cannot survive a regeneration. Only accepted mappings enter executable models and seeds.
+**Since 0.6.0:** generation requires a fresh, empty output directory. Choose a new directory for each reviewed revision so older SQL models and seeds cannot survive a regeneration. Only accepted mappings enter executable models and seeds.
 
 ```bash
 portiere dbt \

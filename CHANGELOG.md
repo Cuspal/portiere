@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-07
+
+The **Mapping Foundation** release keeps mappings separate for each source and makes saved review decisions authoritative across the SDK, review UI and generated artifacts. It also improves offline setup, mapping-file exchange and failure reporting.
+
+**Upgrading from 0.5.x:** read the [mapping migration guide](docs/reviewed-mappings.md). Source selection, revision checks, the JSON export envelope and explicit concept exports affect existing automation.
+
 ### Fixed
 
 - SDK execution, review UI, generated ETL artifacts and dbt seeds share mapping eligibility rules. Explicit pending/rejected concept decisions cannot execute or enter approved exports; inference method is retained separately. Empty ETL plans fail instead of reporting success.
@@ -29,6 +35,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Concept JSON exports now contain a versioned object with `items`, `source_id` and `revision`; legacy top-level lists remain readable. CSV exports include `mapping_source_id` and `mapping_revision`. Replacing a versioned mapping from an unversioned table requires an explicit expected revision.
 - New mapping writes use source-scoped JSON snapshots. Legacy YAML remains readable and is retained. Saving concepts no longer emits an implicit `source_to_concept_map.csv`; export it explicitly after review. Multisource callers must select a source. See the migration guide before upgrading automation.
+- Empty concept review CSV exports now require JSON to preserve source and revision metadata. Ordinary CSV, gzip, bzip2, xz and ZIP review exchange works without Pandas; additional transports retain their optional dependencies.
+- dbt generation requires a fresh, empty output directory so SQL models and seeds from previous decisions cannot survive regeneration.
+
+### Release scope and validation
+
+- Locally verified on macOS/Python 3.12: 1,365 tests passed, 30 skipped and 5 model tests deselected; lint, formatting, type checks and installed-wheel workflows passed. Remote CI, Spark and native Streamlit interaction require their own verification.
+- Explicit concept destination compilation, immutable mapping bundles, a unified run report and bounded-memory execution remain planned. Existing concept-column generation still needs review against the target standard; Athena relationship traversal and one-to-many target expansion are not implemented.
 
 ## [0.5.0] - 2026-07-25
 
