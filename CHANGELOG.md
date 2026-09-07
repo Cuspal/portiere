@@ -18,6 +18,8 @@ The **Mapping Foundation** release keeps mappings separate for each source and m
 - SDK execution, review UI, generated ETL artifacts and dbt seeds share mapping eligibility rules. Explicit pending/rejected concept decisions cannot execute or enter approved exports; inference method is retained separately. Empty ETL plans fail instead of reporting success.
 - Concept extraction processes all distinct codes, including literal CSV identifiers such as `00123` and `NA`. Direct concept lookup respects vocabulary/domain filters and preserves standard/nonstandard metadata; nonstandard concepts are not automatically accepted as standard targets.
 - The `[quality]` extra now includes PyArrow, required to validate Polars output in a fresh installation.
+- The contributor dependency lock includes Hatchling's `editables` build dependency so fresh CI and contributor environments can install the package with `--no-build-isolation -e .`.
+- Generated ETL artifacts use UTF-8 and preserve embedded CSV newlines on Windows. The artifact runner reads UTF-8 explicitly so Unicode mapping codes remain intact across environments.
 - Quickstart disables embedding, reranking and remote providers, uses reviewed synthetic demographics, and returns a nonzero exit status when any required stage fails. Validation must pass, and each invocation writes to a new ETL directory.
 - Mapping CSV imports preserve literal identifiers such as `00123`, `NA` and `NULL`, accept nullable concept IDs exported by pandas, and no longer truncate engine imports at 999,999 rows. Compressed local files and engine transports remain supported.
 - `portiere doctor` uses the SDK's configuration discovery. Nested environment settings such as `PORTIERE_LLM__PROVIDER` are recognized.
@@ -40,7 +42,7 @@ The **Mapping Foundation** release keeps mappings separate for each source and m
 
 ### Release scope and validation
 
-- Locally verified on macOS/Python 3.12: 1,365 tests passed, 30 skipped and 5 model tests deselected; lint, formatting, type checks and installed-wheel workflows passed. Remote CI, Spark and native Streamlit interaction require their own verification.
+- Locally verified on macOS/Python 3.12: 1,371 tests passed, 30 skipped and 5 model tests deselected, including Windows text-I/O regression coverage; lint, formatting, type checks and installed-wheel workflows passed. Remote CI, Spark and native Streamlit interaction require their own verification.
 - Explicit concept destination compilation, immutable mapping bundles, a unified run report and bounded-memory execution remain planned. Existing concept-column generation still needs review against the target standard; Athena relationship traversal and one-to-many target expansion are not implemented.
 
 ## [0.5.0] - 2026-07-25

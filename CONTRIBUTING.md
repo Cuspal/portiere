@@ -18,6 +18,8 @@ On Windows, create the environment with `py -3.12 -m venv .venv` and activate it
 
 `requirements/dev.txt` pins the contributor dependencies, including Polars, Pandas, quality checks and build tools, with platform/Python markers. It does not constrain library consumers. CI tests Python 3.10–3.12; the bundled integration workflow exercises Python 3.12 on Linux, macOS and Windows. A configured CI job is a coverage target, not evidence that an unrun platform passes.
 
+Install the requirements before the editable package. With `--no-build-isolation`, pip expects all build dependencies to be installed already, including Hatchling's dynamic `editables` dependency. Contributor build dependencies belong in `requirements/dev-tools.in` and the generated lock.
+
 Regenerate the lock deliberately after editing dependencies, review the diff and rerun checks. Add `--upgrade` when intentionally refreshing pinned versions:
 
 ```bash

@@ -80,7 +80,7 @@ def generate_etl(
 
     # Save ETL script
     script_path = artifact_path / f"etl_{engine_name}.py"
-    script_path.write_text(script)
+    script_path.write_text(script, encoding="utf-8", newline="")
 
     # Generate mapping lookup table
     lookup_path = artifact_path / "concept_lookup.csv"
@@ -414,7 +414,7 @@ def _generate_lookup_table(concept_mapping: dict, path: Path) -> None:
             ]
         )
 
-    path.write_text(buf.getvalue().rstrip("\n"))
+    path.write_text(buf.getvalue().rstrip("\n"), encoding="utf-8", newline="")
 
 
 def _generate_config(
@@ -440,4 +440,4 @@ def _generate_config(
         },
     }
 
-    path.write_text(yaml.dump(config, default_flow_style=False))
+    path.write_text(yaml.dump(config, default_flow_style=False), encoding="utf-8", newline="")
